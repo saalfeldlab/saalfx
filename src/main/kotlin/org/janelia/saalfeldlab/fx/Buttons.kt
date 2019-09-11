@@ -9,15 +9,24 @@ class Buttons {
 
     companion object {
 
-        @JvmStatic
-        fun withTooltip(labelText: String, handler: EventHandler<ActionEvent>): Button {
-            return withTooltip(labelText, labelText, handler)
-        }
+        fun withTooltip(
+                labelText: String?,
+                handler: (ActionEvent) -> Unit) = withTooltip(labelText, EventHandler { handler(it) })
 
         @JvmStatic
         fun withTooltip(
-                labelText: String,
-                tooltipText: String,
+                labelText: String?,
+                handler: EventHandler<ActionEvent>) = withTooltip(labelText, labelText, handler)
+
+        fun withTooltip(
+                labelText: String?,
+                tooltipText: String?,
+                handler: (ActionEvent) -> Unit) = withTooltip(labelText, tooltipText, EventHandler { handler(it) })
+
+        @JvmStatic
+        fun withTooltip(
+                labelText: String?,
+                tooltipText: String?,
                 handler: EventHandler<ActionEvent>): Button {
             val button = Button(labelText)
             button.tooltip = Tooltip(tooltipText)
