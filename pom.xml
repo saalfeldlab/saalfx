@@ -46,6 +46,62 @@
 		<fuzzywuzzy.version>1.2.0</fuzzywuzzy.version>
 	</properties>
 
+	<developers>
+		<developer>
+			<id>hanslovsky</id>
+			<name>Philipp Hanslovsky</name>
+			<email>hanslovskyp@janelia.hhmi.org</email>
+			<url />
+			<organization>HHMI Janelia</organization>
+			<organizationUrl>http://janelia.org/</organizationUrl>
+			<roles>
+				<role>founder</role>
+				<role>lead</role>
+				<role>developer</role>
+				<role>maintainer</role>
+			</roles>
+			<timezone>-5</timezone>
+		</developer>
+	</developers>
+
+	<contributors>
+		   <contributor>
+				   <name>none</name>
+		   </contributor>
+	</contributors>
+
+
+	<mailingLists>
+		<mailingList>
+			<name>ImageJ Forum</name>
+			<archive>https://image.sc</archive>
+		</mailingList>
+	</mailingLists>
+
+	<issueManagement>
+		<system>GitHub</system>
+		<url>https://github.com/saalfeldlab/saalfx/issues</url>
+	</issueManagement>
+
+
+	<ciManagement>
+		<system>Travis CI</system>
+		<url>https://travis-ci.com/saalfeldlab/saalfx</url>
+	</ciManagement>
+
+	<scm>
+		<connection>scm:git:git://github.com/saalfeldlab/saalfx</connection>
+		<developerConnection>scm:git:git@github.com:saalfeldlab/saalfx.git</developerConnection>
+		<tag>HEAD</tag>
+		<url>https://github.com/saalfeldlab/saalfx</url>
+	</scm>
+
+	<repositories>
+		<repository>
+			<id>scijava.public</id>
+			<url>https://maven.scijava.org/content/groups/public</url>
+		</repository>
+	</repositories>
 
 	<dependencies>
 		<dependency>
@@ -58,36 +114,21 @@
 			<artifactId>scijava-common</artifactId>
 		</dependency>
 
-<!--	logging-->
+		<!--	logging-->
 		<!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
 		</dependency>
 
-<!--	fuzzy matching-->
+		<!--	fuzzy matching-->
 		<dependency>
 			<groupId>me.xdrop</groupId>
 			<artifactId>fuzzywuzzy</artifactId>
 			<version>${fuzzywuzzy.version}</version>
 		</dependency>
-		<!-- <dependency> -->
-		<!-- 	<groupId>org.controlsfx</groupId> -->
-		<!-- 	<artifactId>controlsfx</artifactId> -->
-		<!-- 	<version>8.40.14</version> -->
-		<!-- </dependency> -->
-		<!-- <dependency> -->
-		<!-- 	<groupId>com.pivovarit</groupId> -->
-		<!-- 	<artifactId>throwing-function</artifactId> -->
-		<!-- 	<version>1.5.0</version> -->
-		<!-- </dependency> -->
 
-		<!-- <dependency> -->
-		<!-- 	<groupId>commons-io</groupId> -->
-		<!-- 	<artifactId>commons-io</artifactId> -->
-		<!-- </dependency> -->
-
-<!--		markdown rendering-->
+		<!--		markdown rendering-->
 		<dependency>
 			<groupId>com.atlassian.commonmark</groupId>
 			<artifactId>commonmark</artifactId>
@@ -119,134 +160,7 @@
 		</dependency>
 	</dependencies>
 
-	<developers>
-		<developer>
-			<id>hanslovsky</id>
-			<name>Philipp Hanslovsky</name>
-			<email>hanslovskyp@janelia.hhmi.org</email>
-			<url />
-			<organization>HHMI Janelia</organization>
-			<organizationUrl>http://janelia.org/</organizationUrl>
-			<roles>
-				<role>founder</role>
-				<role>lead</role>
-				<role>developer</role>
-				<role>maintainer</role>
-			</roles>
-			<timezone>-5</timezone>
-		</developer>
-		<developer>
-			<id>axtimwalde</id>
-			<name>Stephan Saalfeld</name>
-			<email>saalfelds@janelia.hhmi.org</email>
-			<url />
-			<organization>HHMI Janelia</organization>
-			<organizationUrl>http://janelia.org/</organizationUrl>
-			<roles>
-				<role>lead</role>
-				<role>developer</role>
-				<role>maintainer</role>
-			</roles>
-			<timezone>-5</timezone>
-		</developer>
-	</developers>
-
-	<contributors>
-		<contributor>
-			<name>Vanessa Leite</name>
-			<properties>
-				<id>ssinhaleite</id>
-			</properties>
-			<url>https://github.com/ssinhaleite</url>
-		</contributor>
-	</contributors>
-
-	<mailingLists>
-		<mailingList>
-			<name>ImageJ Forum</name>
-			<archive>http://forum.imagej.net/</archive>
-		</mailingList>
-	</mailingLists>
-
-	<issueManagement>
-		<system>GitHub</system>
-		<url>https://github.com/saalfeldlab/saalfx/issues</url>
-	</issueManagement>
-
-
-	<ciManagement>
-		<system>Travis CI</system>
-		<url>https://travis-ci.org/saalfeldlab/saalfx</url>
-	</ciManagement>
-
-	<scm>
-		<connection>scm:git:git://github.com/saalfeldlab/saalfx</connection>
-		<developerConnection>scm:git:git@github.com:saalfeldlab/saalfx.git</developerConnection>
-		<tag>HEAD</tag>
-		<url>https://github.com/saalfeldlab/saalfx</url>
-	</scm>
-
-	<repositories>
-		<repository>
-			<id>scijava.public</id>
-			<url>https://maven.scijava.org/content/groups/public</url>
-		</repository>
-	</repositories>
-
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.jetbrains.kotlin</groupId>
-				<artifactId>kotlin-maven-plugin</artifactId>
-				<version>${kotlin.version}</version>
-				<executions>
-					<execution>
-						<id>compile</id>
-						<phase>compile</phase>
-						<goals> <goal>compile</goal> </goals>
-					</execution>
-					<execution>
-						<id>test-compile</id>
-						<phase>test-compile</phase>
-						<goals> <goal>test-compile</goal> </goals>
-					</execution>
-				</executions>
-				<configuration>
-					<jvmTarget>1.8</jvmTarget>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<executions>
-					<!-- Replacing default-compile as it is treated specially by maven -->
-					<execution>
-						<id>default-compile</id>
-						<phase>none</phase>
-					</execution>
-					<!-- Replacing default-testCompile as it is treated specially by maven -->
-					<execution>
-						<id>default-testCompile</id>
-						<phase>none</phase>
-					</execution>
-					<execution>
-						<id>java-compile</id>
-						<phase>compile</phase>
-						<goals> <goal>compile</goal> </goals>
-					</execution>
-					<execution>
-						<id>java-test-compile</id>
-						<phase>test-compile</phase>
-						<goals> <goal>testCompile</goal> </goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-				<configuration><skip>true</skip></configuration>
-			</plugin>
-		</plugins>
-	</build>
+	<!--NB: No need to add kotlin maven plugin because pom-scijava activates kotlin profile automatically when src/main/kotlin exists -->
+	<!--https://github.com/scijava/pom-scijava-base/blob/1efafea6d2aa51a9e7561f13df592e3d495097f8/pom.xml#L1210-L1212 -->
 
 </project>
