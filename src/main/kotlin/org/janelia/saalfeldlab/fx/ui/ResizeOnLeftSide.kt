@@ -6,13 +6,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -40,6 +40,7 @@ import javafx.scene.Cursor
 import javafx.scene.Node
 import javafx.scene.input.MouseEvent
 import org.janelia.saalfeldlab.fx.event.MouseDragFX
+import java.util.function.Predicate
 import kotlin.math.abs
 
 class ResizeOnLeftSide @JvmOverloads constructor(
@@ -60,7 +61,7 @@ class ResizeOnLeftSide @JvmOverloads constructor(
 
         this.mouseDragged = object : MouseDragFX(
                 "resize",
-                { isCurrentlyWithinMarginOfBorder.get() },
+                Predicate { isCurrentlyWithinMarginOfBorder.get() },
                 true,
                 this,
                 false) {
@@ -82,7 +83,7 @@ class ResizeOnLeftSide @JvmOverloads constructor(
         }
 
         isCurrentlyWithinMarginOfBorder.addListener { obs, oldv, newv ->
-            if (!mouseDragged.isDraggingProperty().get()) {
+            if (!mouseDragged.isDraggingProperty.get()) {
                 Optional.ofNullable(node.scene).ifPresent { s ->
                     s.cursor = if (newv)
                         Cursor.W_RESIZE
