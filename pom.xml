@@ -44,6 +44,12 @@
 
 		<!-- fuzzywuzzy version -->
 		<fuzzywuzzy.version>1.2.0</fuzzywuzzy.version>
+
+		<!-- testfx -->
+		<testfx.version>4.0.16-alpha</testfx.version>
+
+		<!-- junit -->
+		<junit.version>4.13-beta-3</junit.version>
 	</properties>
 
 	<developers>
@@ -156,6 +162,12 @@
 			<groupId>org.jetbrains.kotlin</groupId>
 			<artifactId>kotlin-test-junit</artifactId>
 			<version>${kotlin.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testfx</groupId>
+			<artifactId>testfx-junit</artifactId>
+			<version>${testfx.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
