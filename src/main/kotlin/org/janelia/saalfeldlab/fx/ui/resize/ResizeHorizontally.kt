@@ -6,7 +6,6 @@ import javafx.beans.binding.Bindings
 import javafx.beans.property.BooleanProperty
 import javafx.beans.property.DoubleProperty
 import javafx.beans.property.ReadOnlyBooleanProperty
-import javafx.beans.property.ReadOnlyDoubleProperty
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleDoubleProperty
 import javafx.event.Event
@@ -17,8 +16,6 @@ import javafx.scene.Cursor
 import javafx.scene.Node
 import javafx.scene.Scene
 import javafx.scene.control.Label
-import javafx.scene.control.TextArea
-import javafx.scene.control.TextField
 import javafx.scene.input.MouseEvent
 import javafx.scene.layout.Background
 import javafx.scene.layout.BackgroundFill
@@ -33,7 +30,6 @@ import org.slf4j.LoggerFactory
 import java.lang.invoke.MethodHandles
 import java.util.concurrent.Callable
 import java.util.function.DoublePredicate
-import java.util.function.DoubleSupplier
 import java.util.function.Predicate
 import kotlin.math.abs
 import kotlin.math.max
@@ -159,13 +155,13 @@ class ResizeHorizontally @JvmOverloads constructor(
             Platform.runLater {
                 val left = VBox(Label("Left"))
                         .also { it.background = Background(BackgroundFill(Color.LIGHTCYAN, CornerRadii.EMPTY, Insets.EMPTY)) }
-                        .also { it.minWidth = 5.0 }
+                        .also { it.minWidth = 0.0 }
                 val center = VBox(Label("Center"))
                         .also { it.background = Background(BackgroundFill(Color.MAGENTA, CornerRadii.EMPTY, Insets.EMPTY)) }
-                        .also { it.minWidth = 20.0 }
+                        .also { it.minWidth = 50.0 }
                 val right = VBox(Label("Right"))
                         .also { it.background = Background(BackgroundFill(Color.LIGHTCYAN, CornerRadii.EMPTY, Insets.EMPTY)) }
-                        .also { it.minWidth = 5.0 }
+                        .also { it.minWidth = 0.0 }
                 val root = BorderPane(center)
                         .also { it.left = left }
                         .also { it.right = right }
@@ -175,23 +171,22 @@ class ResizeHorizontally @JvmOverloads constructor(
                 val rightMinWidth = Bindings.createDoubleBinding(Callable { max(right.minWidth, 0.0) }, right.minWidthProperty())
                 val centerMinWidth = Bindings.createDoubleBinding(Callable { max(center.minWidth, 0.0) }, center.minWidthProperty())
                 val leftMaxWidth = Bindings.createDoubleBinding(
-                        Callable { max(root.width - rightMinWidth.value - centerMinWidth.value, leftMinWidth.value) },
+                        Callable { max(root.width - max(max(right.width, rightMinWidth.value), 0.0) - centerMinWidth.value, leftMinWidth.value) },
                         root.widthProperty(),
                         leftMinWidth,
+                        right.widthProperty(),
                         rightMinWidth,
                         centerMinWidth)
-                val rightMinOffset = centerMinWidth.add(leftMinWidth)
-                val rightMaxWidth = Bindings.createDoubleBinding(
-                        Callable { max(root.width - rightMinWidth.value, rightMinOffset.value) },
-                        root.widthProperty(),
-                        rightMinWidth)
+                val rightMaxWidth = Bindings.createDoubleBinding(Callable { max(root.width - rightMinWidth.value, 0.0) }, root.widthProperty())
+                val rightMinOffset = Bindings
+                        .createDoubleBinding(Callable { max(leftMinWidth.value, left.width) }, leftMinWidth, left.widthProperty())
+                        .add(centerMinWidth)
+                val boundedRightMinOffset = Bindings.createDoubleBinding(Callable { min(rightMaxWidth.value, rightMinOffset.value) }, rightMaxWidth, rightMinOffset)
                 val resizeLeft = ResizeHorizontally(2.0 * max(left.minWidth, 20.0)) { abs(it) < margin }
-                        .also { it.maxProperty().addListener { _, _, new -> println("LEFT MAX $new") } }
                         .also { it.minProperty().bind(leftMinWidth) }
                         .also { it.maxProperty().bind(leftMaxWidth) }
                 val resizeRight = ResizeHorizontally(root.width - 2.0 * max(left.minWidth, 20.0)) { abs(it) < margin }
-                        .also { it.minProperty().addListener { _, _, new -> println("RIGHT MIN $new") } }
-                        .also { it.minProperty().bind(rightMinOffset) }
+                        .also { it.minProperty().bind(boundedRightMinOffset) }
                         .also { it.maxProperty().bind(rightMaxWidth) }
                 resizeLeft.installInto(root)
                 resizeRight.installInto(root)
@@ -204,8 +199,6 @@ class ResizeHorizontally @JvmOverloads constructor(
                 val isDragging = resizeLeft.dragginProperty().or(resizeRight.dragginProperty())
                 val needsCursor = canResize.or(isDragging)
                 val cursor = Bindings.createObjectBinding(Callable { if (needsCursor.get()) Cursor.H_RESIZE else Cursor.DEFAULT }, needsCursor)
-
-                println("$leftMinWidth $rightMinWidth")
 
                 Stage()
                         .also { it.scene = Scene(root, 400.0, 300.0) }
