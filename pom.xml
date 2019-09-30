@@ -50,9 +50,6 @@
 
 		<!-- junit -->
 		<junit.version>4.13-beta-3</junit.version>
-
-		<!-- disable tests until travis situation is figured out -->
-		<skipTests>true</skipTests>
 	</properties>
 
 	<developers>
