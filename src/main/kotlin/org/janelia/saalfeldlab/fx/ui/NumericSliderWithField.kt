@@ -30,7 +30,6 @@ package org.janelia.saalfeldlab.fx.ui
 
 import javafx.scene.control.Slider
 import javafx.scene.control.TextField
-import javafx.scene.control.TextFormatter
 import org.janelia.saalfeldlab.fx.util.DoubleStringFormatter
 import kotlin.math.roundToInt
 
@@ -45,6 +44,11 @@ class NumericSliderWithField @JvmOverloads constructor(
             min: Int,
             max: Int,
             initialValue: Int) : this(min.toDouble(), max.toDouble(), initialValue.toDouble(), 0, true)
+
+    constructor(
+            min: Long,
+            max: Long,
+            initialValue: Long) : this(min.toDouble(), max.toDouble(), initialValue.toDouble(), 0, true)
 
     val slider: Slider
 
