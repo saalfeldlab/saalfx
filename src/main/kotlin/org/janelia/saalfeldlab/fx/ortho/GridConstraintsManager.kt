@@ -50,9 +50,11 @@ class GridConstraintsManager {
 
     private val firstColumnWidth = SimpleDoubleProperty()
 
-    val maximizedColumn: MaximizedColumn = fromFirstColumnWidth(this.firstColumnWidth.value)
+    val maximizedColumn: MaximizedColumn
+        get() = fromFirstColumnWidth(this.firstColumnWidth.value)
 
-    val maximizedRow: MaximizedRow = fromFirstRowHeight(this.firstRowHeight.value)
+    val maximizedRow: MaximizedRow
+        get() = fromFirstRowHeight(this.firstRowHeight.value)
 
     enum class MaximizedRow constructor(val index: Int) {
         TOP(0),
@@ -210,7 +212,7 @@ class GridConstraintsManager {
 
     }
 
-    fun firstRowHeightProperty(): DoubleProperty =  this.firstRowHeight
+    fun firstRowHeightProperty(): DoubleProperty = this.firstRowHeight
 
     fun firstColumnWidthProperty(): DoubleProperty = this.firstColumnWidth
 
