@@ -6,13 +6,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -28,17 +28,13 @@
  */
 package org.janelia.saalfeldlab.fx.ortho
 
-import java.lang.invoke.MethodHandles
-
-import javafx.beans.binding.Bindings
 import javafx.beans.property.DoubleProperty
 import javafx.beans.property.SimpleDoubleProperty
-import javafx.beans.value.ObservableObjectValue
 import javafx.scene.layout.ColumnConstraints
 import javafx.scene.layout.GridPane
 import javafx.scene.layout.RowConstraints
 import org.slf4j.LoggerFactory
-import java.util.concurrent.Callable
+import java.lang.invoke.MethodHandles
 
 class GridConstraintsManager {
 
@@ -54,21 +50,9 @@ class GridConstraintsManager {
 
     private val firstColumnWidth = SimpleDoubleProperty()
 
-    @Transient
-    private val _maximizedColumn = Bindings.createObjectBinding<MaximizedColumn?>(
-            Callable { fromFirstColumnWidth(firstColumnWidth.get()) },
-            firstColumnWidth)
+    val maximizedColumn: MaximizedColumn = fromFirstColumnWidth(this.firstColumnWidth.value)
 
-    val maximizedColumn: MaximizedColumn?
-        get() = _maximizedColumn.value
-
-    @Transient
-    private val _maximizedRow = Bindings.createObjectBinding<MaximizedRow?>(
-            Callable { fromFirstRowHeight(firstRowHeight.get()) },
-            firstRowHeight)
-
-    val maximizedRow: MaximizedRow?
-        get() = _maximizedRow.value
+    val maximizedRow: MaximizedRow = fromFirstRowHeight(this.firstRowHeight.value)
 
     enum class MaximizedRow constructor(val index: Int) {
         TOP(0),
@@ -226,17 +210,9 @@ class GridConstraintsManager {
 
     }
 
-    fun firstRowHeightProperty(): DoubleProperty {
-        return this.firstRowHeight
-    }
+    fun firstRowHeightProperty(): DoubleProperty =  this.firstRowHeight
 
-    fun firstColumnWidthProperty(): DoubleProperty {
-        return this.firstColumnWidth
-    }
-
-    fun maximizedColumnObservable(): ObservableObjectValue<MaximizedColumn?> = this._maximizedColumn
-
-    fun maximizedRowObservable(): ObservableObjectValue<MaximizedRow?> = this._maximizedRow
+    fun firstColumnWidthProperty(): DoubleProperty = this.firstColumnWidth
 
     fun set(that: GridConstraintsManager) {
         if (this === that) {
@@ -262,10 +238,6 @@ class GridConstraintsManager {
                 .append(firstColumnWidth.get())
                 .append(", ")
                 .append(isFullScreen)
-                .append(", ")
-                .append(_maximizedRow)
-                .append(", ")
-                .append(_maximizedColumn)
                 .append("}")
                 .toString()
     }
