@@ -12,3 +12,6 @@
 attributes.json*
 canvases
 .paintera
+.idea
+*.iml
+*.class
