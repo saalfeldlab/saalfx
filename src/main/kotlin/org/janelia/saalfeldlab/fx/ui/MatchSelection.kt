@@ -6,13 +6,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -28,7 +28,6 @@
  */
 package org.janelia.saalfeldlab.fx.ui
 
-import javafx.beans.property.IntegerProperty
 import javafx.beans.property.SimpleIntegerProperty
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
@@ -50,17 +49,13 @@ import me.xdrop.fuzzywuzzy.FuzzySearch
 import me.xdrop.fuzzywuzzy.model.ExtractedResult
 import org.janelia.saalfeldlab.fx.Labels
 import org.janelia.saalfeldlab.fx.Separators
-import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-
 import java.lang.invoke.MethodHandles
 import java.util.ArrayList
-import java.util.Collections
 import java.util.Optional
 import java.util.function.BiFunction
 import java.util.function.Consumer
 import java.util.function.IntSupplier
-import java.util.stream.Collectors
 import kotlin.math.abs
 import kotlin.math.min
 
@@ -90,7 +85,7 @@ class MatchSelection(
 
         constructor(matcher: (String, List<String>) -> List<ExtractedResult>) : this(BiFunction { s, l -> matcher(s, l) })
 
-        override fun apply(query: String, from: List<String>) = matcher.apply(query, from).map { "$it" }
+        override fun apply(query: String, from: List<String>) = matcher.apply(query, from).map { it.string }
     }
 
     init {
