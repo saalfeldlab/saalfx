@@ -6,13 +6,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -119,26 +119,28 @@ open class ObjectField<T, P : Property<T>>(
 
         @JvmStatic
         fun fileField(
-                initialFile: File,
-                test: (File) -> Boolean,
+                initialFile: File?,
+                test: (File?) -> Boolean,
                 vararg submitOn: SubmitOn) = fileField(initialFile, Predicate { test(it) }, *submitOn)
 
         @JvmStatic
         fun fileField(
-                initialFile: File,
+                initialFile: File?,
                 test: Predicate<File>,
-                vararg submitOn: SubmitOn): ObjectField<File, Property<File>> {
-            val converter = object : StringConverter<File>() {
-                override fun toString(file: File): String {
-                    return file.absolutePath
+                vararg submitOn: SubmitOn): ObjectField<File?, Property<File?>> {
+            val converter = object : StringConverter<File?>() {
+                override fun toString(file: File?): String? {
+                    return file?.absolutePath
                 }
 
-                override fun fromString(s: String): File {
-                    val f = File(s)
-                    if (!test.test(f)) {
-                        throw InvalidUserInput("User input could not converted to file: $s", null)
+                override fun fromString(s: String?): File? {
+                    return s?.let {
+                        val f = File(it)
+                        if (!test.test(f)) {
+                            throw InvalidUserInput("User input could not converted to file: $s", null)
+                        }
+                        f
                     }
-                    return f
                 }
             }
             return ObjectField(SimpleObjectProperty(initialFile), converter, *submitOn)
@@ -146,15 +148,15 @@ open class ObjectField<T, P : Property<T>>(
 
         @JvmStatic
         fun stringField(
-                initialValue: String,
-                vararg submitOn: SubmitOn): ObjectField<String, StringProperty> {
+                initialValue: String?,
+                vararg submitOn: SubmitOn): ObjectField<String?, StringProperty> {
 
-            val converter = object : StringConverter<String>() {
-                override fun toString(s: String): String {
+            val converter = object : StringConverter<String?>() {
+                override fun toString(s: String?): String? {
                     return s
                 }
 
-                override fun fromString(s: String): String {
+                override fun fromString(s: String?): String? {
                     return s
                 }
             }
