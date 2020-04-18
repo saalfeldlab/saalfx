@@ -45,14 +45,16 @@ class Exceptions {
     companion object {
 
         @JvmStatic
+        @JvmOverloads
         fun exceptionAlert(
                 title: String,
                 headerText: String,
-                e: Exception): Alert {
+                e: Exception,
+                contentText: String? = null): Alert {
             val alert = Alert(Alert.AlertType.ERROR)
             alert.title = title
             alert.headerText = headerText
-            alert.contentText = String.format("%s", e.message)
+            alert.contentText = contentText ?: e.message
 
             // Create expandable Exception.
             val stringWriter = StringWriter()
@@ -94,10 +96,12 @@ class Exceptions {
         }
 
         @JvmStatic
+        @JvmOverloads
         fun handler(
                 title: String,
-                headerText: String): Consumer<Exception> {
-            return Consumer { e -> exceptionAlert(title, headerText, e) }
+                headerText: String,
+                contentText: String? = null): Consumer<Exception> {
+            return Consumer { e -> exceptionAlert(title, headerText, e, contentText) }
         }
     }
 
