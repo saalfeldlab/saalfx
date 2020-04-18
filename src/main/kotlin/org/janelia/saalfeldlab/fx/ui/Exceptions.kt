@@ -56,10 +56,13 @@ class Exceptions {
             alert.headerText = headerText
             alert.contentText = contentText ?: e.message
 
+            // Get the root cause of the exception
+            val cause = getRootCause(e)
+
             // Create expandable Exception.
             val stringWriter = StringWriter()
             val printWriter = PrintWriter(stringWriter)
-            e.printStackTrace(printWriter)
+            cause.printStackTrace(printWriter)
             val exceptionText = stringWriter.toString()
 
             val label = Label("Stack trace:")
@@ -103,6 +106,14 @@ class Exceptions {
                 contentText: String? = null): Consumer<Exception> {
             return Consumer { e -> exceptionAlert(title, headerText, e, contentText) }
         }
+
+        private fun getRootCause(e: Throwable): Throwable {
+            var cause = e
+            while (cause.cause != null && cause.cause !== cause)
+                cause = cause.cause!!
+            return cause
+        }
+
     }
 
 }
