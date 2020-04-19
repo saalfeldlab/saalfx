@@ -45,19 +45,24 @@ class Exceptions {
     companion object {
 
         @JvmStatic
+        @JvmOverloads
         fun exceptionAlert(
                 title: String,
                 headerText: String,
-                e: Exception): Alert {
+                e: Exception,
+                contentText: String? = null): Alert {
             val alert = Alert(Alert.AlertType.ERROR)
             alert.title = title
             alert.headerText = headerText
-            alert.contentText = String.format("%s", e.message)
+            alert.contentText = contentText ?: e.message
+
+            // Get the root cause of the exception
+            val cause = getRootCause(e)
 
             // Create expandable Exception.
             val stringWriter = StringWriter()
             val printWriter = PrintWriter(stringWriter)
-            e.printStackTrace(printWriter)
+            cause.printStackTrace(printWriter)
             val exceptionText = stringWriter.toString()
 
             val label = Label("Stack trace:")
@@ -94,11 +99,21 @@ class Exceptions {
         }
 
         @JvmStatic
+        @JvmOverloads
         fun handler(
                 title: String,
-                headerText: String): Consumer<Exception> {
-            return Consumer { e -> exceptionAlert(title, headerText, e) }
+                headerText: String,
+                contentText: String? = null): Consumer<Exception> {
+            return Consumer { e -> exceptionAlert(title, headerText, e, contentText) }
         }
+
+        private fun getRootCause(e: Throwable): Throwable {
+            var cause = e
+            while (cause.cause != null && cause.cause !== cause)
+                cause = cause.cause!!
+            return cause
+        }
+
     }
 
 }
