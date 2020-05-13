@@ -12,6 +12,7 @@ import javafx.scene.layout.Region
 import javafx.scene.layout.StackPane
 import javafx.stage.Stage
 import org.junit.Assert
+import org.junit.Ignore
 import org.junit.Test
 import org.slf4j.LoggerFactory
 import org.testfx.api.FxRobot
@@ -58,6 +59,7 @@ class ResizeOnLeftSideTest : ApplicationTest() {
     }
 
     @Test
+    @Ignore("This test moves the mouse pointer which is problematic on recent MacOS as it requires to allow this in the system's security settings.")
     fun testIsWithinMargin() {
         val offsetsAndResizable = arrayOf(
                 Pair(-RESIZABLE_DISTANE - 1,   false),
