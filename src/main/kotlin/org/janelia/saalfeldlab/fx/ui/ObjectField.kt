@@ -111,7 +111,7 @@ open class ObjectField<T, P : Property<T>>(
 
     private inner class FocusLostHandler : ChangeListener<Boolean> {
 
-        override fun changed(observableValue: ObservableValue<out Boolean>, oldv: Boolean?, newv: Boolean?) = newv?.takeIf { it }?.let { submit() } ?: Unit
+        override fun changed(observableValue: ObservableValue<out Boolean>, oldv: Boolean?, newv: Boolean?) = newv?.takeIf { !it }?.let { submit() } ?: Unit
 
     }
 
