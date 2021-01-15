@@ -1,15 +1,13 @@
 language: java
-jdk: oraclejdk8
-dist: trusty
+jdk: openjdk13
+dist: focal
+services:
+  - xvfb
 branches:
   only:
   - master
   - "/.*-[0-9]+\\..*/"
 install: true
-before_script:
-  - "export DISPLAY=:99.0"
-  - "sh -e /etc/init.d/xvfb start"
-  - sleep 3 # give xvfb some time to start
 script: ".travis/build.sh"
 cache:
   directories:
