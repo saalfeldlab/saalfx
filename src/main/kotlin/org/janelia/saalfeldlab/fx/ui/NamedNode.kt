@@ -39,7 +39,8 @@ class NamedNode private constructor(
         name: String,
         nameWidth: Double,
         growNodes: Boolean,
-        vararg nodes: Node) {
+        nodes: Array<Node>
+) {
 
     private val name = Label(name)
             .also { it.prefWidth = nameWidth }
@@ -61,7 +62,7 @@ class NamedNode private constructor(
 
         @JvmStatic
         fun nameIt(name: String, nameWidth: Double, growNodes: Boolean, vararg nodes: Node): Node {
-            return NamedNode(name, nameWidth, growNodes, *nodes).contents
+            return NamedNode(name, nameWidth, growNodes, arrayOf(*nodes)).contents
         }
 
         @JvmStatic
