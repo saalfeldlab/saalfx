@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
-		<version>27.0.1</version>
+		<version>30.0.0</version>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
 	</parent>
@@ -28,15 +28,16 @@
 	</licenses>
 
 	<properties>
-		<scijava.jvm.version>1.8</scijava.jvm.version>
+		<scijava.jvm.build.version>13</scijava.jvm.build.version>
+		<scijava.jvm.version>12</scijava.jvm.version>
 		<license.licenseName>bsd_2</license.licenseName>
 		<license.copyrightOwners>Philipp Hanslovsky, Stephan Saalfeld</license.copyrightOwners>
 
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>deploy-to-scijava</releaseProfiles>
 
-		<kotlin.compiler.jvmTarget>1.8</kotlin.compiler.jvmTarget>
-		<kotlin.version>1.3.50</kotlin.version>
+		<kotlin.compiler.jvmTarget>11</kotlin.compiler.jvmTarget>
+		<kotlin.version>1.4.21</kotlin.version>
 		<package-name>org.janelia.saalfeldlab.fx</package-name>
 
 		<!-- kotlin incremental compilation. -->
@@ -50,6 +51,9 @@
 
 		<!-- junit -->
 		<junit.version>4.13-beta-3</junit.version>
+
+		<!-- JavaFx-->
+		<javafx.version>13.0.1</javafx.version>
 	</properties>
 
 	<developers>
@@ -63,6 +67,19 @@
 			<roles>
 				<role>founder</role>
 				<role>lead</role>
+				<role>developer</role>
+				<role>maintainer</role>
+			</roles>
+			<timezone>-5</timezone>
+		</developer>
+		<developer>
+			<id>cmhulbert</id>
+			<name>Caleb Hulbert</name>
+			<email>hulbertc@hhmi.org</email>
+			<url />
+			<organization>HHMI Janelia</organization>
+			<organizationUrl>http://janelia.org/</organizationUrl>
+			<roles>
 				<role>developer</role>
 				<role>maintainer</role>
 			</roles>
@@ -110,6 +127,43 @@
 	</repositories>
 
 	<dependencies>
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-base</artifactId>
+			<version>${javafx.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-controls</artifactId>
+			<version>${javafx.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-graphics</artifactId>
+			<version>${javafx.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-swing</artifactId>
+			<version>${javafx.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-media</artifactId>
+			<version>${javafx.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-fxml</artifactId>
+			<version>${javafx.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-web</artifactId>
+			<version>${javafx.version}</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.jetbrains.kotlin</groupId>
 			<artifactId>kotlin-stdlib-jdk8</artifactId>
