@@ -28,8 +28,8 @@
 	</licenses>
 
 	<properties>
-		<scijava.jvm.build.version>13</scijava.jvm.build.version>
-		<scijava.jvm.version>12</scijava.jvm.version>
+		<scijava.jvm.build.version>11</scijava.jvm.build.version>
+		<scijava.jvm.version>11</scijava.jvm.version>
 		<license.licenseName>bsd_2</license.licenseName>
 		<license.copyrightOwners>Philipp Hanslovsky, Stephan Saalfeld</license.copyrightOwners>
 
