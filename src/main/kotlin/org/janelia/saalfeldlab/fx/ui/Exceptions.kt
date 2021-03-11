@@ -86,13 +86,16 @@ class Exceptions {
 
             // workaround to make resize work properly
             // https://stackoverflow.com/a/30805637/1725687
-            alert.dialogPane.expandedProperty().addListener { l ->
+            val stage = alert.dialogPane.scene.window as Stage
+            alert.dialogPane.expandedProperty().addListener { _ ->
                 Platform.runLater {
                     alert.dialogPane.requestLayout()
-                    val stage = alert.dialogPane.scene.window as Stage
                     stage.sizeToScene()
                 }
             }
+            // We'd like it alerts to always be on top of the applications, so any change to focus/showing should ensure the screen is moved to the front.
+            stage.focusedProperty().addListener { _, _, _ -> stage.toFront() }
+            stage.showingProperty().addListener { _, _, _ -> stage.toFront() }
 
             return alert
 
