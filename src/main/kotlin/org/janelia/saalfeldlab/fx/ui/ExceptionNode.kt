@@ -6,13 +6,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -28,18 +28,18 @@
  */
 package org.janelia.saalfeldlab.fx.ui
 
-import java.util.Arrays
 
 import javafx.scene.Node
 import javafx.scene.control.ButtonType
 import javafx.scene.control.Dialog
 import javafx.scene.control.Label
-import javafx.scene.control.ScrollPane
 import javafx.scene.control.TextArea
 import javafx.scene.control.TitledPane
 import javafx.scene.layout.AnchorPane
 import javafx.scene.layout.Pane
 import javafx.scene.layout.VBox
+import javafx.stage.Modality
+import javafx.stage.Window
 
 class ExceptionNode(private val e: Exception) {
 
@@ -67,13 +67,27 @@ class ExceptionNode(private val e: Exception) {
                 .also { it.isWrapText = false }
 
         @JvmStatic
-        fun exceptionDialog(e: Exception): Dialog<Exception> {
+        @JvmOverloads
+                /* FIXME this dialog looks bad; it doesn't resize properly*/
+        fun exceptionDialog(e: Exception, owner: Window? = null): Dialog<Exception> {
             val d = Dialog<Exception>()
             val notify = ExceptionNode(e)
             d.title = "Caught Exception"
             d.dialogPane.graphic = notify.pane
             d.dialogPane.buttonTypes.setAll(ButtonType.OK)
             d.isResizable = true
+            /* set the owner if provided, if null try and grab the first window available */
+            owner?.also {
+                d.initModality(Modality.APPLICATION_MODAL)
+                d.initOwner(it)
+            } ?: run {
+                val windows = Window.getWindows()
+                windows[0]?.let {
+                    d.initModality(Modality.APPLICATION_MODAL)
+                    d.initOwner(it)
+                }
+
+            }
             return d
         }
     }
