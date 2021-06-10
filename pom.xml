@@ -173,6 +173,10 @@
 			<groupId>org.scijava</groupId>
 			<artifactId>scijava-common</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+		</dependency>
 
 		<!--	logging-->
 		<!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
