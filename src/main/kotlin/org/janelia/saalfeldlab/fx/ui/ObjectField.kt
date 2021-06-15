@@ -28,10 +28,6 @@
  */
 package org.janelia.saalfeldlab.fx.ui
 
-import java.io.File
-import java.util.Arrays
-import java.util.function.Predicate
-
 import javafx.beans.property.Property
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
@@ -43,7 +39,8 @@ import javafx.scene.control.TextField
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
 import javafx.util.StringConverter
-import java.util.function.Consumer
+import java.io.File
+import java.util.function.Predicate
 
 open class ObjectField<T, P : Property<T>>(
         value: P,
@@ -147,9 +144,7 @@ open class ObjectField<T, P : Property<T>>(
         }
 
         @JvmStatic
-        fun stringField(
-                initialValue: String?,
-                vararg submitOn: SubmitOn): ObjectField<String?, StringProperty> {
+        fun stringField(initialValue: String?, vararg submitOn: SubmitOn): ObjectField<String?, StringProperty> {
 
             val converter = object : StringConverter<String?>() {
                 override fun toString(s: String?): String? {

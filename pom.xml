@@ -10,7 +10,7 @@
 
 	<groupId>org.janelia.saalfeldlab</groupId>
 	<artifactId>saalfx</artifactId>
-	<version>0.1.9-SNAPSHOT</version>
+	<version>0.2.0-SNAPSHOT</version>
 
 	<name>Saal FX</name>
 	<description>Saalfeld lab JavaFX tools and extensions</description>
@@ -172,6 +172,10 @@
 		<dependency>
 			<groupId>org.scijava</groupId>
 			<artifactId>scijava-common</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
 		</dependency>
 
 		<!--	logging-->

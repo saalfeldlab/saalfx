@@ -6,13 +6,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -34,7 +34,9 @@ import javafx.scene.control.Label
 import javafx.scene.control.TextArea
 import javafx.scene.layout.GridPane
 import javafx.scene.layout.Priority
+import javafx.stage.Modality
 import javafx.stage.Stage
+import javafx.stage.Window
 
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -50,7 +52,8 @@ class Exceptions {
                 title: String,
                 headerText: String,
                 e: Exception,
-                contentText: String? = null): Alert {
+                contentText: String? = null,
+                owner: Window? = null): Alert {
             val alert = Alert(Alert.AlertType.ERROR)
             alert.title = title
             alert.headerText = headerText
@@ -97,6 +100,13 @@ class Exceptions {
             stage.focusedProperty().addListener { _, _, _ -> stage.toFront() }
             stage.showingProperty().addListener { _, _, _ -> stage.toFront() }
 
+
+            owner?.let {
+                /* Ensure the window opens up over the main view if possible */
+                alert.initModality(Modality.APPLICATION_MODAL)
+                alert.initOwner(it)
+            }
+
             return alert
 
         }
@@ -106,8 +116,10 @@ class Exceptions {
         fun handler(
                 title: String,
                 headerText: String,
-                contentText: String? = null): Consumer<Exception> {
-            return Consumer { e -> exceptionAlert(title, headerText, e, contentText) }
+                contentText: String? = null,
+                owner: Window? = null
+        ): Consumer<Exception> {
+            return Consumer { e -> exceptionAlert(title, headerText, e, contentText, owner = owner) }
         }
 
         private fun getRootCause(e: Throwable): Throwable {

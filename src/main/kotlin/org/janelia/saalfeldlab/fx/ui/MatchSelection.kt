@@ -55,7 +55,6 @@ import java.util.ArrayList
 import java.util.Optional
 import java.util.function.BiFunction
 import java.util.function.Consumer
-import java.util.function.IntSupplier
 import kotlin.math.abs
 import kotlin.math.min
 
@@ -68,7 +67,7 @@ import kotlin.math.min
 class MatchSelection(
         candidates: List<String>,
         private val matcher: BiFunction<String, List<String>, List<String>>,
-        private val onConfirm: Consumer<String?>) : Region() {
+        private val onConfirm: (String?) -> Unit) : Region() {
 
     private val candidates = candidates.map { it }
 
@@ -124,7 +123,7 @@ class MatchSelection(
                         text,
                         { currentSelection.set(i) },
                         { currentSelection.set(0) },
-                        { onConfirm.accept(text) },
+                        { onConfirm(text) },
                         { currentSelection.set(i) }))
             }
             labelBox.children.setAll(labels)
@@ -156,7 +155,7 @@ class MatchSelection(
                 }
                 KeyCode.ENTER -> {
                     val selection = currentSelection.get()
-                    onConfirm.accept(if (selection < 0 || selection >= currentOrder.size) null else currentOrder[selection])
+                    onConfirm(if (selection < 0 || selection >= currentOrder.size) null else currentOrder[selection])
                     e.consume()
                 }
                 KeyCode.DOWN -> {
@@ -167,7 +166,8 @@ class MatchSelection(
                     currentSelection.set(currentSelection.value!! - 1)
                     e.consume()
                 }
-                else -> {}
+                else -> {
+                }
             }
         }
         fuzzySearchField.setOnKeyPressed { e ->
@@ -181,7 +181,8 @@ class MatchSelection(
                     currentSelection.set(currentSelection.value!! - 1)
                     e.consume()
                 }
-                else -> {}
+                else -> {
+                }
             }
         }
         contents.focusedProperty().addListener { _, _, newv -> if (newv != null && newv) fuzzySearchField.requestFocus() }
@@ -200,10 +201,11 @@ class MatchSelection(
             onMouseExited: () -> Unit,
             onMousePressed: () -> Unit,
             onMouseMoved: () -> Unit): Label {
+
         val label = Labels.withTooltip(text)
-        label.setOnMouseEntered { e -> onMouseEntered() }
-        label.setOnMouseExited { e -> onMouseExited() }
-        label.setOnMouseMoved { e -> onMouseMoved() }
+        label.setOnMouseEntered { onMouseEntered() }
+        label.setOnMouseExited { onMouseExited() }
+        label.setOnMouseMoved { onMouseMoved() }
         label.setOnMousePressed { e ->
             if (e.isPrimaryButtonDown) {
                 onMousePressed()
@@ -218,33 +220,37 @@ class MatchSelection(
 
         private val LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
 
-        fun fuzzySorted(candidates: List<String>, onConfirm: (String?) -> Unit)  =
-                fuzzySorted(candidates, Consumer { onConfirm(it) })
 
-        fun fuzzySorted(candidates: List<String>, onConfirm: (String?) -> Unit, cutOff: () -> Int)  =
-                fuzzySorted(candidates, Consumer { onConfirm(it) }, IntSupplier { cutOff() })
+        fun fuzzySorted(candidates: List<String>, onConfirm: (String?) -> Unit, cutoff: Int? = null): MatchSelection {
+            cutoff?.let {
+                return MatchSelection(candidates, FuzzyMatcher { query, from -> FuzzySearch.extractSorted(query, from, cutoff) }, onConfirm)
+            }
+            return MatchSelection(candidates, FuzzyMatcher(BiFunction { query, choices -> FuzzySearch.extractSorted(query, choices) }), onConfirm)
+        }
 
-        fun fuzzyTop(candidates: List<String>, onConfirm: (String?) -> Unit, limit: () -> Int)  =
-                fuzzyTop(candidates, Consumer { onConfirm(it) }, IntSupplier { limit() })
+        fun fuzzyTop(candidates: List<String>, onConfirm: ((String?) -> Unit), limit: Int, cutoff: Int? = null): MatchSelection {
+            cutoff?.let {
+                return MatchSelection(candidates, FuzzyMatcher { query, from -> FuzzySearch.extractTop(query, from, limit, cutoff) }, onConfirm)
+            }
+            return MatchSelection(candidates, FuzzyMatcher { query, from -> FuzzySearch.extractTop(query, from, limit) }, onConfirm)
+        }
 
-        fun fuzzyTop(candidates: List<String>, onConfirm: (String?) -> Unit, limit: () -> Int, cutOff: () -> Int)  =
-                fuzzyTop(candidates, Consumer { onConfirm(it) }, IntSupplier { limit() }, IntSupplier { cutOff() })
 
+        @JvmOverloads
         @JvmStatic
-        fun fuzzySorted(candidates: List<String>, onConfirm: Consumer<String?>) =
-                MatchSelection(candidates, FuzzyMatcher(BiFunction { query, choices -> FuzzySearch.extractSorted(query, choices) }), onConfirm)
+        fun fuzzySorted(candidates: List<String>, onConfirm: Consumer<String?>, cutoff: Int? = null): MatchSelection {
+            val onConfirmConverted: (String?) -> Unit = { onConfirm.accept(it) }
+            return fuzzySorted(candidates, onConfirmConverted, cutoff)
+        }
 
+        @JvmOverloads
         @JvmStatic
-        fun fuzzySorted(candidates: List<String>, onConfirm: Consumer<String?>, cutoff: IntSupplier) =
-            MatchSelection(candidates, FuzzyMatcher { query, from -> FuzzySearch.extractSorted(query, from, cutoff.asInt) }, onConfirm)
+        fun fuzzyTop(candidates: List<String>, onConfirm: Consumer<String?>, limit: Int, cutoff: Int? = null): MatchSelection {
+            val convertOnConfirm: (String?) -> Unit = { onConfirm.accept(it) }
+            return fuzzyTop(candidates, convertOnConfirm, limit, cutoff);
+        }
 
-        @JvmStatic
-        fun fuzzyTop(candidates: List<String>, onConfirm: Consumer<String?>, limit: IntSupplier) =
-            MatchSelection(candidates, FuzzyMatcher { query, from -> FuzzySearch.extractTop(query, from, limit.asInt) }, onConfirm)
-
-        @JvmStatic
-        fun fuzzyTop(candidates: List<String>, onConfirm: Consumer<String?>, limit: IntSupplier, cutoff: IntSupplier) =
-            MatchSelection(candidates, FuzzyMatcher { query, from -> FuzzySearch.extractTop(query, from, limit.asInt, cutoff.asInt) }, onConfirm)
     }
+
 
 }
