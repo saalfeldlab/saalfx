@@ -18,7 +18,7 @@ class Tasks {
 
     companion object {
         @JvmStatic
-        fun <T> createTask(call : (UtilityTask<T>) -> T) : UtilityTask<T> {
+        fun <T> createTask(call: (UtilityTask<T>) -> T): UtilityTask<T> {
             return UtilityTask(call)
         }
     }
@@ -42,9 +42,9 @@ class UtilityTask<V>(private val onCall: (UtilityTask<V>) -> V) : Task<V>() {
     override fun call(): V? {
         try {
             /* If no `onEnd/onFail` has been set, then we should listen for thrown exceptions and throw them */
-            if (this.onFailedSet) setDefaultExceptionHandler()
+            if (!this.onFailedSet) setDefaultExceptionHandler()
             return onCall(this)
-        } catch (e: RuntimeException) {
+        } catch (e: Exception) {
             if (isCancelled) {
                 LOG.debug("Task was cancelled")
                 return null
@@ -59,7 +59,7 @@ class UtilityTask<V>(private val onCall: (UtilityTask<V>) -> V) : Task<V>() {
 
     private fun setDefaultExceptionHandler() {
         InvokeOnJavaFXApplicationThread {
-            this.onFailed { _, task -> throw java.lang.RuntimeException(task.exception) }
+            this.onFailed { _, task -> LOG.error(task.exception.stackTraceToString()) }
         }
     }
 
@@ -93,27 +93,28 @@ class UtilityTask<V>(private val onCall: (UtilityTask<V>) -> V) : Task<V>() {
         return this
     }
 
-    fun onSuccess(consumer : BiConsumer<WorkerStateEvent, UtilityTask<V>>): UtilityTask<V> {
-        return onSuccess {e, t -> consumer.accept(e, t)}
+    fun onSuccess(consumer: BiConsumer<WorkerStateEvent, UtilityTask<V>>): UtilityTask<V> {
+        return onSuccess { e, t -> consumer.accept(e, t) }
     }
 
-    fun onCancelled(consumer : BiConsumer<WorkerStateEvent, UtilityTask<V>>): UtilityTask<V> {
-        return onCancelled {e, t -> consumer.accept(e, t)}
+    fun onCancelled(consumer: BiConsumer<WorkerStateEvent, UtilityTask<V>>): UtilityTask<V> {
+        return onCancelled { e, t -> consumer.accept(e, t) }
     }
 
-    fun onFailed(consumer : BiConsumer<WorkerStateEvent, UtilityTask<V>>): UtilityTask<V> {
-        return onFailed {e, t -> consumer.accept(e, t)}
+    fun onFailed(consumer: BiConsumer<WorkerStateEvent, UtilityTask<V>>): UtilityTask<V> {
+        return onFailed { e, t -> consumer.accept(e, t) }
     }
 
-    fun onEnd(consumer : Consumer<UtilityTask<V>>) : UtilityTask<V> {
-        return onEnd {t -> consumer.accept(t)}
+    fun onEnd(consumer: Consumer<UtilityTask<V>>): UtilityTask<V> {
+        return onEnd { t -> consumer.accept(t) }
     }
 
     fun submit(executorService: ExecutorService) {
         executorService.submit(this)
     }
 
-    fun submit() {
+    fun submit(): UtilityTask<V> {
         submit(TASK_SERVICE)
+        return this;
     }
 }
