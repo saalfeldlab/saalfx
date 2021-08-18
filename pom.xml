@@ -108,8 +108,8 @@
 
 
 	<ciManagement>
-		<system>Travis CI</system>
-		<url>https://travis-ci.com/saalfeldlab/saalfx</url>
+		<system>GitHub Actions</system>
+		<url>https://github.com/saalfeldlab/saalfx/actions</url>
 	</ciManagement>
 
 	<scm>
