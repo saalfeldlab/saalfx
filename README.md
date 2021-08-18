@@ -1,2 +1,2 @@
-[![](https://travis-ci.com/saalfeldlab/saalfx.svg?branch=master)](https://travis-ci.com/saalfeldlab/saalfx)
+[![](https://github.com/saalfeldlab/saalfx/actions/workflows/build-main.yml/badge.svg)](https://github.com/saalfeldlab/saalfx/actions/workflows/build-main.yml)
 
