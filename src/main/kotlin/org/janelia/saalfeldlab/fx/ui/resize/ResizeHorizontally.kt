@@ -46,35 +46,20 @@ class ResizeHorizontally @JvmOverloads constructor(
                     initialPosition,
                     DoublePredicate(isWithinMarginOfBorder))
 
-    private val _min = SimpleDoubleProperty(Double.NEGATIVE_INFINITY).also { it.addListener { _ -> update() } }
+    val minProperty = SimpleDoubleProperty(Double.NEGATIVE_INFINITY).also { it.addListener { _ -> update() } }
+    val min by minProperty
 
-    private val _max = SimpleDoubleProperty(Double.POSITIVE_INFINITY).also { it.addListener { _ -> update() } }
+    val maxProperty = SimpleDoubleProperty(Double.POSITIVE_INFINITY).also { it.addListener { _ -> update() } }
+    val max by maxProperty
 
-    private val _currentPosition: DoubleProperty = SimpleDoubleProperty()
+    val currentPositionProperty: DoubleProperty = SimpleDoubleProperty()
             .also { cp -> cp.addListener { _, _, new -> cp.value = limitPosition(new.toDouble()) } }
             .also { it.value = initialPosition ?: 0.0 }
+    var currentPosition by currentPositionProperty
 
-    private val _canResize: BooleanProperty = SimpleBooleanProperty(false)
+    private val _canResize = ReadOnlyBooleanWrapper(false)
 
-    fun minProperty(): DoubleProperty = _min
-
-    fun maxProperty(): DoubleProperty = _max
-
-    fun currentPositionProperty(): DoubleProperty = _currentPosition
-
-    fun canResizeProperty(): ReadOnlyBooleanProperty = _canResize
-
-    var min: Double
-        get() = _min.value
-        set(min) = _min.setValue(min)
-
-    var max: Double
-        get() = _max.value
-        set(max) = _max.setValue(max)
-
-    var currentPosition: Double
-        get() = _currentPosition.value
-        set(position) = _currentPosition.setValue(limitPosition(position))
+    val canResizeProperty: ReadOnlyBooleanProperty = _canResize.readOnlyProperty
 
     var canResize: Boolean
         get() = _canResize.value
@@ -82,13 +67,7 @@ class ResizeHorizontally @JvmOverloads constructor(
 
     // handlers
     private val mouseMoved: EventHandler<MouseEvent> = EventHandler { ev ->
-        val wasCanResize = canResize
-        canResize = isWithinMarginOfBorder
-                .test(ev.x - currentPosition)
-//                .also { ev
-//                        .scene
-//                        ?.takeUnless { wasCanResize == canResize }
-//                        ?.let { s -> s.cursor = if(it) Cursor.W_RESIZE else Cursor.DEFAULT } }
+        canResize = isWithinMarginOfBorder.test(ev.x - currentPosition)
     }
 
     private val mouseDragged: MouseDragFX = object : MouseDragFX(
@@ -108,7 +87,7 @@ class ResizeHorizontally @JvmOverloads constructor(
 
     }
 
-    fun dragginProperty(): ReadOnlyBooleanProperty = mouseDragged.draggingProperty()
+    val draggingProperty = mouseDragged.isDraggingProperty
 
     val isDragging: Boolean
         get() = mouseDragged.isDragging
@@ -125,12 +104,14 @@ class ResizeHorizontally @JvmOverloads constructor(
         this.mouseDragged.abortDrag()
     }
 
-    private fun update() = _currentPosition.set(limitPosition(currentPosition))
+    private fun update() {
+        currentPosition = limitPosition(currentPosition)
+    }
 
     private fun limitPosition(position: Double): Double {
-        val min = this._min.value
-        val max = this._max.value
-        require(max >= min) {"max < min: $max < $min"}
+        val min = this.min
+        val max = this.max
+        require(max >= min) { "max < min: $max < $min" }
         return min(max(position, min), max)
     }
 

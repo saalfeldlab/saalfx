@@ -83,8 +83,8 @@ class ResizeOnLeftSide @JvmOverloads constructor(
             }
         }
 
-        _isCurrentlyWithinMarginOfBorder.addListener { obs, oldv, newv ->
-            if (!mouseDragged.isDraggingProperty.get()) {
+        _isCurrentlyWithinMarginOfBorder.addListener { _, _, newv ->
+            if (!mouseDragged.isDragging) {
                 Optional.ofNullable(node.scene).ifPresent { s ->
                     s.cursor = if (newv)
                         Cursor.W_RESIZE
