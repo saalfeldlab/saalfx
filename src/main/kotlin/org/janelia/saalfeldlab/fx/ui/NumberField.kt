@@ -6,13 +6,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -27,10 +27,6 @@
  * #L%
  */
 package org.janelia.saalfeldlab.fx.ui
-
-import java.util.function.DoublePredicate
-import java.util.function.IntPredicate
-import java.util.function.LongPredicate
 
 import com.sun.javafx.application.PlatformImpl
 import javafx.application.Platform
@@ -48,6 +44,9 @@ import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
 import javafx.util.StringConverter
+import java.util.function.DoublePredicate
+import java.util.function.IntPredicate
+import java.util.function.LongPredicate
 
 class NumberField<P : Property<Number>>(
         value: P,
@@ -142,36 +141,36 @@ class NumberField<P : Property<Number>>(
 
             val df = doubleField(
                     5.0,
-                    DoublePredicate { d -> true },
+                    { _ -> true },
                     SubmitOn.ENTER_PRESSED,
                     SubmitOn.FOCUS_LOST
             )
             val lbl1 = TextField()
             val converted1 = Bindings.convert(df.valueProperty())
             lbl1.textProperty().bind(converted1)
-            val hb1 = HBox(df.textField(), lbl1)
+            val hb1 = HBox(df.textField, lbl1)
 
             val lf = longField(
                     4,
-                    LongPredicate { d -> true },
+                    { _ -> true },
                     SubmitOn.ENTER_PRESSED,
                     SubmitOn.FOCUS_LOST
             )
             val lbl2 = TextField()
             val converted2 = Bindings.convert(lf.valueProperty())
             lbl2.textProperty().bind(converted2)
-            val hb2 = HBox(lf.textField(), lbl2)
+            val hb2 = HBox(lf.textField, lbl2)
 
             val ulf = longField(
                     4,
-                    LongPredicate { d -> d >= 0 },
+                    { d -> d >= 0 },
                     SubmitOn.ENTER_PRESSED,
                     SubmitOn.FOCUS_LOST
             )
             val lbl3 = TextField()
             val converted3 = Bindings.convert(ulf.valueProperty())
             lbl3.textProperty().bind(converted3)
-            val hb3 = HBox(ulf.textField(), lbl3)
+            val hb3 = HBox(ulf.textField, lbl3)
 
 
             Platform.runLater {
