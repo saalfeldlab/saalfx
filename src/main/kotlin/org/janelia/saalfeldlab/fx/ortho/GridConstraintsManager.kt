@@ -61,9 +61,6 @@ class GridConstraintsManager {
         BOTTOM(1),
         NONE(-1);
 
-        @Deprecated("Use getter syntax/property instead", replaceWith = ReplaceWith("getIndex()"))
-        fun asIndex() = index
-
         companion object {
 
             @JvmStatic
@@ -82,9 +79,6 @@ class GridConstraintsManager {
         LEFT(0),
         RIGHT(1),
         NONE(-1);
-
-        @Deprecated("Use getter syntax/property instead", replaceWith = ReplaceWith("getIndex()"))
-        fun asIndex() = index
 
         companion object {
 
