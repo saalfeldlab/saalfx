@@ -6,13 +6,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -32,6 +32,8 @@ import javafx.beans.property.ObjectProperty
 import javafx.beans.property.SimpleObjectProperty
 import javafx.scene.Node
 import javafx.scene.layout.GridPane
+import org.janelia.saalfeldlab.fx.extensions.getValue
+import org.janelia.saalfeldlab.fx.extensions.setValue
 
 /**
  * A wrapper around [GridPane] that holds for children organized in a 2x2 grid. The underlying
@@ -55,70 +57,68 @@ class ResizableGridPane2x2<TL : Node?, TR : Node?, BL : Node?, BR : Node?>
         topLeft: TL,
         topRight: TR,
         bottomLeft: BL,
-        bottomRight: BR) {
+        bottomRight: BR,
+) : GridPane() {
 
-    val grid = GridPane()
-            .also { it.hgap = 1.0 }
-            .also { it.vgap = 1.0 }
+    init {
+        hgap = 1.0
+        vgap = 1.0
+    }
 
-    /**
-     *
-     * @return underlying [GridPane]
-     */
-    @Deprecated("Use getter syntax instead", ReplaceWith("getGrid()"))
-    fun pane(): GridPane = grid
+    val topLeftProperty: ObjectProperty<TL> = SimpleObjectProperty<TL>().apply {
+        addListener { _, oldv, newv -> replace(oldv, newv, 0, 0) }
+        value = topLeft
+    }
+    var topLeft: TL by topLeftProperty
 
-    private val _topLeft: ObjectProperty<TL> = SimpleObjectProperty<TL>()
-            .also{ it.addListener { _, oldv, newv -> replace(grid, oldv, newv, 0, 0) } }
-            .also { it.value = topLeft }
-    fun topLeftProperty(): ObjectProperty<TL> = _topLeft
-    var topLeft: TL
-        get() = _topLeft.value
-        set(topLeft) = _topLeft.set(topLeft)
+    val topRightProperty: ObjectProperty<TR> = SimpleObjectProperty<TR>().apply {
+        addListener { _, oldv, newv -> replace(oldv, newv, 1, 0) }
+        value = topRight
+    }
+    var topRight: TR by topRightProperty
 
-    private val _topRight: ObjectProperty<TR> = SimpleObjectProperty<TR>()
-            .also{ it.addListener { _, oldv, newv -> replace(grid, oldv, newv, 1, 0) } }
-            .also { it.value = topRight }
-    fun topRightProperty(): ObjectProperty<TR> = _topRight
-    var topRight: TR
-        get() = _topRight.value
-        set(topRight) = _topRight.set(topRight)
+    val bottomLeftProperty: ObjectProperty<BL> = SimpleObjectProperty<BL>().apply {
+        addListener { _, oldv, newv -> replace(oldv, newv, 0, 1) }
+        value = bottomLeft
+    }
+    var bottomLeft by bottomLeftProperty
 
-    private val _bottomLeft: ObjectProperty<BL> = SimpleObjectProperty<BL>()
-            .also{ it.addListener { _, oldv, newv -> replace(grid, oldv, newv, 0, 1) } }
-            .also { it.value = bottomLeft }
-    fun bottomLeftProperty(): ObjectProperty<BL> = _bottomLeft
-    var bottomLeft: BL
-        get() = _bottomLeft.value
-        set(bottomLeft) = _bottomLeft.set(bottomLeft)
-
-    private val _bottomRight: ObjectProperty<BR> = SimpleObjectProperty<BR>()
-            .also{ it.addListener { _, oldv, newv -> replace(grid, oldv, newv, 1, 1) } }
-            .also { it.value = bottomRight }
-    fun bottomRightProperty(): ObjectProperty<BR> = _bottomRight
-    var bottomRight: BR
-        get() = _bottomRight.value
-        set(bottomRight) = _bottomRight.set(bottomRight)
+    val bottomRightProperty: ObjectProperty<BR> = SimpleObjectProperty<BR>().apply {
+        addListener { _, oldv, newv -> replace(oldv, newv, 1, 1) }
+        value = bottomRight
+    }
+    var bottomRight: BR by bottomRightProperty
 
     /**
      * Manage the underlying [GridPane] with a [GridConstraintsManager].
      *
      * @param manager controls grid cell proportions
      */
-    fun manage(manager: GridConstraintsManager) = manager.manageGrid(this.grid)
+    fun manage(manager: GridConstraintsManager) = manager.manageGrid(this)
 
-    fun getNodeAt(col: Int, row: Int): Node? = grid.children.firstOrNull { it.columnIndex == col && it.rowIndex == row }
+    fun getNodeAt(col: Int, row: Int): Node? = children.firstOrNull { it.columnIndex == col && it.rowIndex == row }
 
-    private fun replace(grid: GridPane, oldValue: Node?, newValue: Node?, col: Int, row: Int) {
-        grid.children.remove(oldValue)
-        grid.add(newValue, col, row)
+    private fun replace(oldValue: Node?, newValue: Node?, col: Int, row: Int) {
+        children.remove(oldValue)
+        add(newValue, col, row)
     }
 
     companion object {
         private val Node.columnIndex: Int
-            get() = GridPane.getColumnIndex(this)
+            get() = getColumnIndex(this)
 
         private val Node.rowIndex: Int
-            get() = GridPane.getRowIndex(this)
+            get() = getRowIndex(this)
+
+        @JvmStatic
+        fun getCellIndex(col: Int, row: Int): Int {
+            assert(col in 0..1)
+            assert(row in 0..1)
+            return if (row == 0) {
+                if (col == 0) 0 else 1
+            } else {
+                if (col == 0) 2 else 3
+            }
+        }
     }
 }

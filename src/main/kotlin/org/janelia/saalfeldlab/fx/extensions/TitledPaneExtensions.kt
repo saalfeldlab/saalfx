@@ -6,13 +6,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -26,7 +26,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  * #L%
  */
-package org.janelia.saalfeldlab.fx
+package org.janelia.saalfeldlab.fx.extensions
 
 import javafx.beans.binding.DoubleBinding
 import javafx.beans.property.SimpleDoubleProperty
@@ -51,20 +51,21 @@ class TitledPaneExtensions {
 			return regionWidth
 		}
 
-		fun TitledPane.expandIfEnabled(isEnabled: ObservableBooleanValue) = this
-				.also { isEnabled.addListener { _, _, new -> it.expandIfEnabled(new) } }
-				.also { it.expandIfEnabled(isEnabled.value) }
+		fun TitledPane.expandIfEnabled(isEnabled: ObservableBooleanValue) {
+			isEnabled.addListener { _, _, new -> expandIfEnabled(new) }
+			expandIfEnabled(isEnabled.value)
+		}
 
 		fun TitledPane.expandIfEnabled(isEnabled: Boolean) = if (isEnabled) enableAndExpand() else disableAndCollapse()
 
-		fun TitledPane.enableAndExpand() = this.let {
-			it.isCollapsible = true
-			it.isExpanded = true
+		fun TitledPane.enableAndExpand() {
+			isCollapsible = true
+			isExpanded = true
 		}
 
-		fun TitledPane.disableAndCollapse() = this.let {
-			it.isExpanded = false
-			it.isCollapsible = false
+		fun TitledPane.disableAndCollapse() {
+			isExpanded = false
+			isCollapsible = false
 		}
 
 	}

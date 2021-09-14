@@ -29,29 +29,30 @@
 package org.janelia.saalfeldlab.fx.event
 
 import javafx.beans.property.ReadOnlyBooleanProperty
+import javafx.beans.property.ReadOnlyBooleanWrapper
+import javafx.event.EventHandler
+import javafx.scene.Node
+import javafx.scene.input.MouseEvent
+import org.janelia.saalfeldlab.fx.extensions.getValue
+import org.slf4j.LoggerFactory
 import java.lang.invoke.MethodHandles
 import java.util.function.BiConsumer
 import java.util.function.Consumer
 import java.util.function.Predicate
-
-import javafx.beans.property.SimpleBooleanProperty
-import javafx.event.EventHandler
-import javafx.scene.Node
-import javafx.scene.input.MouseEvent
-import org.slf4j.LoggerFactory
 
 abstract class MouseDragFX(
         val name: String,
         private val eventFilter: Predicate<MouseEvent>,
         protected val consume: Boolean,
         protected val transformLock: Any,
-        protected val updateXY: Boolean) : InstallAndRemove<Node> {
+        protected val updateXY: Boolean,
+) : InstallAndRemove<Node> {
 
     protected var startX = 0.0
 
     protected var startY = 0.0
 
-    private val _isDragging = SimpleBooleanProperty()
+    private val _isDragging = ReadOnlyBooleanWrapper()
 
     private val detect = DragDetect()
 
@@ -59,20 +60,16 @@ abstract class MouseDragFX(
 
     private val release = DragRelease()
 
+    val isDraggingProperty: ReadOnlyBooleanProperty = _isDragging.readOnlyProperty
 
-    @Deprecated("", ReplaceWith("Use draggingProperty() instead"))
-    val isDraggingProperty: ReadOnlyBooleanProperty = _isDragging
-
-    fun draggingProperty(): ReadOnlyBooleanProperty = _isDragging
-
-    val isDragging: Boolean
-        get() = _isDragging.value
+    val isDragging: Boolean by isDraggingProperty
 
     constructor(
             name: String,
             eventFilter: Predicate<MouseEvent>,
             transformLock: Any,
-            updateXY: Boolean) : this(name, eventFilter, false, transformLock, updateXY) {
+            updateXY: Boolean,
+    ) : this(name, eventFilter, false, transformLock, updateXY) {
     }
 
     abstract fun initDrag(event: MouseEvent)
@@ -172,7 +169,8 @@ abstract class MouseDragFX(
                 transformLock: Any,
                 initDrag: Consumer<MouseEvent>,
                 drag: BiConsumer<Double, Double>,
-                updateXY: Boolean): MouseDragFX {
+                updateXY: Boolean,
+        ): MouseDragFX {
             return object : MouseDragFX(name, eventFilter, consume, transformLock, updateXY) {
 
                 override fun initDrag(event: MouseEvent) {

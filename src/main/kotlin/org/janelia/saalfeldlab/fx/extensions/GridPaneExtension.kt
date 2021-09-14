@@ -26,17 +26,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  * #L%
  */
-package org.janelia.saalfeldlab.fx.event
+package org.janelia.saalfeldlab.fx.extensions
 
-interface InstallAndRemove<T> {
+import javafx.scene.Node
+import javafx.scene.layout.GridPane
 
-    fun installInto(t: T)
-
-    fun removeFrom(t: T)
-
-    companion object {
-        fun <T> T.install(iar: InstallAndRemove<T>) = iar.installInto(this)
-        fun <T> T.remove(iar: InstallAndRemove<T>) = iar.removeFrom(this)
-    }
-
+operator fun GridPane.set(col: Int, row: Int, node: Node) {
+    this.add(node, col, row)
 }

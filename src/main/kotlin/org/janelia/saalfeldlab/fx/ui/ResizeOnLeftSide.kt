@@ -28,9 +28,6 @@
  */
 package org.janelia.saalfeldlab.fx.ui
 
-import java.util.Optional
-import java.util.function.DoublePredicate
-
 import javafx.beans.property.DoubleProperty
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.event.EventHandler
@@ -38,6 +35,8 @@ import javafx.scene.Cursor
 import javafx.scene.Node
 import javafx.scene.input.MouseEvent
 import org.janelia.saalfeldlab.fx.event.MouseDragFX
+import java.util.Optional
+import java.util.function.DoublePredicate
 import java.util.function.Predicate
 import kotlin.math.abs
 import kotlin.math.max
@@ -83,8 +82,8 @@ class ResizeOnLeftSide @JvmOverloads constructor(
             }
         }
 
-        _isCurrentlyWithinMarginOfBorder.addListener { obs, oldv, newv ->
-            if (!mouseDragged.isDraggingProperty.get()) {
+        _isCurrentlyWithinMarginOfBorder.addListener { _, _, newv ->
+            if (!mouseDragged.isDragging) {
                 Optional.ofNullable(node.scene).ifPresent { s ->
                     s.cursor = if (newv)
                         Cursor.W_RESIZE

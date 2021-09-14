@@ -71,9 +71,6 @@ open class ObjectField<T, P : Property<T>>(
 
     fun valueProperty() = _value
 
-    @Deprecated("Use getter syntax instead", ReplaceWith("getTextField()"))
-    fun textField() = textField
-
     private fun enableSubmitOn(submitOn: SubmitOn) {
         when (submitOn) {
             SubmitOn.ENTER_PRESSED -> textField.addEventHandler(KeyEvent.KEY_PRESSED, enterPressedHandler)

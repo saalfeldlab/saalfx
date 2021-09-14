@@ -28,9 +28,6 @@
  */
 package org.janelia.saalfeldlab.fx.event
 
-import java.util.function.Consumer
-import java.util.function.Predicate
-
 import javafx.event.Event
 import javafx.event.EventHandler
 import javafx.event.EventType
@@ -38,20 +35,23 @@ import javafx.scene.Node
 import javafx.scene.input.KeyEvent
 import javafx.scene.input.MouseEvent
 import javafx.scene.input.ScrollEvent
+import java.util.function.Consumer
+import java.util.function.Predicate
 
 abstract class EventFX<E : Event>(
         val name: String,
         val eventType: EventType<E>,
-        private val eventFilter: Predicate<E>) : EventHandler<E>, InstallAndRemove<Node> {
+        private val eventFilter: Predicate<E>,
+) : EventHandler<E>, InstallAndRemove<Node> {
 
     abstract fun actOn(event: E)
 
     @Deprecated("Use getter syntax instead", ReplaceWith("getName()"))
     fun name() = name
 
-    override fun installInto(node: Node) = node.addEventHandler(eventType, this)
+    override fun installInto(t: Node) = t.addEventHandler(eventType, this)
 
-    override fun removeFrom(node: Node) = node.removeEventHandler(eventType, this)
+    override fun removeFrom(t: Node) = t.removeEventHandler(eventType, this)
 
     override fun handle(e: E) = e.takeIf { eventFilter.test(it) }?.let { actOn(it) } ?: Unit
 
@@ -60,7 +60,8 @@ abstract class EventFX<E : Event>(
             eventType: EventType<E>,
             private val eventHandler: Consumer<E>,
             eventFilter: Predicate<E>,
-            private val consume: Boolean = false) : EventFX<E>(name, eventType, eventFilter) {
+            private val consume: Boolean = false,
+    ) : EventFX<E>(name, eventType, eventFilter) {
 
         override fun actOn(event: E) {
             if (consume)
@@ -74,40 +75,40 @@ abstract class EventFX<E : Event>(
 
         @JvmStatic
         fun KEY_PRESSED(name: String, eventHandler: Consumer<KeyEvent>, eventFilter: Predicate<KeyEvent>): EventFX<KeyEvent> =
-            EventFXWithConsumer(name, KeyEvent.KEY_PRESSED, eventHandler, eventFilter)
+                EventFXWithConsumer(name, KeyEvent.KEY_PRESSED, eventHandler, eventFilter)
 
         @JvmOverloads
         @JvmStatic
         fun KEY_RELEASED(name: String, eventHandler: Consumer<KeyEvent>, eventFilter: Predicate<KeyEvent>, consume: Boolean = true): EventFX<KeyEvent> =
-            EventFXWithConsumer(name, KeyEvent.KEY_RELEASED, eventHandler, eventFilter, consume)
+                EventFXWithConsumer(name, KeyEvent.KEY_RELEASED, eventHandler, eventFilter, consume)
 
         @JvmStatic
         fun KEY_TYPED(name: String, eventHandler: Consumer<KeyEvent>, eventFilter: Predicate<KeyEvent>): EventFX<KeyEvent> =
-            EventFXWithConsumer(name, KeyEvent.KEY_TYPED, eventHandler, eventFilter)
+                EventFXWithConsumer(name, KeyEvent.KEY_TYPED, eventHandler, eventFilter)
 
         @JvmStatic
         fun MOUSE_CLICKED(name: String, eventHandler: Consumer<MouseEvent>, eventFilter: Predicate<MouseEvent>): EventFX<MouseEvent> =
-            EventFXWithConsumer(name, MouseEvent.MOUSE_CLICKED, eventHandler, eventFilter)
+                EventFXWithConsumer(name, MouseEvent.MOUSE_CLICKED, eventHandler, eventFilter)
 
         @JvmStatic
         fun MOUSE_PRESSED(name: String, eventHandler: Consumer<MouseEvent>, eventFilter: Predicate<MouseEvent>): EventFX<MouseEvent> =
-            EventFXWithConsumer(name, MouseEvent.MOUSE_PRESSED, eventHandler, eventFilter)
+                EventFXWithConsumer(name, MouseEvent.MOUSE_PRESSED, eventHandler, eventFilter)
 
         @JvmStatic
         fun MOUSE_RELEASED(name: String, eventHandler: Consumer<MouseEvent>, eventFilter: Predicate<MouseEvent>): EventFX<MouseEvent> =
-            EventFXWithConsumer(name, MouseEvent.MOUSE_RELEASED, eventHandler, eventFilter)
+                EventFXWithConsumer(name, MouseEvent.MOUSE_RELEASED, eventHandler, eventFilter)
 
         @JvmStatic
         fun MOUSE_DRAGGED(name: String, eventHandler: Consumer<MouseEvent>, eventFilter: Predicate<MouseEvent>): EventFX<MouseEvent> =
-            EventFXWithConsumer(name, MouseEvent.MOUSE_DRAGGED, eventHandler, eventFilter)
+                EventFXWithConsumer(name, MouseEvent.MOUSE_DRAGGED, eventHandler, eventFilter)
 
         @JvmStatic
         fun MOUSE_MOVED(name: String, eventHandler: Consumer<MouseEvent>, eventFilter: Predicate<MouseEvent>): EventFX<MouseEvent> =
-            EventFXWithConsumer(name, MouseEvent.MOUSE_MOVED, eventHandler, eventFilter)
+                EventFXWithConsumer(name, MouseEvent.MOUSE_MOVED, eventHandler, eventFilter)
 
         @JvmStatic
         fun SCROLL(name: String, eventHandler: Consumer<ScrollEvent>, eventFilter: Predicate<ScrollEvent>): EventFX<ScrollEvent> =
-            EventFXWithConsumer(name, ScrollEvent.SCROLL, eventHandler, eventFilter)
+                EventFXWithConsumer(name, ScrollEvent.SCROLL, eventHandler, eventFilter)
     }
 
 }

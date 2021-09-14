@@ -28,6 +28,7 @@
  */
 package org.janelia.saalfeldlab.fx.ortho
 
+import javafx.beans.binding.Bindings
 import javafx.beans.property.DoubleProperty
 import javafx.beans.property.SimpleDoubleProperty
 import javafx.scene.layout.ColumnConstraints
@@ -61,9 +62,6 @@ class GridConstraintsManager {
         BOTTOM(1),
         NONE(-1);
 
-        @Deprecated("Use getter syntax/property instead", replaceWith = ReplaceWith("getIndex()"))
-        fun asIndex() = index
-
         companion object {
 
             @JvmStatic
@@ -82,9 +80,6 @@ class GridConstraintsManager {
         LEFT(0),
         RIGHT(1),
         NONE(-1);
-
-        @Deprecated("Use getter syntax/property instead", replaceWith = ReplaceWith("getIndex()"))
-        fun asIndex() = index
 
         companion object {
 
@@ -194,22 +189,21 @@ class GridConstraintsManager {
         val column1 = ColumnConstraints()
         val column2 = ColumnConstraints()
         column1.percentWidthProperty().bind(this.firstColumnWidth)
-        column2.percentWidthProperty().bind(this.firstColumnWidth.subtract(100.0).multiply(-1.0))
+        column2.percentWidthProperty().bind(Bindings.subtract(100, this.firstColumnWidth))
         grid.columnConstraints.setAll(column1, column2)
 
         val row1 = RowConstraints()
         val row2 = RowConstraints()
         row1.percentHeightProperty().bind(this.firstRowHeight)
-        row2.percentHeightProperty().bind(this.firstRowHeight.subtract(100).multiply(-1.0))
+        row2.percentHeightProperty().bind(Bindings.subtract(100, this.firstRowHeight))
         grid.rowConstraints.setAll(row1, row2)
 
-        column1.percentWidthProperty().addListener { obs, oldv, newv -> updateChildrenVisibilities(grid) }
-        column2.percentWidthProperty().addListener { obs, oldv, newv -> updateChildrenVisibilities(grid) }
+        column1.percentWidthProperty().addListener { _, _, _ -> updateChildrenVisibilities(grid) }
+        column2.percentWidthProperty().addListener { _, _, _ -> updateChildrenVisibilities(grid) }
 
         // TODO row visibility overrides columnVisibility
-        row1.percentHeightProperty().addListener { obs, oldv, newv -> updateChildrenVisibilities(grid) }
-        row2.percentHeightProperty().addListener { obs, oldv, newv -> updateChildrenVisibilities(grid) }
-
+        row1.percentHeightProperty().addListener { _, _, _ -> updateChildrenVisibilities(grid) }
+        row2.percentHeightProperty().addListener { _, _, _ -> updateChildrenVisibilities(grid) }
     }
 
     fun firstRowHeightProperty(): DoubleProperty = this.firstRowHeight
@@ -228,20 +222,7 @@ class GridConstraintsManager {
     }
 
     override fun toString(): String {
-        return StringBuilder("{")
-                .append(this.javaClass.simpleName)
-                .append(": ")
-                .append(previousFirstRowHeight)
-                .append(", ")
-                .append(previousFirstColumnWidth)
-                .append(", ")
-                .append(firstRowHeight.get())
-                .append(", ")
-                .append(firstColumnWidth.get())
-                .append(", ")
-                .append(isFullScreen)
-                .append("}")
-                .toString()
+        return "{${this.javaClass.simpleName}: $previousFirstRowHeight, $previousFirstColumnWidth, ${firstRowHeight.get()}, ${firstColumnWidth.get()}, $isFullScreen}"
     }
 
     companion object {
@@ -252,8 +233,7 @@ class GridConstraintsManager {
 
         private val DEFAULT_ROW_HEIGHT1 = 50.0
 
-        private fun updateChildrenVisibilities(
-                grid: GridPane) {
+        private fun updateChildrenVisibilities(grid: GridPane) {
             val colConstraints = grid.columnConstraints
             val rowConstraints = grid.rowConstraints
             for (node in grid.children) {
@@ -264,21 +244,19 @@ class GridConstraintsManager {
         }
 
         private fun fromFirstColumnWidth(width: Double): MaximizedColumn {
-            return if (width == 0.0)
-                MaximizedColumn.RIGHT
-            else if (width == 100.0)
-                MaximizedColumn.LEFT
-            else
-                MaximizedColumn.NONE
+            return when (width) {
+                0.0 -> MaximizedColumn.RIGHT
+                100.0 -> MaximizedColumn.LEFT
+                else -> MaximizedColumn.NONE
+            }
         }
 
         private fun fromFirstRowHeight(height: Double): MaximizedRow {
-            return if (height == 0.0)
-                MaximizedRow.BOTTOM
-            else if (height == 100.0)
-                MaximizedRow.TOP
-            else
-                MaximizedRow.NONE
+            return when (height) {
+                0.0 -> MaximizedRow.BOTTOM
+                100.0 -> MaximizedRow.TOP
+                else -> MaximizedRow.NONE
+            }
         }
     }
 
