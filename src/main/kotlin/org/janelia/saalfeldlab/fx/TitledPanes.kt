@@ -6,13 +6,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -35,10 +35,8 @@ import javafx.scene.control.Label
 import javafx.scene.control.TitledPane
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Pane
-import javafx.scene.layout.Priority
-import javafx.scene.layout.Region
-import java.util.*
-import java.util.function.Consumer
+import org.janelia.saalfeldlab.fx.ui.NamedNode
+import java.util.Optional
 
 class TitledPanes {
 
@@ -64,13 +62,11 @@ class TitledPanes {
                 pane: TitledPane,
                 left: Node?,
                 right: Node?): TitledPane {
-            val spacer = Region()
-                    .also { it.maxWidth = java.lang.Double.POSITIVE_INFINITY }
-                    .also { it.minWidth = 0.0 }
-                    .also { HBox.setHgrow(it, Priority.ALWAYS) }
-            val graphicsContents = HBox(left, spacer, right)
-                    .also { it.alignment = Pos.CENTER }
-                    .also { it.padding = Insets(0.0, 35.0, 0.0, 0.0) }
+            val spacer = NamedNode.bufferNode()
+            val graphicsContents = HBox(left, spacer, right).apply {
+                alignment = Pos.CENTER
+                padding = Insets(0.0, 35.0, 0.0, 0.0)
+            }
             return graphicsOnly(pane, graphicsContents)
         }
 
@@ -139,10 +135,10 @@ class TitledPanes {
 
         fun build(): TitledPane {
             val pane = TitledPane(title, content)
-            Optional.ofNullable(isExpanded).ifPresent(Consumer<Boolean> { pane.isExpanded = it })
-            Optional.ofNullable(graphic).ifPresent(Consumer<Node> { pane.graphic = it })
-            Optional.ofNullable(padding).ifPresent(Consumer<Insets> { pane.padding = it })
-            Optional.ofNullable(alignment).ifPresent(Consumer<Pos> { pane.alignment = it })
+            Optional.ofNullable(isExpanded).ifPresent { pane.isExpanded = it }
+            Optional.ofNullable(graphic).ifPresent { pane.graphic = it }
+            Optional.ofNullable(padding).ifPresent { pane.padding = it }
+            Optional.ofNullable(alignment).ifPresent { pane.alignment = it }
             return pane
         }
 

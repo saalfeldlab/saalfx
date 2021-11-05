@@ -80,7 +80,7 @@ class TasksTest : ApplicationTest() {
         val items = list.items
         val textWithoutCancel = "Single onEnd Test, expecting to never see this"
         val textWithCancel = "Single onEnd Test, expecting cancel"
-        var canceled = false;
+        var canceled = false
         val maxTime = LocalDateTime.now().plus(5, ChronoUnit.SECONDS)
         val task = Tasks.createTask<String> {
             /* waiting for the task to be canceled. If too long, we have failed. */
@@ -89,7 +89,7 @@ class TasksTest : ApplicationTest() {
             }
             textWithoutCancel
         }
-                .onSuccess { e, t -> list.items.add(t.get()) }
+            .onSuccess { _, t -> list.items.add(t.get()) }
                 .onEnd { list.items.add(textWithCancel) }
                 .submit()
 
@@ -109,7 +109,7 @@ class TasksTest : ApplicationTest() {
         val textWithFailure = "Single onEnd Test, expecting failure"
         /* Intentionally trigger failed*/
         val task = Tasks.createTask<String> { throw RuntimeException("Forced failure!") }
-                .onSuccess { e, t -> list.items.add(t.get()) }
+            .onSuccess { _, t -> list.items.add(t.get()) }
                 .onEnd { list.items.add(textWithFailure) }
                 .submit()
 
@@ -143,14 +143,14 @@ class TasksTest : ApplicationTest() {
     @Test
     fun testOnFailedDefaultExceptionHandler() {
 
-        class IntentionalTestException(msg : String) : Throwable(msg)
+        class IntentionalTestException(msg: String) : Throwable(msg)
 
         val items = list.items
         val textWithEnd = "Single onFailure Test, expecting end"
         val textWithFailure = "Single onFailure Test, expecting failure"
         /* Intentionally trigger failure, with custom onFailed. onEnd should also trigger*/
         val task = Tasks.createTask<String> { throw IntentionalTestException("Forced failure!") }
-                .onSuccess { e, t -> list.items.add(t.get()) }
+            .onSuccess { _, t -> list.items.add(t.get()) }
                 .onEnd { list.items.add(textWithEnd) }
                 .onFailed { _, _ -> list.items.add(textWithFailure) }
                 .submit()
