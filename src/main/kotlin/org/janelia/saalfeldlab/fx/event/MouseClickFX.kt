@@ -31,6 +31,8 @@ package org.janelia.saalfeldlab.fx.event
 import javafx.event.EventHandler
 import javafx.scene.Node
 import javafx.scene.input.MouseEvent
+import org.janelia.saalfeldlab.fx.event.InstallAndRemove.Companion.install
+import org.janelia.saalfeldlab.fx.event.InstallAndRemove.Companion.remove
 
 import java.util.function.Consumer
 import java.util.function.Predicate
@@ -41,9 +43,9 @@ class MouseClickFX(
         private val onReleaseConsumer: Consumer<MouseEvent>,
         private val eventFilter: Predicate<MouseEvent>) : InstallAndRemove<Node> {
 
-    private val onPress: EventFX<MouseEvent> = EventFX.MOUSE_PRESSED(name, Consumer { this.press(it) }, this.eventFilter)
+    private val onPress: EventFX<MouseEvent> = EventFX.MOUSE_PRESSED(name, { this.press(it) }, this.eventFilter)
 
-    private val onRelease: EventFX<MouseEvent> = EventFX.MOUSE_RELEASED(name, Consumer { this.release(it) }, Predicate { isEvent })
+    private val onRelease: EventFX<MouseEvent> = EventFX.MOUSE_RELEASED(name, { this.release(it) }, { isEvent })
 
     private var startX: Double = 0.0
 
@@ -81,13 +83,13 @@ class MouseClickFX(
     }
 
     override fun installInto(t: Node) {
-        onPress.installInto(t)
-        onRelease.installInto(t)
+        t.install(onPress)
+        t.install(onRelease)
     }
 
     override fun removeFrom(t: Node) {
-        onPress.removeFrom(t)
-        onRelease.removeFrom(t)
+        t.remove(onPress)
+        t.remove(onRelease)
     }
 
     val handler: EventHandler<MouseEvent>
@@ -98,8 +100,4 @@ class MouseClickFX(
                 onRelease.handle(event)
 
         }
-
-    @Deprecated("Use getter syntax instead", ReplaceWith("getHandler()"))
-    fun handler() = handler
-
 }

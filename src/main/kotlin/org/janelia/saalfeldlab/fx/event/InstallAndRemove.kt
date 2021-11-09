@@ -28,6 +28,9 @@
  */
 package org.janelia.saalfeldlab.fx.event
 
+import javafx.scene.Node
+import javafx.scene.Scene
+
 interface InstallAndRemove<T> {
 
     fun installInto(t: T)
@@ -35,8 +38,11 @@ interface InstallAndRemove<T> {
     fun removeFrom(t: T)
 
     companion object {
-        fun <T> T.install(iar: InstallAndRemove<T>) = iar.installInto(this)
-        fun <T> T.remove(iar: InstallAndRemove<T>) = iar.removeFrom(this)
+        fun <T : Node> T.install(iar: InstallAndRemove<T>) = iar.installInto(this)
+        fun <T : Node> T.remove(iar: InstallAndRemove<T>) = iar.removeFrom(this)
+
+        fun <T : Scene> T.install(iar: InstallAndRemove<T>) = iar.installInto(this)
+        fun <T : Scene> T.remove(iar: InstallAndRemove<T>) = iar.removeFrom(this)
     }
 
 }
