@@ -32,8 +32,7 @@ import javafx.beans.property.ObjectProperty
 import javafx.beans.property.SimpleObjectProperty
 import javafx.scene.Node
 import javafx.scene.layout.GridPane
-import org.janelia.saalfeldlab.fx.extensions.getValue
-import org.janelia.saalfeldlab.fx.extensions.setValue
+import org.janelia.saalfeldlab.fx.extensions.nonnull
 
 /**
  * A wrapper around [GridPane] that holds for children organized in a 2x2 grid. The underlying
@@ -69,25 +68,25 @@ class ResizableGridPane2x2<TL : Node?, TR : Node?, BL : Node?, BR : Node?>
         addListener { _, oldv, newv -> replace(oldv, newv, 0, 0) }
         value = topLeft
     }
-    var topLeft: TL by topLeftProperty
+    var topLeft by topLeftProperty.nonnull()
 
     val topRightProperty: ObjectProperty<TR> = SimpleObjectProperty<TR>().apply {
         addListener { _, oldv, newv -> replace(oldv, newv, 1, 0) }
         value = topRight
     }
-    var topRight: TR by topRightProperty
+    var topRight by topRightProperty.nonnull()
 
     val bottomLeftProperty: ObjectProperty<BL> = SimpleObjectProperty<BL>().apply {
         addListener { _, oldv, newv -> replace(oldv, newv, 0, 1) }
         value = bottomLeft
     }
-    var bottomLeft by bottomLeftProperty
+    var bottomLeft by bottomLeftProperty.nonnull()
 
     val bottomRightProperty: ObjectProperty<BR> = SimpleObjectProperty<BR>().apply {
         addListener { _, oldv, newv -> replace(oldv, newv, 1, 1) }
         value = bottomRight
     }
-    var bottomRight: BR by bottomRightProperty
+    var bottomRight by bottomRightProperty.nonnull()
 
     /**
      * Manage the underlying [GridPane] with a [GridConstraintsManager].

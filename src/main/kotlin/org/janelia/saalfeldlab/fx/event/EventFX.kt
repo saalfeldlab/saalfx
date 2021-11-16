@@ -46,9 +46,6 @@ abstract class EventFX<E : Event>(
 
     abstract fun actOn(event: E)
 
-    @Deprecated("Use getter syntax instead", ReplaceWith("getName()"))
-    fun name() = name
-
     override fun installInto(t: Node) = t.addEventHandler(eventType, this)
 
     override fun removeFrom(t: Node) = t.removeEventHandler(eventType, this)
@@ -74,41 +71,49 @@ abstract class EventFX<E : Event>(
     companion object {
 
         @JvmStatic
-        fun KEY_PRESSED(name: String, eventHandler: Consumer<KeyEvent>, eventFilter: Predicate<KeyEvent>): EventFX<KeyEvent> =
-                EventFXWithConsumer(name, KeyEvent.KEY_PRESSED, eventHandler, eventFilter)
-
         @JvmOverloads
-        @JvmStatic
-        fun KEY_RELEASED(name: String, eventHandler: Consumer<KeyEvent>, eventFilter: Predicate<KeyEvent>, consume: Boolean = true): EventFX<KeyEvent> =
-                EventFXWithConsumer(name, KeyEvent.KEY_RELEASED, eventHandler, eventFilter, consume)
+        fun KEY_PRESSED(name: String, eventHandler: Consumer<KeyEvent>, eventFilter: Predicate<KeyEvent> = Predicate<KeyEvent> { true }): EventFX<KeyEvent> =
+            EventFXWithConsumer(name, KeyEvent.KEY_PRESSED, eventHandler, eventFilter)
 
         @JvmStatic
-        fun KEY_TYPED(name: String, eventHandler: Consumer<KeyEvent>, eventFilter: Predicate<KeyEvent>): EventFX<KeyEvent> =
-                EventFXWithConsumer(name, KeyEvent.KEY_TYPED, eventHandler, eventFilter)
+        @JvmOverloads
+        fun KEY_RELEASED(name: String, eventHandler: Consumer<KeyEvent>, eventFilter: Predicate<KeyEvent> = Predicate<KeyEvent> { true }, consume: Boolean = true): EventFX<KeyEvent> =
+            EventFXWithConsumer(name, KeyEvent.KEY_RELEASED, eventHandler, eventFilter, consume)
 
         @JvmStatic
-        fun MOUSE_CLICKED(name: String, eventHandler: Consumer<MouseEvent>, eventFilter: Predicate<MouseEvent>): EventFX<MouseEvent> =
-                EventFXWithConsumer(name, MouseEvent.MOUSE_CLICKED, eventHandler, eventFilter)
+        @JvmOverloads
+        fun KEY_TYPED(name: String, eventHandler: Consumer<KeyEvent>, eventFilter: Predicate<KeyEvent> = Predicate<KeyEvent> { true }): EventFX<KeyEvent> =
+            EventFXWithConsumer(name, KeyEvent.KEY_TYPED, eventHandler, eventFilter)
 
         @JvmStatic
-        fun MOUSE_PRESSED(name: String, eventHandler: Consumer<MouseEvent>, eventFilter: Predicate<MouseEvent>): EventFX<MouseEvent> =
-                EventFXWithConsumer(name, MouseEvent.MOUSE_PRESSED, eventHandler, eventFilter)
+        @JvmOverloads
+        fun MOUSE_CLICKED(name: String, eventHandler: Consumer<MouseEvent>, eventFilter: Predicate<MouseEvent> = Predicate<MouseEvent> { true }): EventFX<MouseEvent> =
+            EventFXWithConsumer(name, MouseEvent.MOUSE_CLICKED, eventHandler, eventFilter)
 
         @JvmStatic
-        fun MOUSE_RELEASED(name: String, eventHandler: Consumer<MouseEvent>, eventFilter: Predicate<MouseEvent>): EventFX<MouseEvent> =
-                EventFXWithConsumer(name, MouseEvent.MOUSE_RELEASED, eventHandler, eventFilter)
+        @JvmOverloads
+        fun MOUSE_PRESSED(name: String, eventHandler: Consumer<MouseEvent>, eventFilter: Predicate<MouseEvent> = Predicate<MouseEvent> { true }): EventFX<MouseEvent> =
+            EventFXWithConsumer(name, MouseEvent.MOUSE_PRESSED, eventHandler, eventFilter)
 
         @JvmStatic
-        fun MOUSE_DRAGGED(name: String, eventHandler: Consumer<MouseEvent>, eventFilter: Predicate<MouseEvent>): EventFX<MouseEvent> =
-                EventFXWithConsumer(name, MouseEvent.MOUSE_DRAGGED, eventHandler, eventFilter)
+        @JvmOverloads
+        fun MOUSE_RELEASED(name: String, eventHandler: Consumer<MouseEvent>, eventFilter: Predicate<MouseEvent> = Predicate<MouseEvent> { true }): EventFX<MouseEvent> =
+            EventFXWithConsumer(name, MouseEvent.MOUSE_RELEASED, eventHandler, eventFilter)
 
         @JvmStatic
-        fun MOUSE_MOVED(name: String, eventHandler: Consumer<MouseEvent>, eventFilter: Predicate<MouseEvent>): EventFX<MouseEvent> =
-                EventFXWithConsumer(name, MouseEvent.MOUSE_MOVED, eventHandler, eventFilter)
+        @JvmOverloads
+        fun MOUSE_DRAGGED(name: String, eventHandler: Consumer<MouseEvent>, eventFilter: Predicate<MouseEvent> = Predicate<MouseEvent> { true }): EventFX<MouseEvent> =
+            EventFXWithConsumer(name, MouseEvent.MOUSE_DRAGGED, eventHandler, eventFilter)
 
         @JvmStatic
-        fun SCROLL(name: String, eventHandler: Consumer<ScrollEvent>, eventFilter: Predicate<ScrollEvent>): EventFX<ScrollEvent> =
-                EventFXWithConsumer(name, ScrollEvent.SCROLL, eventHandler, eventFilter)
+        @JvmOverloads
+        fun MOUSE_MOVED(name: String, eventHandler: Consumer<MouseEvent>, eventFilter: Predicate<MouseEvent> = Predicate<MouseEvent> { true }): EventFX<MouseEvent> =
+            EventFXWithConsumer(name, MouseEvent.MOUSE_MOVED, eventHandler, eventFilter)
+
+        @JvmStatic
+        @JvmOverloads
+        fun SCROLL(name: String, eventHandler: Consumer<ScrollEvent>, eventFilter: Predicate<ScrollEvent> = Predicate<ScrollEvent> { true }): EventFX<ScrollEvent> =
+            EventFXWithConsumer(name, ScrollEvent.SCROLL, eventHandler, eventFilter)
     }
 
 }

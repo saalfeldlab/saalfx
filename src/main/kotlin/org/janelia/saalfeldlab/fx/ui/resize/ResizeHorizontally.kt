@@ -15,17 +15,12 @@ import javafx.scene.Node
 import javafx.scene.Scene
 import javafx.scene.control.Label
 import javafx.scene.input.MouseEvent
-import javafx.scene.layout.Background
-import javafx.scene.layout.BackgroundFill
-import javafx.scene.layout.BorderPane
-import javafx.scene.layout.CornerRadii
-import javafx.scene.layout.VBox
+import javafx.scene.layout.*
 import javafx.scene.paint.Color
 import javafx.stage.Stage
 import javafx.stage.Window
 import org.janelia.saalfeldlab.fx.event.MouseDragFX
-import org.janelia.saalfeldlab.fx.extensions.getValue
-import org.janelia.saalfeldlab.fx.extensions.setValue
+import org.janelia.saalfeldlab.fx.extensions.nonnull
 import org.janelia.saalfeldlab.fx.util.InvokeOnJavaFXApplicationThread
 import org.slf4j.LoggerFactory
 import java.lang.invoke.MethodHandles
@@ -45,19 +40,21 @@ class ResizeHorizontally @JvmOverloads constructor(
             isWithinMarginOfBorder: (Double) -> Boolean = { abs(it) < 5 },
     ) :
             this(
-                    initialPosition,
-                    DoublePredicate(isWithinMarginOfBorder))
+                initialPosition,
+                DoublePredicate(isWithinMarginOfBorder)
+            )
 
     val minProperty = SimpleDoubleProperty(Double.NEGATIVE_INFINITY).also { it.addListener { _ -> update() } }
-    val min by minProperty
+    val min by minProperty.nonnull()
 
     val maxProperty = SimpleDoubleProperty(Double.POSITIVE_INFINITY).also { it.addListener { _ -> update() } }
-    val max by maxProperty
+    val max by maxProperty.nonnull()
 
-    val currentPositionProperty: DoubleProperty = SimpleDoubleProperty()
-            .also { cp -> cp.addListener { _, _, new -> cp.value = limitPosition(new.toDouble()) } }
-            .also { it.value = initialPosition ?: 0.0 }
-    var currentPosition by currentPositionProperty
+    val currentPositionProperty: DoubleProperty = SimpleDoubleProperty().apply {
+        addListener { _, _, new -> value = limitPosition(new.toDouble()) }
+        value = initialPosition ?: 0.0
+    }
+    var currentPosition by currentPositionProperty.nonnull()
 
     private val _canResize = ReadOnlyBooleanWrapper(false)
 

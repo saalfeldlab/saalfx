@@ -33,7 +33,7 @@ import javafx.beans.property.ReadOnlyBooleanWrapper
 import javafx.event.EventHandler
 import javafx.scene.Node
 import javafx.scene.input.MouseEvent
-import org.janelia.saalfeldlab.fx.extensions.getValue
+import org.janelia.saalfeldlab.fx.extensions.nonnullVal
 import org.slf4j.LoggerFactory
 import java.lang.invoke.MethodHandles
 import java.util.function.BiConsumer
@@ -62,7 +62,7 @@ abstract class MouseDragFX(
 
     val isDraggingProperty: ReadOnlyBooleanProperty = _isDragging.readOnlyProperty
 
-    val isDragging: Boolean by isDraggingProperty
+    val isDragging: Boolean by isDraggingProperty.nonnullVal()
 
     constructor(
             name: String,
