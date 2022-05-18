@@ -76,7 +76,7 @@ class ResizeOnLeftSide @JvmOverloads constructor(
             val dx = it.sceneX - bounds.minX
             this@ResizeOnLeftSide.width.set(min(max(width.get() - dx, this@ResizeOnLeftSide.minWidth), this@ResizeOnLeftSide.maxWidth))
         }
-        onDragRelease { node.scene.cursor = Cursor.DEFAULT }
+        onDragReleased { node.scene.cursor = Cursor.DEFAULT }
     }
 
     init {

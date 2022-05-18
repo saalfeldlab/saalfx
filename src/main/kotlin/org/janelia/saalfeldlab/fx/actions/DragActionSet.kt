@@ -38,7 +38,7 @@ open class DragActionSet @JvmOverloads constructor(name: String, keyTracker: Key
         /* Initialize with empty lambda, so only drag state updates occur */
         onDragDetected { }
         onDrag { }
-        onDragRelease { }
+        onDragReleased { }
         apply?.let { it(this) }
     }
 
@@ -76,13 +76,25 @@ open class DragActionSet @JvmOverloads constructor(name: String, keyTracker: Key
     }
 
     @JvmSynthetic
-    fun onDragRelease(onDragRelease: (MouseEvent) -> Unit) {
+    fun onDragReleased(onDragReleased: (MouseEvent) -> Unit) {
         dragReleaseAction.apply {
             onAction {
                 endDragState()
-                onDragRelease(it)
+                onDragReleased(it)
             }
         }
+    }
+
+    fun onDragDetected(onDragDetected: Consumer<MouseEvent>) {
+        onDragDetected { onDragDetected.accept(it) }
+    }
+
+    fun onDrag(onDrag: Consumer<MouseEvent>) {
+        onDrag { onDrag.accept(it) }
+    }
+
+    fun onDragReleased(onDragRelease: Consumer<MouseEvent>) {
+        onDragReleased { onDragRelease.accept(it) }
     }
 
     private fun initDragState(it: MouseEvent) {
