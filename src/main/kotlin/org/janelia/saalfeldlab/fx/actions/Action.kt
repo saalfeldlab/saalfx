@@ -7,6 +7,10 @@ import javafx.scene.Node
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
 import javafx.scene.input.MouseEvent
+import org.janelia.saalfeldlab.fx.actions.Action.Companion.action
+import org.janelia.saalfeldlab.fx.actions.Action.Companion.installAction
+import org.janelia.saalfeldlab.fx.actions.Action.Companion.onAction
+import org.janelia.saalfeldlab.fx.actions.Action.Companion.removeAction
 import org.janelia.saalfeldlab.fx.event.KeyTracker
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -23,7 +27,9 @@ open class Action<E : Event>(val eventType: EventType<E>) {
     internal var allowDuringDrag = true
     var triggerIfDisabled = false /* Can be utilized by the called to block certain actions when the state of the application is disabled. */
     private var keysDown: List<KeyCode>? = listOf()
-    private val checks = mutableMapOf<EventType<E>, MutableList<(E) -> Boolean>>()
+
+    private val checks = mutableListOf<(E) -> Boolean>()
+
     private var exceptionHandler: ((Exception) -> Unit)? = null
 
     private var action: (E) -> Unit = {}
@@ -32,9 +38,14 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 
     val handler by lazy { EventHandler<E> { this.invoke(it) } }
 
-    @JvmOverloads
-    fun verify(eventType: EventType<E> = this.eventType, check: (E) -> Boolean) {
-        checks[eventType]?.add(check) ?: let { checks[eventType] = mutableListOf(check) }
+    /**
+     * Verify the check prior to triggering action
+     *
+     * @param check callback to verify the event of type  [E] is valid for this [Action].
+     * @receiver
+     */
+    fun verify(check: (E) -> Boolean) {
+        checks.add(check)
     }
 
     internal tailrec fun canHandleEvent(checkEventType: EventType<*>?): Boolean {
@@ -43,7 +54,7 @@ open class Action<E : Event>(val eventType: EventType<E>) {
     }
 
     fun isValid(event: E): Boolean {
-        return verifyKeys(event) && testChecksForInheritedEventType(event, event.eventType)
+        return canHandleEvent(event.eventType) && verifyKeys(event) && testChecks(event)
     }
 
     /**
@@ -76,11 +87,6 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 
     private fun testChecksForEventType(event: E, eventType: EventType<out Event> = event.eventType): Boolean {
         return checks[eventType]?.reduce { l, r -> { l(event) && r(event) } }?.invoke(event) ?: true
-    }
-
-    private tailrec fun testChecksForInheritedEventType(event: E, eventType: EventType<out Event>? = event.eventType): Boolean {
-        if (eventType == null) return true
-        return if (!testChecksForEventType(event, eventType)) false else testChecksForInheritedEventType(event, eventType.superType)
     }
 
     fun ignoreKeys() {
@@ -161,6 +167,21 @@ open class Action<E : Event>(val eventType: EventType<E>) {
                 addEventFilter(action.eventType, action.handler)
             } else {
                 addEventHandler(action.eventType, action.handler)
+            }
+        }
+
+        /**
+         * Remove this [Action]s [EventHandler] from this [Node]. No effect if not installed.
+         *
+         * @param E the [Event] [action] should handle
+         * @param action the [Action] to remove to this [Node]
+         */
+        @JvmStatic
+        fun <E : Event> Node.removeAction(action: Action<E>) {
+            if (action.filter) {
+                removeEventFilter(action.eventType, action.handler)
+            } else {
+                removeEventHandler(action.eventType, action.handler)
             }
         }
     }
