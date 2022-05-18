@@ -36,7 +36,10 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 
     private var onException: (Exception) -> Unit = {}
 
-    val handler by lazy { EventHandler<E> { this.invoke(it) } }
+    /**
+     * Lazy reference to the [ActionEventHandler] created by this [Action]
+     */
+    val handler: EventHandler<E> by lazy { ActionEventHandler() }
 
     /**
      * Verify the check prior to triggering action
@@ -134,6 +137,23 @@ open class Action<E : Event>(val eventType: EventType<E>) {
             }
             true
         } else false
+    }
+
+    /**
+     * Custom EventHandler used only to provide the name of the Action and delegate the [Action.invoke] as an [EventHandler]
+     *
+     * @constructor Create Action event handler
+     */
+    private inner class ActionEventHandler : EventHandler<E> {
+        override fun handle(event: E) {
+            this@Action(event)
+        }
+
+        override fun toString(): String {
+            return name?.let {
+                "${ActionEventHandler::class.java.simpleName}: $it"
+            } ?: super.toString()
+        }
     }
 
     companion object {
