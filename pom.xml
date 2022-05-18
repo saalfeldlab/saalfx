@@ -54,6 +54,7 @@
 
 		<!-- JavaFx-->
 		<javafx.version>16</javafx.version>
+		<dokka.version>1.4.30</dokka.version>
 	</properties>
 
 	<developers>
@@ -267,6 +268,24 @@
 					<artifactId>maven-surefire-plugin</artifactId>
 					<configuration>
 						<argLine>-Dtestfx.robot=glass -Dglass.platform=Monocle -Dmonocle.platform=Headless -Dprism.order=sw</argLine>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.jetbrains.dokka</groupId>
+					<artifactId>dokka-maven-plugin</artifactId>
+					<version>${dokka.version}</version>
+					<executions>
+						<execution>
+							<phase>pre-site</phase>
+							<goals>
+								<goal>dokka</goal>
+							</goals>
+						</execution>
+					</executions>
+					<configuration>
+						<sourceDirectories>
+							<dir>src/main/kotlin</dir>
+						</sourceDirectories>
 					</configuration>
 				</plugin>
 			</plugins>
