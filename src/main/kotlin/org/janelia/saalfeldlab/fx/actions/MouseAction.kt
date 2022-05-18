@@ -52,7 +52,7 @@ class MouseAction(eventType: EventType<MouseEvent>) : Action<MouseEvent>(eventTy
         }
     }
 
-    fun MouseEvent.isButtonDown(mouseButton: MouseButton) = when (mouseButton) {
+    private fun MouseEvent.isButtonDown(mouseButton: MouseButton) = when (mouseButton) {
         MouseButton.NONE -> true
         MouseButton.PRIMARY -> isPrimaryButtonDown
         MouseButton.MIDDLE -> isMiddleButtonDown
@@ -61,7 +61,7 @@ class MouseAction(eventType: EventType<MouseEvent>) : Action<MouseEvent>(eventTy
         MouseButton.FORWARD -> isForwardButtonDown
     }
 
-    fun MouseEvent.wasButtonReleased(mouseButton: MouseButton) = button == mouseButton && !isButtonDown(mouseButton)
+    private fun MouseEvent.wasButtonReleased(mouseButton: MouseButton) = button == mouseButton && !isButtonDown(mouseButton)
 
     companion object {
 

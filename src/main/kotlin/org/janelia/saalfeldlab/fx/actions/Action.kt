@@ -25,8 +25,9 @@ open class Action<E : Event>(val eventType: EventType<E>) {
     private var keysDown: List<KeyCode>? = listOf()
     private val checks = mutableMapOf<EventType<E>, MutableList<(E) -> Boolean>>()
     private var exceptionHandler: ((Exception) -> Unit)? = null
-    var action: (E) -> Unit = {}
-        private set
+
+    private var action: (E) -> Unit = {}
+
     private var onException: (Exception) -> Unit = {}
 
     val handler by lazy { EventHandler<E> { this.invoke(it) } }
