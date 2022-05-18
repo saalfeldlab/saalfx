@@ -12,7 +12,7 @@ class KeyAction(eventType: EventType<KeyEvent>) : Action<KeyEvent>(eventType) {
     fun keyMatchesBinding(keyBindings: NamedKeyCombination.CombinationMap, keyName: String) {
         if (name == null) name = keyName
         ignoreKeys()
-        verify(eventType) { keyBindings.matches(keyName, it) }
+        verify { keyBindings.matches(keyName, it) }
     }
 
     fun keysReleased(vararg keyCodes: KeyCode) {

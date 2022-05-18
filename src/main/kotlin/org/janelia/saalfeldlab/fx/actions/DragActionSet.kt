@@ -115,7 +115,7 @@ open class DragActionSet @JvmOverloads constructor(name: String, keyTracker: Key
     }
 
     fun verify(dragCheck: (MouseEvent) -> Boolean) {
-        dragDetectedAction.verify(MouseEvent.DRAG_DETECTED, dragCheck)
-        dragAction.verify(MouseEvent.MOUSE_DRAGGED, dragCheck)
+        dragDetectedAction.verify { dragCheck(it) }
+        dragAction.verify { dragCheck(it) }
     }
 }
