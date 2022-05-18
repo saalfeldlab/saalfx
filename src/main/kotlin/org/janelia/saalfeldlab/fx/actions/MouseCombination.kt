@@ -67,7 +67,7 @@ class MouseCombination private constructor(keyCombination: KeyCombination) {
 
 }
 
-fun main() {
+internal fun main() {
     PlatformImpl.startup { }
     Platform.runLater {
         val node = Button("DSLFKJSDLKFJSDLKGFJSDLGKDSJGSDG")
