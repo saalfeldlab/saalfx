@@ -1,19 +1,22 @@
 package org.janelia.saalfeldlab.fx.extensions
 
 import javafx.beans.Observable
-import javafx.beans.binding.Bindings
-import javafx.beans.binding.ObjectBinding
-import javafx.beans.property.DoubleProperty
-import javafx.beans.property.FloatProperty
-import javafx.beans.property.IntegerProperty
-import javafx.beans.property.LongProperty
+import javafx.beans.binding.*
+import javafx.beans.property.*
 import javafx.beans.value.ObservableValue
 import javafx.beans.value.WritableValue
+import javafx.collections.ObservableList
+import javafx.collections.ObservableMap
+import javafx.collections.ObservableSet
 import javafx.scene.Node
 import kotlin.reflect.KProperty
 
-fun <Obj, Obs> Obs.createObjectBinding(obsToObj: (Obs) -> Obj): ObjectBinding<Obj> where Obs : Observable {
-    return Bindings.createObjectBinding({ obsToObj.invoke(this) }, this)
+fun <Obj, Obs> Obs.createObservableBinding(vararg observables: Observable, obsToObj: (Obs) -> Obj): ObjectBinding<Obj> where Obs : Observable {
+    return Bindings.createObjectBinding({ obsToObj.invoke(this) }, this, *observables)
+}
+
+inline fun <reified T, Obj, Obs> Obs.createValueBinding(vararg observables: Observable, crossinline obsValToObj: (T) -> Obj): ObjectBinding<Obj> where Obs : ObservableValue<T> {
+    return Bindings.createObjectBinding({ obsValToObj(value) }, this, *observables)
 }
 
 inline operator fun <reified T : Node> T.invoke(apply: T.() -> Unit): T {
@@ -21,8 +24,32 @@ inline operator fun <reified T : Node> T.invoke(apply: T.() -> Unit): T {
     return this
 }
 
+operator fun BooleanExpression.invoke() = get()
+operator fun DoubleExpression.invoke() = get()
+operator fun LongExpression.invoke() = get()
+operator fun FloatExpression.invoke() = get()
+operator fun IntegerExpression.invoke() = get()
+operator fun StringExpression.invoke(): String? = get()
+operator fun <E> ListExpression<E>.invoke(): ObservableList<E>? = get()
+operator fun <K, V> MapExpression<K, V>.invoke(): ObservableMap<K, V>? = get()
+operator fun <E> SetExpression<E>.invoke(): ObservableSet<E>? = get()
+operator fun <T> ObjectExpression<T>.invoke(): T? = get()
+
+
 fun <T> ObservableValue<T?>.nullableVal(): ObservableDelegate<T?> = ObservableDelegate(this) { value }
 fun <T> ObservableValue<T>.nonnullVal(): ObservableDelegate<T> = ObservableDelegate(this) { value!! }
+
+fun ReadOnlyIntegerProperty.nullableVal(): ObservableSubclassDelegate<Number?, Int?> = ObservableSubclassDelegate(this) { value }
+fun ReadOnlyIntegerProperty.nonnullVal(): ObservableSubclassDelegate<Number, Int> = ObservableSubclassDelegate(this) { value!! }
+
+fun ReadOnlyDoubleProperty.nullableVal(): ObservableSubclassDelegate<Number?, Double?> = ObservableSubclassDelegate(this) { value }
+fun ReadOnlyDoubleProperty.nonnullVal(): ObservableSubclassDelegate<Number, Double> = ObservableSubclassDelegate(this) { value!! }
+
+fun ReadOnlyFloatProperty.nullableVal(): ObservableSubclassDelegate<Number?, Float?> = ObservableSubclassDelegate(this) { value }
+fun ReadOnlyFloatProperty.nonnullVal(): ObservableSubclassDelegate<Number, Float> = ObservableSubclassDelegate(this) { value!! }
+
+fun ReadOnlyLongProperty.nullableVal(): ObservableSubclassDelegate<Number?, Long?> = ObservableSubclassDelegate(this) { value }
+fun ReadOnlyLongProperty.nonnullVal(): ObservableSubclassDelegate<Number, Long> = ObservableSubclassDelegate(this) { value!! }
 
 fun <T> WritableValue<T?>.nullable(): WritableDelegate<T?> = WritableDelegate(this) { value }
 fun <T> WritableValue<T>.nonnull(): WritableDelegate<T> = WritableDelegate(this) { value!! }
@@ -45,6 +72,11 @@ class ObservableDelegate<T>(private val obs: ObservableValue<T>, private inline 
     operator fun getValue(t: Any?, property: KProperty<*>): T {
         return getter()
     }
+}
+
+class ObservableSubclassDelegate<T, K : T>(private val obs: ObservableValue<T?>, private inline val getter: () -> K) {
+
+    operator fun getValue(t: Any?, property: KProperty<*>): K = getter()
 }
 
 class WritableDelegate<T>(private val obs: WritableValue<T>, private inline val getter: () -> T) {

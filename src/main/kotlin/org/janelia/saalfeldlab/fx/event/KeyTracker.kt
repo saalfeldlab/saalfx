@@ -29,35 +29,49 @@
 package org.janelia.saalfeldlab.fx.event
 
 import javafx.beans.value.ChangeListener
-import javafx.event.EventHandler
-import javafx.scene.Scene
 import javafx.scene.input.KeyCode
-import javafx.scene.input.KeyEvent
+import javafx.scene.input.KeyEvent.KEY_PRESSED
+import javafx.scene.input.KeyEvent.KEY_RELEASED
 import javafx.stage.Window
+import org.janelia.saalfeldlab.fx.actions.ActionSet
+import org.janelia.saalfeldlab.fx.actions.ActionSet.Companion.installActionSet
+import org.janelia.saalfeldlab.fx.actions.ActionSet.Companion.removeActionSet
 
-class KeyTracker : InstallAndRemove<Window> {
+class KeyTracker {
 
     private val activeKeys = mutableSetOf<KeyCode>()
 
-    private val activateKeyHandler = EventHandler<KeyEvent> { activeKeys.synchronized { add(it.code) } }
-
-    private val deactivateKeyHandler = EventHandler<KeyEvent> { activeKeys.synchronized { remove(it.code) } }
-
-    private val onFocusChanged = ChangeListener<Boolean?> { _, _, new -> new?.let { activeKeys.synchronized { clear() } } }
-
-    override fun installInto(t: Window) = installInto(t.scene, t)
-    override fun removeFrom(t: Window) = removeFrom(t.scene, t)
-
-    fun installInto(scene: Scene, window: Window) {
-        scene.addEventFilter(KeyEvent.KEY_RELEASED, deactivateKeyHandler)
-        scene.addEventFilter(KeyEvent.KEY_PRESSED, activateKeyHandler)
-        window.focusedProperty().addListener(onFocusChanged)
+    private val actions by lazy {
+        ActionSet("Key Tracker", this) {
+            KEY_PRESSED {
+                ignoreKeys()
+                filter = true
+                consume = false
+                onAction { addKey(it.code) }
+            }
+            KEY_RELEASED {
+                ignoreKeys()
+                filter = true
+                consume = false
+                onAction { removeKey(it.code) }
+            }
+        }
     }
 
-    fun removeFrom(scene: Scene, window: Window) {
-        scene.removeEventFilter(KeyEvent.KEY_RELEASED, deactivateKeyHandler)
-        scene.removeEventFilter(KeyEvent.KEY_PRESSED, activateKeyHandler)
-        window.focusedProperty().removeListener(onFocusChanged)
+    val clearOnUnfocused = ChangeListener<Boolean> { _, _, isFocused ->
+        if (isFocused) {
+            activeKeys.clear()
+        }
+    }
+
+    fun installInto(window: Window) {
+        window.installActionSet(actions)
+        window.focusedProperty().addListener(clearOnUnfocused)
+    }
+
+    fun removeFrom(window: Window) {
+        window.removeActionSet(actions)
+        window.focusedProperty().removeListener(clearOnUnfocused)
     }
 
     fun areOnlyTheseKeysDown(vararg codes: KeyCode) = activeKeys.synchronized { mutableSetOf(*codes) == this }
@@ -66,14 +80,18 @@ class KeyTracker : InstallAndRemove<Window> {
 
     fun activeKeyCount() = activeKeys.synchronized { size }
 
+    fun noKeysActive() = activeKeyCount() == 0
+
+    fun getActiveKeyCodes(includeModifiers: Boolean) = activeKeys.synchronized { filter { includeModifiers || !it.isModifierKey } }
+
+    fun addKey(key: KeyCode) = activeKeys.synchronized { add(key) }
+
+    fun removeKey(key: KeyCode) = activeKeys.synchronized { remove(key) }
+
     private fun <R> MutableSet<KeyCode>.synchronized(run: MutableSet<KeyCode>.() -> R): R {
         synchronized(this) {
             return run(this)
         }
     }
-
-    fun noKeysActive() = activeKeyCount() == 0
-
-    fun getActiveKeyCodes(includeModifiers: Boolean) = activeKeys.synchronized { filter { includeModifiers || !it.isModifierKey } }
 
 }

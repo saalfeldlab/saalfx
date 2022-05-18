@@ -2,9 +2,7 @@ package org.janelia.saalfeldlab.fx
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder
 import javafx.concurrent.Task
-import javafx.concurrent.Worker.State.CANCELLED
-import javafx.concurrent.Worker.State.FAILED
-import javafx.concurrent.Worker.State.SUCCEEDED
+import javafx.concurrent.Worker.State.*
 import javafx.concurrent.WorkerStateEvent
 import org.janelia.saalfeldlab.fx.util.InvokeOnJavaFXApplicationThread
 import org.slf4j.LoggerFactory
@@ -13,13 +11,24 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ThreadFactory
 import java.util.function.BiConsumer
 import java.util.function.Consumer
+import java.util.function.Function
 
 class Tasks {
 
     companion object {
-        @JvmStatic
+        @JvmSynthetic
         fun <T> createTask(call: (UtilityTask<T>) -> T): UtilityTask<T> {
             return UtilityTask(call)
+        }
+
+        @JvmStatic
+        fun <T> createTask(call: Function<UtilityTask<T>, T>): UtilityTask<T> {
+            return createTask { call.apply(it) }
+        }
+
+        @JvmStatic
+        fun createTask(call: Consumer<UtilityTask<Unit>>): UtilityTask<Unit> {
+            return createTask { call.accept(it) }
         }
     }
 }
@@ -82,6 +91,13 @@ class UtilityTask<V>(private val onCall: (UtilityTask<V>) -> V) : Task<V>() {
         return this
     }
 
+    /**
+     * Trigger the provided consumer when the Task either succeeds, fails, or is cancelled
+     *
+     * @param consumer
+     * @receiver
+     * @return
+     */
     @JvmSynthetic
     fun onEnd(consumer: (UtilityTask<V>) -> Unit): UtilityTask<V> {
         this.stateProperty().addListener { _, _, newv ->

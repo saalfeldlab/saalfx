@@ -6,13 +6,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -29,10 +29,7 @@
 package org.janelia.saalfeldlab.fx.undo
 
 import javafx.beans.InvalidationListener
-import javafx.beans.binding.BooleanBinding
-import javafx.beans.binding.IntegerBinding
 import javafx.beans.property.BooleanProperty
-import javafx.beans.property.IntegerProperty
 import javafx.beans.property.SimpleIntegerProperty
 import javafx.collections.ObservableList
 import javafx.scene.Node
@@ -45,23 +42,21 @@ import javafx.scene.layout.Region
 import javafx.scene.layout.VBox
 import javafx.util.Pair
 import org.janelia.saalfeldlab.fx.util.InvokeOnJavaFXApplicationThread
-import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-
 import java.lang.invoke.MethodHandles
-import java.util.ArrayList
-import java.util.Collections
 import java.util.function.Function
 
 class UndoFromEvents<T>(
-        private val events: ObservableList<Pair<T, BooleanProperty>>,
-        private val title: Function<T, String>,
-        private val contents: Function<T, Node>) {
+    private val events: ObservableList<Pair<T, BooleanProperty>>,
+    private val title: Function<T, String>,
+    private val contents: Function<T, Node>
+) {
 
     constructor(
-            events: ObservableList<Pair<T, BooleanProperty>>,
-            title: (T) -> String,
-            contents: (T) -> Node) : this(events, Function { title(it) }, Function { contents(it) } )
+        events: ObservableList<Pair<T, BooleanProperty>>,
+        title: (T) -> String,
+        contents: (T) -> Node
+    ) : this(events, Function { title(it) }, Function { contents(it) })
 
     private val eventBox = VBox()
 
@@ -72,16 +67,16 @@ class UndoFromEvents<T>(
     private val currentEventListSize = SimpleIntegerProperty()
 
     private val currentIndexIsWithinList = currentEventIndex
-            .greaterThanOrEqualTo(0)
-            .and(currentEventIndex.lessThan(currentEventListSize))
+        .greaterThanOrEqualTo(0)
+        .and(currentEventIndex.lessThan(currentEventListSize))
 
     private val canUndo = currentIndexIsWithinList
 
     private val redoIndex = currentEventIndex.add(1)
 
     private val redoIndexIsWithinList = redoIndex
-            .greaterThanOrEqualTo(0)
-            .and(redoIndex.lessThan(currentEventListSize))
+        .greaterThanOrEqualTo(0)
+        .and(redoIndex.lessThan(currentEventListSize))
 
     private val canRedo = redoIndexIsWithinList
 
@@ -163,15 +158,17 @@ class UndoFromEvents<T>(
         private val LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
 
         fun <T> withUndoRedoButtons(
-                events: ObservableList<Pair<T, BooleanProperty>>,
-                title: (T) -> String,
-                contents: (T) -> Node) = withUndoRedoButtons(events, Function { title(it) }, Function { contents(it) } )
+            events: ObservableList<Pair<T, BooleanProperty>>,
+            title: (T) -> String,
+            contents: (T) -> Node
+        ) = withUndoRedoButtons(events, Function { title(it) }, Function { contents(it) })
 
         @JvmStatic
         fun <T> withUndoRedoButtons(
-                events: ObservableList<Pair<T, BooleanProperty>>,
-                title: Function<T, String>,
-                contents: Function<T, Node>): Node {
+            events: ObservableList<Pair<T, BooleanProperty>>,
+            title: Function<T, String>,
+            contents: Function<T, Node>
+        ): Node {
             val undo = UndoFromEvents(events, title, contents)
             val undoButton = Button("Undo")
             val redoButton = Button("Redo")

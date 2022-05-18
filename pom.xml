@@ -177,6 +177,10 @@
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>commons-lang</groupId>
+			<artifactId>commons-lang</artifactId>
+		</dependency>
 
 		<!--	logging-->
 		<!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
