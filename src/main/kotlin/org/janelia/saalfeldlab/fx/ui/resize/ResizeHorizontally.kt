@@ -15,49 +15,49 @@ import javafx.scene.Node
 import javafx.scene.Scene
 import javafx.scene.control.Label
 import javafx.scene.input.MouseEvent
-import javafx.scene.layout.Background
-import javafx.scene.layout.BackgroundFill
-import javafx.scene.layout.BorderPane
-import javafx.scene.layout.CornerRadii
-import javafx.scene.layout.VBox
+import javafx.scene.layout.*
 import javafx.scene.paint.Color
 import javafx.stage.Stage
 import javafx.stage.Window
-import org.janelia.saalfeldlab.fx.event.MouseDragFX
-import org.janelia.saalfeldlab.fx.extensions.getValue
-import org.janelia.saalfeldlab.fx.extensions.setValue
+import org.janelia.saalfeldlab.fx.actions.ActionSet.Companion.installActionSet
+import org.janelia.saalfeldlab.fx.actions.ActionSet.Companion.removeActionSet
+import org.janelia.saalfeldlab.fx.actions.DragActionSet
+import org.janelia.saalfeldlab.fx.extensions.createValueBinding
+import org.janelia.saalfeldlab.fx.extensions.nonnull
+import org.janelia.saalfeldlab.fx.extensions.nonnullVal
 import org.janelia.saalfeldlab.fx.util.InvokeOnJavaFXApplicationThread
 import org.slf4j.LoggerFactory
 import java.lang.invoke.MethodHandles
 import java.util.function.DoublePredicate
-import java.util.function.Predicate
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
 class ResizeHorizontally @JvmOverloads constructor(
-        private val initialPosition: Double? = null,
-        private val isWithinMarginOfBorder: DoublePredicate = DoublePredicate { abs(it) < 5 },
+    private val initialPosition: Double? = null,
+    private val isWithinMarginOfBorder: DoublePredicate = DoublePredicate { abs(it) < 5 },
 ) {
 
     constructor(
-            initialPosition: Double? = null,
-            isWithinMarginOfBorder: (Double) -> Boolean = { abs(it) < 5 },
+        initialPosition: Double? = null,
+        isWithinMarginOfBorder: (Double) -> Boolean = { abs(it) < 5 },
     ) :
             this(
-                    initialPosition,
-                    DoublePredicate(isWithinMarginOfBorder))
+                initialPosition,
+                DoublePredicate(isWithinMarginOfBorder)
+            )
 
     val minProperty = SimpleDoubleProperty(Double.NEGATIVE_INFINITY).also { it.addListener { _ -> update() } }
-    val min by minProperty
+    val min by minProperty.nonnull()
 
     val maxProperty = SimpleDoubleProperty(Double.POSITIVE_INFINITY).also { it.addListener { _ -> update() } }
-    val max by maxProperty
+    val max by maxProperty.nonnull()
 
-    val currentPositionProperty: DoubleProperty = SimpleDoubleProperty()
-            .also { cp -> cp.addListener { _, _, new -> cp.value = limitPosition(new.toDouble()) } }
-            .also { it.value = initialPosition ?: 0.0 }
-    var currentPosition by currentPositionProperty
+    val currentPositionProperty: DoubleProperty = SimpleDoubleProperty().apply {
+        addListener { _, _, new -> value = limitPosition(new.toDouble()) }
+        value = initialPosition ?: 0.0
+    }
+    var currentPosition by currentPositionProperty.nonnull()
 
     private val _canResize = ReadOnlyBooleanWrapper(false)
 
@@ -72,38 +72,27 @@ class ResizeHorizontally @JvmOverloads constructor(
         canResize = isWithinMarginOfBorder.test(ev.x - currentPosition)
     }
 
-    private val mouseDragged: MouseDragFX = object : MouseDragFX(
-            "resize horizontally",
-            Predicate { canResize },
-            true,
-            this,
-            false) {
-        override fun initDrag(event: MouseEvent) {
-//            event.scene?.cursor = Cursor.W_RESIZE
-        }
-
-        override fun drag(event: MouseEvent) {
-            val dx = event.x - currentPosition
+    private val mouseDragged = DragActionSet("resize horizontally") {
+        updateXY = false
+        verify { canResize }
+        onDrag {
+            val dx = it.x - currentPosition
             currentPosition += dx
         }
-
     }
 
-    val draggingProperty = mouseDragged.isDraggingProperty
-
-    val isDragging: Boolean
-        get() = mouseDragged.isDragging
+    val isDraggingProperty: ReadOnlyBooleanProperty = mouseDragged.isDraggingProperty
+    val isDragging: Boolean by isDraggingProperty.nonnullVal()
 
     fun installInto(node: Node) {
         node.addEventFilter(MouseEvent.MOUSE_MOVED, mouseMoved)
-        mouseDragged.installInto(node)
+        node.installActionSet(mouseDragged)
     }
 
     fun removeFrom(node: Node) {
         node.removeEventFilter(MouseEvent.MOUSE_MOVED, mouseMoved)
-        mouseDragged.removeFrom(node)
+        node.removeActionSet(mouseDragged)
         _canResize.value = false
-        this.mouseDragged.abortDrag()
     }
 
     private fun update() {
@@ -158,16 +147,17 @@ class ResizeHorizontally @JvmOverloads constructor(
                 val rightMinWidth = Bindings.createDoubleBinding({ max(right.minWidth, 0.0) }, right.minWidthProperty())
                 val centerMinWidth = Bindings.createDoubleBinding({ max(center.minWidth, 0.0) }, center.minWidthProperty())
                 val leftMaxWidth = Bindings.createDoubleBinding(
-                        { max(root.width - max(max(right.width, rightMinWidth.value), 0.0) - centerMinWidth.value, leftMinWidth.value) },
-                        root.widthProperty(),
-                        leftMinWidth,
-                        right.widthProperty(),
-                        rightMinWidth,
-                        centerMinWidth)
+                    { max(root.width - max(max(right.width, rightMinWidth.value), 0.0) - centerMinWidth.value, leftMinWidth.value) },
+                    root.widthProperty(),
+                    leftMinWidth,
+                    right.widthProperty(),
+                    rightMinWidth,
+                    centerMinWidth
+                )
                 val rightMaxWidth = Bindings.createDoubleBinding({ max(root.width - rightMinWidth.value, 0.0) }, root.widthProperty())
                 val rightMinOffset = Bindings
-                        .createDoubleBinding({ max(leftMinWidth.value, left.width) }, leftMinWidth, left.widthProperty())
-                        .add(centerMinWidth)
+                    .createDoubleBinding({ max(leftMinWidth.value, left.width) }, leftMinWidth, left.widthProperty())
+                    .add(centerMinWidth)
                 val boundedRightMinOffset = Bindings.createDoubleBinding({ min(rightMaxWidth.value, rightMinOffset.value) }, rightMaxWidth, rightMinOffset)
                 val resizeLeft = ResizeHorizontally(2.0 * max(left.minWidth, 20.0)) { abs(it) < margin }.apply {
                     minProperty.bind(leftMinWidth)
@@ -185,9 +175,9 @@ class ResizeHorizontally @JvmOverloads constructor(
                 right.widthProperty().addListener { _, _, new -> resizeRight.currentPosition = root.width - new.toDouble() }
 
                 val canResize = resizeLeft.canResizeProperty.or(resizeRight.canResizeProperty)
-                val isDragging = resizeLeft.draggingProperty.or(resizeRight.draggingProperty)
+                val isDragging = resizeLeft.isDraggingProperty.or(resizeRight.isDraggingProperty)
                 val needsCursor = canResize.or(isDragging)
-                val cursor = Bindings.createObjectBinding({ if (needsCursor.get()) Cursor.H_RESIZE else Cursor.DEFAULT }, needsCursor)
+                val cursor = needsCursor.createValueBinding { if (it) Cursor.H_RESIZE else Cursor.DEFAULT }
 
                 Stage().also {
                     it.scene = Scene(root, 400.0, 300.0)

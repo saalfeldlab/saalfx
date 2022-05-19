@@ -12,7 +12,7 @@ class ExtensionsTest {
         class DelegateTest {
 
             val firstRowHeightProperty = SimpleDoubleProperty(50.0)
-            var firstRowHeight by firstRowHeightProperty
+            var firstRowHeight by firstRowHeightProperty.nonnull()
         }
 
         val dt = DelegateTest()

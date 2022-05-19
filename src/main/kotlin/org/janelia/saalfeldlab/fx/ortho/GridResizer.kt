@@ -31,215 +31,187 @@ package org.janelia.saalfeldlab.fx.ortho
 import javafx.animation.KeyFrame
 import javafx.animation.KeyValue
 import javafx.animation.Timeline
-import javafx.event.EventHandler
 import javafx.scene.Cursor
-import javafx.scene.Node
-import javafx.scene.Scene
+import javafx.scene.input.MouseButton
 import javafx.scene.input.MouseEvent
+import javafx.scene.input.MouseEvent.*
 import javafx.scene.layout.Pane
 import javafx.util.Duration
-import org.janelia.saalfeldlab.fx.event.InstallAndRemove
+import org.janelia.saalfeldlab.fx.actions.ActionSet
 import org.janelia.saalfeldlab.fx.event.KeyTracker
 import kotlin.math.abs
 
-class GridResizer(private val manager: GridConstraintsManager, private val tolerance: Double, private val grid: Pane, private val keyTracker: KeyTracker) : InstallAndRemove<Node> {
+class GridResizer(private val manager: GridConstraintsManager, private val tolerance: Double, private val grid: Pane, keyTracker: KeyTracker) : ActionSet("Grid Resizer", keyTracker) {
 
-    private var mouseWithinResizableRangeX = false
-
-    private var mouseWithinResizableRangeY = false
+    private var trackedMouseRange = MouseInsideRange(xInRange = false, yInRange = false)
+    private var onResideStartMouseRange = MouseInsideRange(xInRange = false, yInRange = false)
 
     var isDraggingPanel = false
         private set
 
     private var isOnMargin: Boolean = false
 
-    private val mouseMoved = MouseChanged()
-
-    private val mosuePressed = MousePressed()
-
-    private val mouseDragged = MouseDragged()
-
-    private val mouseDoublClicked = MouseDoubleClicked()
-
-    private val mouseReleased = MouseReleased()
-
-    private inner class MouseChanged : EventHandler<MouseEvent> {
-        override fun handle(event: MouseEvent) {
-            if (!keyTracker.noKeysActive()) {
-                return
+    init {
+        /* keep track of where the mouse is with respect to the resize locations */
+        MOUSE_MOVED {
+            filter = true
+            verifyNoKeysDown()
+            verify { event ->
+                mouseInRange(event)
+                    //Not sure how I feel about changing state in the `verify`.
+                    // Alternatively, could have a second MOVED action, but then you have to gaurantee ordering
+                    // ( I think that would be fine though... )
+                    .also { trackedMouseRange = it }
+                    .run { xInRange || yInRange || isOnMargin }
             }
-            synchronized(manager) {
-                synchronized(grid) {
-                    val x = event.x
-                    val y = event.y
-                    val gridBorderX = manager.firstColumnWidthProperty().get() / 100 * grid
-                            .widthProperty().get()
-                    val gridBorderY = manager.firstRowHeightProperty().get() / 100 * grid
-                            .heightProperty().get()
-                    val mouseWithinResizableRangeX = Math.abs(x - gridBorderX) < tolerance
-                    val mouseWithinResizableRangeY = Math.abs(y - gridBorderY) < tolerance
+            onAction { event ->
+                synchronized(manager) {
+                    synchronized(grid) {
+                        val gridBorderX = manager.firstColumnWidthProperty().get() / 100 * grid.widthProperty().get()
+                        val gridBorderY = manager.firstRowHeightProperty().get() / 100 * grid.heightProperty().get()
+                        val (mouseWithinResizableRangeX, mouseWithinResizableRangeY) = trackedMouseRange
 
-                    val scene = grid.sceneProperty().get()
+                        val scene = grid.sceneProperty().get()
 
-                    if (mouseWithinResizableRangeX && mouseWithinResizableRangeY) {
-                        // TODO replace compareTo with operator comparison
-                        scene.cursor =
-                                if ((x - gridBorderX).compareTo(0.0) < 0 && (y - gridBorderY).compareTo(0.0) < 0) Cursor.SE_RESIZE
-                                else if ((x - gridBorderX).compareTo(0.0) > 0 && (y - gridBorderY).compareTo(0.0) < 0) Cursor.SW_RESIZE
-                                else if ((x - gridBorderX).compareTo(0.0) < 0 && (y - gridBorderY).compareTo(0.0) > 0) Cursor.NE_RESIZE
+                        if (mouseWithinResizableRangeX && mouseWithinResizableRangeY) {
+                            // TODO replace compareTo with operator comparison
+                            scene.cursor =
+                                if ((event.x - gridBorderX).compareTo(0.0) < 0 && (event.y - gridBorderY).compareTo(0.0) < 0) Cursor.SE_RESIZE
+                                else if ((event.x - gridBorderX).compareTo(0.0) > 0 && (event.y - gridBorderY).compareTo(0.0) < 0) Cursor.SW_RESIZE
+                                else if ((event.x - gridBorderX).compareTo(0.0) < 0 && (event.y - gridBorderY).compareTo(0.0) > 0) Cursor.NE_RESIZE
                                 else Cursor.NW_RESIZE
-                        isOnMargin = true
-                    } else if (mouseWithinResizableRangeX) {
-                        scene.cursor = Cursor.H_RESIZE
-                        isOnMargin = true
-                    } else if (mouseWithinResizableRangeY) {
-                        scene.cursor = Cursor.V_RESIZE
-                        isOnMargin = true
-                    } else if (isOnMargin) {
-                        scene.cursor = Cursor.DEFAULT
-                        isOnMargin = false
+                            isOnMargin = true
+                        } else if (mouseWithinResizableRangeX) {
+                            scene.cursor = Cursor.H_RESIZE
+                            isOnMargin = true
+                        } else if (mouseWithinResizableRangeY) {
+                            scene.cursor = Cursor.V_RESIZE
+                            isOnMargin = true
+                        } else if (isOnMargin) {
+                            scene.cursor = Cursor.DEFAULT
+                            isOnMargin = false
+                        }
                     }
                 }
             }
         }
-    }
-
-    private inner class MousePressed : EventHandler<MouseEvent> {
-
-        override fun handle(event: MouseEvent) {
-            val x = event.x
-            val y = event.y
-            val gridBorderX = manager.firstColumnWidthProperty().get() / 100 * grid.widthProperty().get()
-            val gridBorderY = manager.firstRowHeightProperty().get() / 100 * grid.heightProperty().get()
-
-            mouseWithinResizableRangeX = abs(x - gridBorderX) < tolerance
-            mouseWithinResizableRangeY = abs(y - gridBorderY) < tolerance
-
-            isDraggingPanel = mouseWithinResizableRangeX || mouseWithinResizableRangeY
-            if (isDraggingPanel)
-                event.consume()
-        }
-    }
-
-    private inner class MouseReleased : EventHandler<MouseEvent> {
-
-        override fun handle(event: MouseEvent) {
-            isDraggingPanel = false
-            grid.sceneProperty().get().cursor = Cursor.DEFAULT
+        /* On Primary Press, */
+        MOUSE_PRESSED(MouseButton.PRIMARY) {
+            filter = true
+            verify { trackedMouseRange.run { xInRange || yInRange } }
+            onAction {
+                trackedMouseRange.run {
+                    onResideStartMouseRange = MouseInsideRange(xInRange, yInRange)
+                }
+                isDraggingPanel = true
+            }
         }
 
-    }
+        MOUSE_RELEASED(MouseButton.PRIMARY, released = true) {
+            filter = true
+            verify { isDraggingPanel }
+            onAction {
+                isDraggingPanel = false
+                grid.scene.cursor = Cursor.DEFAULT
+            }
+        }
 
-    private inner class MouseDragged : EventHandler<MouseEvent> {
-
-        override fun handle(event: MouseEvent) {
-            if (isDraggingPanel) {
+        MOUSE_DRAGGED {
+            filter = true
+            verify { isDraggingPanel }
+            onAction { event ->
                 val width = grid.widthProperty().get()
                 val height = grid.heightProperty().get()
                 val stopX = event.x
                 val stopY = event.y
 
-                if (mouseWithinResizableRangeX) {
-                    val percentWidth = Math.min(Math.max(stopX * 100.0 / width, 20.0), 80.0)
+                if (onResideStartMouseRange.xInRange) {
+                    val percentWidth = (stopX * 100.0 / width).coerceIn(20.0, 80.0)
                     manager.firstColumnWidthProperty().set(percentWidth)
                 }
 
-                if (mouseWithinResizableRangeY) {
-                    val percentHeight = Math.min(Math.max(stopY * 100.0 / height, 20.0), 80.0)
+                if (onResideStartMouseRange.yInRange) {
+                    val percentHeight = (stopY * 100.0 / height).coerceIn(20.0, 80.0)
                     manager.firstRowHeightProperty().set(percentHeight)
                 }
-
-                event.consume()
             }
-
         }
+        MOUSE_CLICKED {
+            filter = true
+            verify { it.clickCount == 2 }
+            verify { trackedMouseRange.run { xInRange || yInRange } }
+            onAction { event ->
+                trackedMouseRange.run {
 
-    }
-
-    private inner class MouseDoubleClicked : EventHandler<MouseEvent> {
-        override fun handle(event: MouseEvent) {
-            if (event.clickCount == 2) {
-                val x = event.x
-                val y = event.y
-                val gridBorderX = manager.firstColumnWidthProperty().get() / 100 * grid
-                        .widthProperty().get()
-                val gridBorderY = manager.firstRowHeightProperty().get() / 100 * grid
-                        .heightProperty().get()
-                val mouseWithinResizableRangeX = Math.abs(x - gridBorderX) < tolerance
-                val mouseWithinResizableRangeY = Math.abs(y - gridBorderY) < tolerance
-
-                if (mouseWithinResizableRangeX || mouseWithinResizableRangeY) {
                     val time = 300
                     event.consume()
                     val timeline = Timeline()
 
-                    if (mouseWithinResizableRangeX && mouseWithinResizableRangeY) {
+                    if (xInRange && yInRange) {
                         timeline.keyFrames.addAll(
-                                KeyFrame(
-                                        Duration.ZERO,
-                                        KeyValue(
-                                                manager.firstColumnWidthProperty(),
-                                                manager.firstColumnWidthProperty().get()
-                                        ),
-                                        KeyValue(
-                                                manager.firstRowHeightProperty(),
-                                                manager.firstRowHeightProperty().get()
-                                        )
+                            KeyFrame(
+                                Duration.ZERO,
+                                KeyValue(
+                                    manager.firstColumnWidthProperty(),
+                                    manager.firstColumnWidthProperty().get()
                                 ),
-                                KeyFrame(
-                                        Duration(time.toDouble()),
-                                        KeyValue(manager.firstColumnWidthProperty(), 50),
-                                        KeyValue(manager.firstRowHeightProperty(), 50)
+                                KeyValue(
+                                    manager.firstRowHeightProperty(),
+                                    manager.firstRowHeightProperty().get()
                                 )
+                            ),
+                            KeyFrame(
+                                Duration(time.toDouble()),
+                                KeyValue(manager.firstColumnWidthProperty(), 50),
+                                KeyValue(manager.firstRowHeightProperty(), 50)
+                            )
                         )
-                    } else if (mouseWithinResizableRangeX) {
+                    } else if (xInRange) {
                         timeline.keyFrames.addAll(
-                                KeyFrame(
-                                        Duration.ZERO,
-                                        KeyValue(
-                                                manager.firstColumnWidthProperty(),
-                                                manager.firstColumnWidthProperty().get()
-                                        )
-                                ),
-                                KeyFrame(
-                                        Duration(time.toDouble()),
-                                        KeyValue(manager.firstColumnWidthProperty(), 50)
+                            KeyFrame(
+                                Duration.ZERO,
+                                KeyValue(
+                                    manager.firstColumnWidthProperty(),
+                                    manager.firstColumnWidthProperty().get()
                                 )
+                            ),
+                            KeyFrame(
+                                Duration(time.toDouble()),
+                                KeyValue(manager.firstColumnWidthProperty(), 50)
+                            )
                         )
-                    } else if (mouseWithinResizableRangeY) {
+                    } else if (yInRange) {
                         timeline.keyFrames.addAll(
-                                KeyFrame(
-                                        Duration.ZERO,
-                                        KeyValue(
-                                                manager.firstRowHeightProperty(),
-                                                manager.firstRowHeightProperty().get()
-                                        )
-                                ),
-                                KeyFrame(
-                                        Duration(time.toDouble()),
-                                        KeyValue(manager.firstRowHeightProperty(), 50)
+                            KeyFrame(
+                                Duration.ZERO,
+                                KeyValue(
+                                    manager.firstRowHeightProperty(),
+                                    manager.firstRowHeightProperty().get()
                                 )
+                            ),
+                            KeyFrame(
+                                Duration(time.toDouble()),
+                                KeyValue(manager.firstRowHeightProperty(), 50)
+                            )
                         )
                     }
                     timeline.play()
                 }
             }
         }
+
     }
 
-    override fun installInto(t: Node) {
-        t.addEventFilter(MouseEvent.MOUSE_MOVED, mouseMoved)
-        t.addEventFilter(MouseEvent.MOUSE_CLICKED, mouseDoublClicked)
-        t.addEventFilter(MouseEvent.MOUSE_DRAGGED, mouseDragged)
-        t.addEventFilter(MouseEvent.MOUSE_PRESSED, mosuePressed)
-        t.addEventFilter(MouseEvent.MOUSE_RELEASED, mouseReleased)
-    }
+    private data class MouseInsideRange(val xInRange: Boolean, val yInRange: Boolean)
 
-    override fun removeFrom(t: Node) {
-        t.removeEventFilter(MouseEvent.MOUSE_MOVED, mouseMoved)
-        t.removeEventFilter(MouseEvent.MOUSE_CLICKED, mouseDoublClicked)
-        t.removeEventFilter(MouseEvent.MOUSE_DRAGGED, mouseDragged)
-        t.removeEventFilter(MouseEvent.MOUSE_PRESSED, mosuePressed)
-        t.removeEventFilter(MouseEvent.MOUSE_RELEASED, mouseReleased)
+
+    private fun mouseInRange(event: MouseEvent): MouseInsideRange {
+        val x = event.x
+        val y = event.y
+        val gridBorderX = manager.firstColumnWidthProperty().get() / 100 * grid.widthProperty().get()
+        val gridBorderY = manager.firstRowHeightProperty().get() / 100 * grid.heightProperty().get()
+        val mouseWithinResizableRangeX = abs(x - gridBorderX) < tolerance
+        val mouseWithinResizableRangeY = abs(y - gridBorderY) < tolerance
+        return MouseInsideRange(mouseWithinResizableRangeX, mouseWithinResizableRangeY)
     }
 }

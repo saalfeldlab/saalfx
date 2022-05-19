@@ -10,7 +10,7 @@
 
 	<groupId>org.janelia.saalfeldlab</groupId>
 	<artifactId>saalfx</artifactId>
-	<version>0.3.1-SNAPSHOT</version>
+	<version>0.4.0-SNAPSHOT</version>
 
 	<name>Saal FX</name>
 	<description>Saalfeld lab JavaFX tools and extensions</description>
@@ -53,7 +53,8 @@
 		<junit.version>4.13-beta-3</junit.version>
 
 		<!-- JavaFx-->
-		<javafx.version>13.0.1</javafx.version>
+		<javafx.version>16</javafx.version>
+		<dokka.version>1.4.30</dokka.version>
 	</properties>
 
 	<developers>
@@ -177,6 +178,10 @@
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>commons-lang</groupId>
+			<artifactId>commons-lang</artifactId>
+		</dependency>
 
 		<!--	logging-->
 		<!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
@@ -228,7 +233,64 @@
 			<version>${testfx.version}</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.testfx</groupId>
+			<artifactId>openjfx-monocle</artifactId>
+			<version>jdk-12.0.1+2</version>
+			<scope>test</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>org.openjfx</groupId>
+					<artifactId>javafx-base</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.openjfx</groupId>
+					<artifactId>javafx-controls</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.openjfx</groupId>
+					<artifactId>javafx-graphics</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.openjfx</groupId>
+					<artifactId>javafx-fxml</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
 	</dependencies>
+
+	<build>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-surefire-plugin</artifactId>
+					<configuration>
+						<argLine>-Dtestfx.robot=glass -Dglass.platform=Monocle -Dmonocle.platform=Headless -Dprism.order=sw</argLine>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.jetbrains.dokka</groupId>
+					<artifactId>dokka-maven-plugin</artifactId>
+					<version>${dokka.version}</version>
+					<executions>
+						<execution>
+							<phase>pre-site</phase>
+							<goals>
+								<goal>dokka</goal>
+							</goals>
+						</execution>
+					</executions>
+					<configuration>
+						<sourceDirectories>
+							<dir>src/main/kotlin</dir>
+						</sourceDirectories>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+	</build>
 
 	<!--NB: No need to add kotlin maven plugin because pom-scijava activates kotlin profile automatically when src/main/kotlin exists -->
 	<!--https://github.com/scijava/pom-scijava-base/blob/1efafea6d2aa51a9e7561f13df592e3d495097f8/pom.xml#L1210-L1212 -->

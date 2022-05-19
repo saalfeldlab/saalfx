@@ -6,13 +6,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -28,11 +28,11 @@
  */
 package org.janelia.saalfeldlab.fx.event
 
+import javafx.beans.property.SimpleDoubleProperty
 import javafx.event.EventHandler
 import javafx.scene.input.MouseEvent
-import org.slf4j.Logger
+import org.janelia.saalfeldlab.fx.extensions.nonnull
 import org.slf4j.LoggerFactory
-
 import java.lang.invoke.MethodHandles
 
 class MouseTracker : EventHandler<MouseEvent> {
@@ -40,10 +40,12 @@ class MouseTracker : EventHandler<MouseEvent> {
     var isDragging: Boolean = false
         private set
 
-    var x: Double = 0.0
-        private set
+    val xProperty = SimpleDoubleProperty(0.0)
+    val yProperty = SimpleDoubleProperty(0.0)
 
-    var y: Double = 0.0
+    var x by xProperty.nonnull()
+        private set
+    var y by yProperty.nonnull()
         private set
 
     override fun handle(event: MouseEvent) {

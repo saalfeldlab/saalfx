@@ -6,13 +6,13 @@
  * %%
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -29,105 +29,69 @@
 package org.janelia.saalfeldlab.fx.event
 
 import javafx.beans.value.ChangeListener
-import javafx.beans.value.ObservableValue
-import javafx.event.EventHandler
-import javafx.scene.Scene
 import javafx.scene.input.KeyCode
-import javafx.scene.input.KeyEvent
+import javafx.scene.input.KeyEvent.KEY_PRESSED
+import javafx.scene.input.KeyEvent.KEY_RELEASED
 import javafx.stage.Window
-import org.janelia.saalfeldlab.fx.util.OnWindowInitListener
-import java.util.function.Consumer
+import org.janelia.saalfeldlab.fx.actions.ActionSet
+import org.janelia.saalfeldlab.fx.actions.ActionSet.Companion.installActionSet
+import org.janelia.saalfeldlab.fx.actions.ActionSet.Companion.removeActionSet
 
-class KeyTracker : InstallAndRemove<Scene> {
+class KeyTracker {
 
     private val activeKeys = mutableSetOf<KeyCode>()
 
-    private val activate = ActivateKey()
-
-    private val deactivate = DeactivateKey()
-
-    private val onFocusChanged = OnFocusChanged()
-
-    fun installInto(window: Window) = installInto(window.scene, window)
-
-    fun installInto(scene: Scene, window: Window) {
-        scene.addEventFilter(KeyEvent.KEY_RELEASED, deactivate)
-        scene.addEventFilter(KeyEvent.KEY_PRESSED, activate)
-        window.focusedProperty().addListener(onFocusChanged)
-    }
-
-    fun removeFrom(scene: Scene, window: Window) {
-        scene.removeEventFilter(KeyEvent.KEY_RELEASED, deactivate)
-        scene.removeEventFilter(KeyEvent.KEY_PRESSED, activate)
-        window.focusedProperty().removeListener(onFocusChanged)
-    }
-
-    @Deprecated("Install into scene and window directly instead", ReplaceWith("installInto(scene, window)"))
-    override fun installInto(t: Scene) {
-        t.addEventFilter(KeyEvent.KEY_RELEASED, deactivate)
-        t.addEventFilter(KeyEvent.KEY_PRESSED, activate)
-        t.windowProperty().addListener(OnWindowInitListener(Consumer { window -> window.focusedProperty().addListener(onFocusChanged) }))
-    }
-
-    @Deprecated("Remove from scene and window directly instead", ReplaceWith("removeFrom(scene, window)"))
-    override fun removeFrom(t: Scene) {
-        t.removeEventFilter(KeyEvent.KEY_PRESSED, activate)
-        t.removeEventFilter(KeyEvent.KEY_RELEASED, deactivate)
-        t.window?.focusedProperty()?.removeListener(onFocusChanged)
-    }
-
-    private inner class ActivateKey : EventHandler<KeyEvent> {
-        override fun handle(event: KeyEvent) {
-            synchronized(activeKeys) {
-                activeKeys.add(event.code)
+    private val actions by lazy {
+        ActionSet("Key Tracker", this) {
+            KEY_PRESSED {
+                ignoreKeys()
+                filter = true
+                consume = false
+                onAction { addKey(it.code) }
+            }
+            KEY_RELEASED {
+                ignoreKeys()
+                filter = true
+                consume = false
+                onAction { removeKey(it.code) }
             }
         }
     }
 
-    private inner class DeactivateKey : EventHandler<KeyEvent> {
-        override fun handle(event: KeyEvent) {
-            synchronized(activeKeys) {
-                activeKeys.remove(event.code)
-            }
+    val clearOnUnfocused = ChangeListener<Boolean> { _, _, isFocused ->
+        if (isFocused) {
+            activeKeys.clear()
         }
     }
 
-    private inner class OnFocusChanged : ChangeListener<Boolean> {
-
-        override fun changed(observable: ObservableValue<out Boolean>, oldValue: Boolean?, newValue: Boolean?) {
-            newValue?.let {
-                if (!newValue)
-                    synchronized(activeKeys) {
-                        activeKeys.clear()
-                    }
-            }
-        }
-
+    fun installInto(window: Window) {
+        window.installActionSet(actions)
+        window.focusedProperty().addListener(clearOnUnfocused)
     }
 
-    fun areOnlyTheseKeysDown(vararg codes: KeyCode): Boolean {
-        val codesHashSet = mutableSetOf(*codes)
-        synchronized(activeKeys) {
-            return codesHashSet == activeKeys
-        }
+    fun removeFrom(window: Window) {
+        window.removeActionSet(actions)
+        window.focusedProperty().removeListener(clearOnUnfocused)
     }
 
-    fun areKeysDown(vararg codes: KeyCode): Boolean {
-        synchronized(activeKeys) {
-            return activeKeys.containsAll(listOf(*codes))
-        }
-    }
+    fun areOnlyTheseKeysDown(vararg codes: KeyCode) = activeKeys.synchronized { mutableSetOf(*codes) == this }
 
-    fun activeKeyCount(): Int {
-        synchronized(activeKeys) {
-            return activeKeys.size
-        }
-    }
+    fun areKeysDown(vararg codes: KeyCode) = activeKeys.synchronized { containsAll(listOf(*codes)) }
+
+    fun activeKeyCount() = activeKeys.synchronized { size }
 
     fun noKeysActive() = activeKeyCount() == 0
 
-    fun getActiveKeyCodes(includeModifiers: Boolean) = synchronized(activeKeys) {
-        activeKeys.filter { includeModifiers || !it.isModifierKey }
+    fun getActiveKeyCodes(includeModifiers: Boolean) = activeKeys.synchronized { filter { includeModifiers || !it.isModifierKey } }
+
+    fun addKey(key: KeyCode) = activeKeys.synchronized { add(key) }
+
+    fun removeKey(key: KeyCode) = activeKeys.synchronized { remove(key) }
+
+    private fun <R> MutableSet<KeyCode>.synchronized(run: MutableSet<KeyCode>.() -> R): R {
+        synchronized(this) {
+            return run(this)
+        }
     }
 
 }
