@@ -22,7 +22,7 @@ import javafx.stage.Window
 import org.janelia.saalfeldlab.fx.actions.ActionSet.Companion.installActionSet
 import org.janelia.saalfeldlab.fx.actions.ActionSet.Companion.removeActionSet
 import org.janelia.saalfeldlab.fx.actions.DragActionSet
-import org.janelia.saalfeldlab.fx.extensions.createValueBinding
+import org.janelia.saalfeldlab.fx.extensions.createNonNullValueBinding
 import org.janelia.saalfeldlab.fx.extensions.nonnull
 import org.janelia.saalfeldlab.fx.extensions.nonnullVal
 import org.janelia.saalfeldlab.fx.util.InvokeOnJavaFXApplicationThread
@@ -177,7 +177,7 @@ class ResizeHorizontally @JvmOverloads constructor(
                 val canResize = resizeLeft.canResizeProperty.or(resizeRight.canResizeProperty)
                 val isDragging = resizeLeft.isDraggingProperty.or(resizeRight.isDraggingProperty)
                 val needsCursor = canResize.or(isDragging)
-                val cursor = needsCursor.createValueBinding { if (it) Cursor.H_RESIZE else Cursor.DEFAULT }
+                val cursor = needsCursor.createNonNullValueBinding { if (it) Cursor.H_RESIZE else Cursor.DEFAULT }
 
                 Stage().also {
                     it.scene = Scene(root, 400.0, 300.0)

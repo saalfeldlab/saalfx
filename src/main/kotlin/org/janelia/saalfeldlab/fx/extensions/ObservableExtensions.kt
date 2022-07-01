@@ -15,7 +15,11 @@ fun <Obj, Obs> Obs.createObservableBinding(vararg observables: Observable, obsTo
     return Bindings.createObjectBinding({ obsToObj.invoke(this) }, this, *observables)
 }
 
-inline fun <reified T, Obj, Obs> Obs.createValueBinding(vararg observables: Observable, crossinline obsValToObj: (T) -> Obj): ObjectBinding<Obj> where Obs : ObservableValue<T> {
+inline fun <reified T, Obj, Obs> Obs.createNullableValueBinding(vararg observables: Observable, crossinline obsValToObj: (T?) -> Obj): ObjectBinding<Obj> where Obs : ObservableValue<T> {
+    return Bindings.createObjectBinding({ obsValToObj(value) }, this, *observables)
+}
+
+inline fun <reified T, Obj, Obs> Obs.createNonNullValueBinding(vararg observables: Observable, crossinline obsValToObj: (T) -> Obj): ObjectBinding<Obj> where Obs : ObservableValue<T> {
     return Bindings.createObjectBinding({ obsValToObj(value) }, this, *observables)
 }
 
