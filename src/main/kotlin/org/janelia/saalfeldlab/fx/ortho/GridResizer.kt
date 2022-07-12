@@ -50,6 +50,7 @@ class GridResizer(private val manager: GridConstraintsManager, private val toler
         private set
 
     private var isOnMargin: Boolean = false
+    private lateinit var previousCursor: Cursor
 
     init {
         /* keep track of where the mouse is with respect to the resize locations */
@@ -73,24 +74,22 @@ class GridResizer(private val manager: GridConstraintsManager, private val toler
                         val gridBorderY = manager.firstRowHeightProperty().get() / 100 * grid.heightProperty().get()
                         val (mouseWithinResizableRangeX, mouseWithinResizableRangeY) = trackedMouseRange
 
-                        val scene = grid.sceneProperty().get()
-
                         if (mouseWithinResizableRangeX && mouseWithinResizableRangeY) {
-                            // TODO replace compareTo with operator comparison
-                            scene.cursor =
-                                if ((event.x - gridBorderX).compareTo(0.0) < 0 && (event.y - gridBorderY).compareTo(0.0) < 0) Cursor.SE_RESIZE
-                                else if ((event.x - gridBorderX).compareTo(0.0) > 0 && (event.y - gridBorderY).compareTo(0.0) < 0) Cursor.SW_RESIZE
-                                else if ((event.x - gridBorderX).compareTo(0.0) < 0 && (event.y - gridBorderY).compareTo(0.0) > 0) Cursor.NE_RESIZE
+                            val newCursor =
+                                if ((event.x - gridBorderX) < 0 && (event.y - gridBorderY) < 0) Cursor.SE_RESIZE
+                                else if ((event.x - gridBorderX) > 0 && (event.y - gridBorderY) < 0) Cursor.SW_RESIZE
+                                else if ((event.x - gridBorderX) < 0 && (event.y - gridBorderY) > 0) Cursor.NE_RESIZE
                                 else Cursor.NW_RESIZE
+                            setCursor(newCursor)
                             isOnMargin = true
                         } else if (mouseWithinResizableRangeX) {
-                            scene.cursor = Cursor.H_RESIZE
+                            setCursor(Cursor.H_RESIZE)
                             isOnMargin = true
                         } else if (mouseWithinResizableRangeY) {
-                            scene.cursor = Cursor.V_RESIZE
+                            setCursor(Cursor.V_RESIZE)
                             isOnMargin = true
                         } else if (isOnMargin) {
-                            scene.cursor = Cursor.DEFAULT
+                            setCursor(previousCursor)
                             isOnMargin = false
                         }
                     }
@@ -205,6 +204,13 @@ class GridResizer(private val manager: GridConstraintsManager, private val toler
             }
         }
 
+    }
+
+    private fun setCursor(newCursor: Cursor) {
+        if (!isOnMargin) {
+            previousCursor = grid.scene.cursor ?: Cursor.DEFAULT
+        }
+        grid.scene.cursor = newCursor
     }
 
     private data class MouseInsideRange(val xInRange: Boolean, val yInRange: Boolean)
