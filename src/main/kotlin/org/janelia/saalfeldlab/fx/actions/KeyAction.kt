@@ -27,7 +27,14 @@ class KeyAction(eventType: EventType<KeyEvent>) : Action<KeyEvent>(eventType) {
     fun keyMatchesBinding(keyBindings: NamedKeyCombination.CombinationMap, keyName: String) {
         if (name == null) name = keyName
         ignoreKeys()
-        verify { keyBindings.matches(keyName, it) }
+        verify { event ->
+            /* always valid here if the event is null; it indicates we are triggering the action programatically, not via an Event */
+            event?.let {
+                keyBindings.matches(keyName, it).also { match ->
+                    if (!match) logger.trace("key did not match bindings")
+                }
+            } ?: true
+        }
     }
 
     /**

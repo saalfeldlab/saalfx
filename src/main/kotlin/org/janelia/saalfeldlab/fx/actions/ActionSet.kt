@@ -4,10 +4,7 @@ import javafx.event.Event
 import javafx.event.EventHandler
 import javafx.event.EventType
 import javafx.scene.Node
-import javafx.scene.input.KeyCode
-import javafx.scene.input.KeyEvent
-import javafx.scene.input.MouseButton
-import javafx.scene.input.MouseEvent
+import javafx.scene.input.*
 import javafx.stage.Window
 import org.janelia.saalfeldlab.fx.event.KeyTracker
 import org.slf4j.Logger
@@ -326,18 +323,15 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
     private operator fun <E : Event> invoke(event: E, action: Action<E>) {
         if (preInvokeCheck(action, event)) {
             try {
-                if (action(event)) {
-                    val logger = if (action.filter) FILTER_LOGGER else ACTION_LOGGER
-                    val nameText = action.name?.let { "$name: $it" } ?: name
-                    /* Log success and not a filter */
-                    logger.trace(" $nameText performed")
-                }
+                action(event)
             } catch (e: Exception) {
                 val logger = if (action.filter) FILTER_LOGGER else ACTION_LOGGER
                 val nameText = action.name?.let { "$name: $it" } ?: name
                 logger.error("$nameText (${event.eventType} was valid, but failed (${e.localizedMessage})")
                 throw e
             }
+        } else {
+            action.logger.trace("preInvokeCheck failed")
         }
     }
 
