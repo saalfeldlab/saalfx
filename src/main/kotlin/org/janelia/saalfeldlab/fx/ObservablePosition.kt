@@ -3,6 +3,7 @@ package org.janelia.saalfeldlab.fx
 import javafx.beans.InvalidationListener
 import javafx.beans.Observable
 import javafx.scene.input.MouseEvent
+import org.apache.commons.lang.builder.HashCodeBuilder
 
 class ObservablePosition(x: Double, y: Double) : Observable {
 
@@ -20,20 +21,36 @@ class ObservablePosition(x: Double, y: Double) : Observable {
     }
 
     fun set(x: Double, y: Double) {
-        this.x = x
-        this.y = y
-        notifyListeners()
+        if (x != this.x || y != this.y) {
+            this.x = x
+            this.y = y
+            notifyListeners()
+        }
     }
 
     fun setX(x: Double) {
-        this.x = x
-        notifyListeners()
+        if (x != this.x) {
+            this.x = x
+            notifyListeners()
+        }
     }
 
     fun setY(y: Double) {
-        this.y = y
-        notifyListeners()
+        if (y != this.y) {
+            this.y = y
+            notifyListeners()
+        }
     }
+
+    override fun equals(other: Any?): Boolean {
+        return (other as? ObservablePosition)?.let {
+            x == it.x && y == it.y
+        } ?: false
+    }
+
+    override fun toString() = "($x, $y)"
+
+    override fun hashCode() = HashCodeBuilder().append(x).append(y).toHashCode()
 
     private fun notifyListeners() {
         listeners.forEach { it.invalidated(this) }
