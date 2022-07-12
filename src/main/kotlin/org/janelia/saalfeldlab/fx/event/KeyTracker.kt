@@ -96,4 +96,24 @@ class KeyTracker {
         }
     }
 
+    companion object {
+        @JvmStatic
+        fun keysToString(vararg keys: KeyCode): String {
+            val codes = mutableListOf<KeyCode>()
+            val modifiers = mutableListOf<KeyCode>()
+
+            keys.forEach { key ->
+                if (key.isModifierKey) {
+                    modifiers += key
+                } else {
+                    codes += key
+                }
+            }
+            val orderedKeys = mutableListOf<KeyCode>()
+            orderedKeys += modifiers
+            orderedKeys += codes
+            return orderedKeys.map { it.name }.reduce { l, r -> "$l + $r" }
+        }
+    }
+
 }
