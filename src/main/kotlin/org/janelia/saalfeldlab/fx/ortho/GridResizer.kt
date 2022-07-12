@@ -108,7 +108,7 @@ class GridResizer(private val manager: GridConstraintsManager, private val toler
             }
         }
 
-        MOUSE_RELEASED(MouseButton.PRIMARY, released = true) {
+        MOUSE_RELEASED(MouseButton.PRIMARY, onRelease = true) {
             filter = true
             verify { isDraggingPanel }
             onAction {
