@@ -162,16 +162,31 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
     /**
      * Convenience operator to create a [KeyAction] from a [KeyEvent] [EventType] receiver, while specifying the required [KeyCode]s
      *
-     * @param withKeysDown [KeyCode]s required to be down
+     * @param withKeys [KeyCode]s required to be down UNLESS [KeyEvent] is [KeyEvent.KEY_RELEASED], in which case [withKeys] are passed to [KeyAction.keysReleased].
      * @param withAction [KeyAction] configuration callback
      * @return the [KeyAction]
      */
-    operator fun EventType<KeyEvent>.invoke(vararg withKeysDown: KeyCode, withAction: KeyAction.() -> Unit): KeyAction {
-        return keyAction(this, withAction).apply {
-            if (withKeysDown.isNotEmpty()) {
-                keysDown(*withKeysDown)
+    operator fun EventType<KeyEvent>.invoke(vararg withKeys: KeyCode, withAction: KeyAction.() -> Unit): KeyAction {
+
+        /* create the Action*/
+        val keyAction = KeyAction(this)
+            .also { it.keyTracker = this@ActionSet.keyTracker }
+
+        /* configure based on the withKeys paramters*/
+        keyAction.apply {
+            if (this.eventType == KeyEvent.KEY_RELEASED) {
+                ignoreKeys()
+                keysReleased(*withKeys)
+            } else if (withKeys.isNotEmpty()) {
+                keysDown(*withKeys)
             }
         }
+
+        /* configure via the callback*/
+        keyAction.apply(withAction)
+        addAction(keyAction)
+
+        return keyAction
     }
 
     /**
