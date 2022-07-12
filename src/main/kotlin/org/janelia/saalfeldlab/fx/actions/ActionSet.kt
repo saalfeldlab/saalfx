@@ -218,48 +218,64 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
      * @return the [KeyAction]
      */
     operator fun EventType<KeyEvent>.invoke(keyBindings: NamedKeyCombination.CombinationMap, keyName: String, withAction: KeyAction.() -> Unit): KeyAction {
-        return keyAction(this, withAction).apply {
-            keyMatchesBinding(keyBindings, keyName)
-        }
+
+        /* create the Action*/
+        val keyAction = KeyAction(this)
+            .also { it.keyTracker = this@ActionSet.keyTracker }
+
+        /* configure based on the keyBinding paramters*/
+        keyAction.keyMatchesBinding(keyBindings, keyName)
+
+        /* configure via the callback*/
+        keyAction.apply(withAction)
+        addAction(keyAction)
+
+        return keyAction
     }
 
     /**
-     *  Extension to create and add a [MouseAction] to this [ActionSet]
+     *  Extension to create and add a [MouseAction] with various configuration options.
+     *
+     *  @param mouseButtonTrigger to check against the event. If none provided, any mouse button will be valid
+     *  @param onRelease only meaningful if [mouseButtonTrigger] is provided. Dictates whether to trigger on mouse press or release
+     *  @param withKeysDown optional keys to check against when the action is triggered
+     *  @param keysExclusive whether [withKeysDown] is strict, or allows other keys as well
+     *  @param withAction [MouseAction] configuration callback
+     *
      */
+    @JvmOverloads
     @Suppress("UNCHECKED_CAST")
-    operator fun <E : MouseEvent> EventType<E>.invoke(withAction: MouseAction.() -> Unit): MouseAction {
-        return mouseAction(this as EventType<MouseEvent>, withAction)
-    }
+    operator fun <E : MouseEvent> EventType<E>.invoke(
+        mouseButtonTrigger: MouseButton? = null,
+        onRelease: Boolean = false,
+        withKeysDown: Array<KeyCode>? = null,
+        keysExclusive: Boolean = false,
+        withAction: MouseAction.() -> Unit
+    ): MouseAction {
 
-    /**
-     *  Extension to create and add a [MouseAction] with required [KeyCode]s held down
-     */
-    @Suppress("UNCHECKED_CAST")
-    operator fun <E : MouseEvent> EventType<E>.invoke(vararg withKeysDown: KeyCode, withAction: MouseAction.() -> Unit): MouseAction {
-        return mouseAction(this as EventType<MouseEvent>, withAction).apply {
-            if (withKeysDown.isNotEmpty()) keysDown(*withKeysDown)
-        }
-    }
+        /* create the Action*/
+        val mouseAction = MouseAction(this as EventType<MouseEvent>)
+            .also { it.keyTracker = this@ActionSet.keyTracker }
 
-    /**
-     *  Extension to create and add a [MouseAction] configured to accept only a single [withOnlyButtonsDown] mouse press
-     */
-    @Suppress("UNCHECKED_CAST")
-    operator fun <E : MouseEvent> EventType<E>.invoke(vararg withOnlyButtonsDown: MouseButton, withAction: MouseAction.() -> Unit): MouseAction {
-        return mouseAction(this as EventType<MouseEvent>, withAction).apply {
-            verifyButtonsDown(*withOnlyButtonsDown, exclusive = true)
-        }
-    }
+        /* copnfigure based on the parameters */
+        mouseAction.apply {
+            mouseButtonTrigger?.let {
+                /* default to exclusive if pressed, and NOT exclusive if released*/
+                verifyButtonTrigger(mouseButtonTrigger, released = onRelease, exclusive = !onRelease)
+            }
 
-    /**
-     *  Extension to create and add a [MouseAction] configured to trigger on a [MouseButton] trigger, either on [released] or pressed.
-     */
-    @Suppress("UNCHECKED_CAST")
-    operator fun <E : MouseEvent> EventType<E>.invoke(withButtonTrigger: MouseButton, released: Boolean = false, withAction: MouseAction.() -> Unit): MouseAction {
-        return mouseAction(this as EventType<MouseEvent>, withAction).apply {
-            /* default to exclusive if pressed, and NOT exclusive if released*/
-            verifyButtonTrigger(withButtonTrigger, released = released, exclusive = !released)
+            withKeysDown?.let {
+                keysDown(*it, exclusive = keysExclusive)
+            } ?: ignoreKeys()
+
         }
+
+        /* configure based on the callback, and add to ActionSet */
+        mouseAction
+            .apply(withAction)
+            .also { addAction(it) }
+
+        return mouseAction
     }
 
     /**
@@ -285,7 +301,7 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
             MouseEvent::class.java -> mouseAction(this as EventType<MouseEvent>, withAction as MouseAction.() -> Unit) as R
             else -> action(this, withAction as Action<E>.() -> Unit) as R
         }.apply {
-            if (withKeysDown.isNotEmpty()) keysDown(*withKeysDown)
+            if (withKeysDown.isNotEmpty()) keysDown(*withKeysDown, exclusive = this.keysExclusive)
         }
     }
 
