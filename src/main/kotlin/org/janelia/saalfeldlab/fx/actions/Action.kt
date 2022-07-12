@@ -14,7 +14,6 @@ import org.janelia.saalfeldlab.fx.actions.Action.Companion.removeAction
 import org.janelia.saalfeldlab.fx.event.KeyTracker
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.lang.invoke.MethodHandles
 import java.util.function.Consumer
 
 /**
@@ -74,6 +73,9 @@ import java.util.function.Consumer
  */
 open class Action<E : Event>(val eventType: EventType<E>) {
 
+    val logger: Logger by lazy {
+        LoggerFactory.getLogger(name ?: this.toString())
+    }
 
     /**
      * Name of the [Action]. Used as part of `toString` for the resulting [EventHandler]
