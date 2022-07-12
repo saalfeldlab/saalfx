@@ -48,14 +48,29 @@ class KeyAction(eventType: EventType<KeyEvent>) : Action<KeyEvent>(eventType) {
      */
     fun keysReleased(vararg keyCodes: KeyCode) {
         ignoreKeys()
+        verify {
+            val otherKeys = keyTracker?.getActiveKeyCodes(true)
+            val otherKeysAreDown = otherKeys?.let { keyTracker?.areKeysDown(*otherKeys.toTypedArray()) } ?: false
+            val onlyOtherKeys = keyTracker?.activeKeyCount() == otherKeys?.size && (otherKeys?.size ?: -1) > 0
+            if (keysExclusive && otherKeysAreDown && onlyOtherKeys) {
+                true
+            } else otherKeysAreDown
+        }
         keysReleased = listOf(*keyCodes)
     }
 
     override fun verifyKeys(event: KeyEvent): Boolean {
-        return super.verifyKeys(event) && keysReleased?.let {
+        val keysValid = super.verifyKeys(event) && keysReleased?.let {
             // If we are checking a key on a release, we can't use the keyTracker
-            eventType == KeyEvent.KEY_RELEASED && (event as? KeyEvent)?.code in keysReleased!!
+            val keyReleased = (event as? KeyEvent)?.code!!
+            val otherKeys = it - keyReleased
+            eventType == KeyEvent.KEY_RELEASED && /*ensure we are a KEY_RELEASED event */
+                    (it.isEmpty() || keyReleased in it) && /* ensure the key that was released was a trigger key*/
+                    keyTracker?.areKeysDown(*otherKeys.toTypedArray()) ?: false /* ensure all OTHER trigger keys are down. */
         } ?: true
+        return keysValid.also {
+            if (!it) logger.trace("keys invalid")
+        }
     }
 
     companion object {
