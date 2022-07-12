@@ -47,13 +47,15 @@ class KeyTracker {
                 ignoreKeys()
                 filter = true
                 consume = false
-                onAction { addKey(it.code) }
+                verifyEventNotNull()
+                onAction { addKey(it!!.code) }
             }
             KEY_RELEASED {
                 ignoreKeys()
                 filter = true
                 consume = false
-                onAction { removeKey(it.code) }
+                verifyEventNotNull()
+                onAction { removeKey(it!!.code) }
             }
         }
     }

@@ -56,8 +56,9 @@ class GridResizer(private val manager: GridConstraintsManager, private val toler
         MOUSE_MOVED {
             filter = true
             verifyNoKeysDown()
+            verifyEventNotNull()
             verify { event ->
-                mouseInRange(event)
+                mouseInRange(event!!)
                     //Not sure how I feel about changing state in the `verify`.
                     // Alternatively, could have a second MOVED action, but then you have to gaurantee ordering
                     // ( I think that would be fine though... )
@@ -65,6 +66,7 @@ class GridResizer(private val manager: GridConstraintsManager, private val toler
                     .run { xInRange || yInRange || isOnMargin }
             }
             onAction { event ->
+                event!!
                 synchronized(manager) {
                     synchronized(grid) {
                         val gridBorderX = manager.firstColumnWidthProperty().get() / 100 * grid.widthProperty().get()
@@ -119,7 +121,9 @@ class GridResizer(private val manager: GridConstraintsManager, private val toler
         MOUSE_DRAGGED {
             filter = true
             verify { isDraggingPanel }
+            verifyEventNotNull()
             onAction { event ->
+                event!!
                 val width = grid.widthProperty().get()
                 val height = grid.heightProperty().get()
                 val stopX = event.x
@@ -138,13 +142,14 @@ class GridResizer(private val manager: GridConstraintsManager, private val toler
         }
         MOUSE_CLICKED {
             filter = true
-            verify { it.clickCount == 2 }
+            verifyEventNotNull()
+            verify { it!!.clickCount == 2 }
             verify { trackedMouseRange.run { xInRange || yInRange } }
             onAction { event ->
                 trackedMouseRange.run {
 
                     val time = 300
-                    event.consume()
+                    event!!.consume()
                     val timeline = Timeline()
 
                     if (xInRange && yInRange) {

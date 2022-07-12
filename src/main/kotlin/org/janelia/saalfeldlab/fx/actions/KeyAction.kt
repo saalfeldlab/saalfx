@@ -78,13 +78,13 @@ class KeyAction(eventType: EventType<KeyEvent>) : Action<KeyEvent>(eventType) {
          * @receiver the [EventType] to trigger the [KeyAction] on
          */
         @JvmSynthetic
-        fun <T : EventType<KeyEvent>> T.onAction(keyBindings: NamedKeyCombination.CombinationMap, keys: String, onAction: (KeyEvent) -> Unit) = KeyAction(this).also { action ->
+        fun <T : EventType<KeyEvent>> T.onAction(keyBindings: NamedKeyCombination.CombinationMap, keys: String, onAction: (KeyEvent?) -> Unit) = KeyAction(this).also { action ->
             action.keyMatchesBinding(keyBindings, keys)
             action.onAction { onAction(it) }
         }
 
         @JvmStatic
-        fun <T : EventType<KeyEvent>> T.onAction(keyBindings: NamedKeyCombination.CombinationMap, keys: String, onAction: Consumer<KeyEvent>) =
+        fun <T : EventType<KeyEvent>> T.onAction(keyBindings: NamedKeyCombination.CombinationMap, keys: String, onAction: Consumer<KeyEvent?>) =
             onAction(keyBindings, keys) { onAction.accept(it) }
     }
 }
