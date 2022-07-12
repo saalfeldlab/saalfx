@@ -59,7 +59,7 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
     @JvmOverloads
     constructor(name: String, keyTracker: KeyTracker? = null, apply: Consumer<ActionSet>?) : this(name, keyTracker, { apply?.accept(this) })
 
-    private val actions = mutableListOf<Action<out Event>>()
+    val actions = mutableListOf<Action<out Event>>()
     private val actionHandlerMap = mutableMapOf<EventType<Event>, MutableList<EventHandler<Event>>>()
     private val actionFilterMap = mutableMapOf<EventType<Event>, MutableList<EventHandler<Event>>>()
     private val checks = mutableMapOf<EventType<out Event>, MutableList<(Event) -> Boolean>>()
