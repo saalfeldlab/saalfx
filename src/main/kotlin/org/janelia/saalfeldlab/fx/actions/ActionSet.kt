@@ -157,6 +157,29 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
     }
 
     /**
+     * Convenience operator to create a [KeyAction] from a [KeyEvent] [EventType] receiver, while specifying the required [KeyCodeCombination]
+     *
+     * @param withKeys [KeyCodeCombination]s required to match the [KeyEvent].
+     * @param withAction [KeyAction] configuration callback
+     * @return the [KeyAction]
+     */
+    operator fun EventType<KeyEvent>.invoke(withKeys: KeyCodeCombination, withAction: KeyAction.() -> Unit): KeyAction {
+        /* create the Action*/
+        val keyAction = KeyAction(this)
+            .also { it.keyTracker = this@ActionSet.keyTracker }
+
+        /* configure based on the withKeys paramters*/
+        keyAction.ignoreKeys()
+        keyAction.verify { withKeys.match(it) }
+
+        /* configure via the callback*/
+        keyAction.apply(withAction)
+        addAction(keyAction)
+
+        return keyAction
+    }
+
+    /**
      * Convenience operator to create a [KeyAction] from a [KeyEvent] [EventType] receiver, while specifying the required [KeyCode]s
      *
      * @param withKeys [KeyCode]s required to be down UNLESS [KeyEvent] is [KeyEvent.KEY_RELEASED], in which case [withKeys] are passed to [KeyAction.keysReleased].

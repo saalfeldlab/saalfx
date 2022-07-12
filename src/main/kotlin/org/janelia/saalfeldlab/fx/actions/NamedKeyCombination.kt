@@ -10,12 +10,12 @@ import org.apache.commons.lang.builder.ToStringStyle
 import org.janelia.saalfeldlab.fx.extensions.nonnull
 import kotlin.collections.set
 
-class NamedKeyCombination(val name: String, primaryCombination: KeyCombination) {
+class NamedKeyCombination(val name: String, primaryCombination: KeyCodeCombination) {
 
     constructor(name: String, keyCode: KeyCode, vararg modifiers: KeyCombination.Modifier) : this(name, KeyCodeCombination(keyCode, *modifiers))
 
     private val primaryCombinationProperty = SimpleObjectProperty(primaryCombination)
-    var primaryCombination: KeyCombination by primaryCombinationProperty.nonnull()
+    var primaryCombination: KeyCodeCombination by primaryCombinationProperty.nonnull()
 
     fun primaryCombinationProperty() = primaryCombinationProperty
 
