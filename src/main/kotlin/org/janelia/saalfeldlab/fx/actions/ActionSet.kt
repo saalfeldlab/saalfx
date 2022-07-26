@@ -39,11 +39,9 @@ import java.util.function.Consumer
  * ```
  * Above we created an action set with two actions, one for a key press, and one for a key release, which trigger some state change to the applications
  *
- * See [DragActionSet] and [org.janelia.saalfeldlab.fx.ortho.GridResizer] for more examples.
+ * See [DragActionSet] for more examples.
  *
  * @see DragActionSet
- * @see org.janelia.saalfeldlab.fx.ortho.GridResizer
- *
  *
  * @property name of the action set. If an [Action] is part of this [ActionSet] and has no name, this will be used for the [Action]s name as well.
  * @property keyTracker to use to keep track of the key state
