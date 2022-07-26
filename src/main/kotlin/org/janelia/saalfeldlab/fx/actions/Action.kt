@@ -123,7 +123,7 @@ open class Action<E : Event>(val eventType: EventType<E>) {
     /**
      * Optional graphic to provide, in case the action is triggerable via a graphical interaction (i.e. a button)
      */
-    var graphic: Node? = null
+    var graphic: (() -> Node)? = null
 
     /**
      * Lazy reference to the [ActionEventHandler] created by this [Action]
