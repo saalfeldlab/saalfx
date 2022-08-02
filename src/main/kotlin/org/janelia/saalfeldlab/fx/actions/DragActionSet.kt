@@ -87,7 +87,7 @@ open class DragActionSet @JvmOverloads constructor(name: String, keyTracker: Key
         onDragDetected { }
         onDrag { }
         onDragReleased { }
-        apply?.let { it(this) }
+        apply?.let { it() }
     }
 
 
