@@ -433,6 +433,7 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
          */
         @JvmStatic
         fun Node.installActionSet(actionSet: ActionSet) {
+            actionSet.preInstallSetup()
             actionSet.actionFilterMap.forEach { (eventType, actions) ->
                 actions.forEach { action ->
                     addEventFilter(eventType, action)
@@ -462,6 +463,7 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
                     removeEventHandler(eventType, action)
                 }
             }
+            actionSet.postRemoveCleanUp()
         }
 
         /**
@@ -471,6 +473,7 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
          */
         @JvmStatic
         fun Window.installActionSet(actionSet: ActionSet) {
+            actionSet.preInstallSetup()
             actionSet.actionFilterMap.forEach { (eventType, actions) ->
                 actions.forEach { action ->
                     addEventFilter(eventType, action)
@@ -481,6 +484,7 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
                     addEventHandler(eventType, action)
                 }
             }
+            actionSet.postRemoveCleanUp()
         }
 
         /**
@@ -500,6 +504,7 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
                     removeEventHandler(eventType, action)
                 }
             }
+            actionSet.postRemoveCleanUp()
         }
     }
 }
