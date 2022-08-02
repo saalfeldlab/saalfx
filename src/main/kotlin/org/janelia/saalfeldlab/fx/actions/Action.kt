@@ -103,11 +103,6 @@ open class Action<E : Event>(val eventType: EventType<E>) {
     var keyTracker: KeyTracker? = null
 
     /**
-     * Not used internally. Provided for developers as a way to override the results of [ActionSet.preInvokeCheck]
-     */
-    var triggerIfDisabled = false /* Can be utilized by the called to block certain actions when the state of the application is disabled. */
-
-    /**
      * List of Keys required to be down for this action to be valid
      */
     var keysDown: List<KeyCode>? = listOf()
@@ -199,7 +194,7 @@ open class Action<E : Event>(val eventType: EventType<E>) {
                     val msg = description?.let {
                         "$it (${check::class.java})"
                     } ?: "(${check::class.java})"
-                    logger.trace("check $msg did not pass ")
+                    logger.trace("Check: $msg did not pass ")
                     break
                 }
             }
