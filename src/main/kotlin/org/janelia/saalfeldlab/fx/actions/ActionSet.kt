@@ -57,14 +57,24 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
     val actions = mutableListOf<Action<out Event>>()
     private val actionHandlerMap = mutableMapOf<EventType<Event>, MutableList<EventHandler<Event>>>()
     private val actionFilterMap = mutableMapOf<EventType<Event>, MutableList<EventHandler<Event>>>()
-    private val checks = mutableMapOf<EventType<out Event>, MutableList<(Event) -> Boolean>>()
+    private val checks = mutableMapOf<EventType<out Event>, MutableList<Pair<String, (Event) -> Boolean>>>()
 
     init {
         apply?.let { it(this) }
     }
 
     private fun testChecksForEventType(event: Event, eventType: EventType<out Event> = event.eventType): Boolean {
-        return (checks[eventType]?.reduce { l, r -> { l(event) && r(event) } }?.invoke(event) ?: true)
+        var pass = true
+        checks[eventType]?.let { checks ->
+            for ((reason, check) in checks) {
+                pass = pass && check(event)
+                if (!pass) {
+                    ACTION_SET_LOGGER.debug("Verify All Failed: $reason")
+                    return false
+                }
+            }
+        }
+        return pass
     }
 
     private tailrec fun testChecksForInheritedEventTypes(event: Event, eventType: EventType<out Event>? = event.eventType): Boolean {
@@ -77,13 +87,14 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
      *
      * @param E type of the [Event] that [check] acts on
      * @param eventType that we are checking against
+     * @param reason for which we are verifying
      * @param check callback to verify if an [Action] in this set is valid for an event
      * @receiver
      */
     @Suppress("UNCHECKED_CAST")
-    fun <E : Event> verifyAll(eventType: EventType<E>, check: (E) -> Boolean) {
-        checks[eventType]?.add(check as (Event) -> Boolean) ?: let {
-            checks[eventType] = mutableListOf(check as (Event) -> Boolean)
+    fun <E : Event> verifyAll(eventType: EventType<E>, reason: String = "", check: (E) -> Boolean) {
+        checks[eventType]?.add(reason to check as (Event) -> Boolean) ?: let {
+            checks[eventType] = mutableListOf(reason to check as (Event) -> Boolean)
         }
     }
 
@@ -294,11 +305,7 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
      */
     @Suppress("UNCHECKED_CAST")
     inline operator fun <reified E : Event, reified R : Action<E>> EventType<E>.invoke(vararg withKeysDown: KeyCode, noinline withAction: R.() -> Unit): R {
-        return when (E::class.java) {
-            KeyEvent::class.java -> keyAction(this as EventType<KeyEvent>, withAction as KeyAction.() -> Unit) as R
-            MouseEvent::class.java -> mouseAction(this as EventType<MouseEvent>, withAction as MouseAction.() -> Unit) as R
-            else -> action(this, withAction as Action<E>.() -> Unit) as R
-        }.apply {
+        return actionFromEventType(withAction).apply {
             if (withKeysDown.isNotEmpty()) keysDown(*withKeysDown, exclusive = this.keysExclusive)
         }
     }
@@ -316,13 +323,16 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
      * @receiver [EventType] the resultant action will trigger
      * @return the created action of type [R]
      */
-    @Suppress("UNCHECKED_CAST")
     inline operator fun <reified E : Event, reified R : Action<E>> EventType<E>.invoke(noinline withAction: R.() -> Unit): R {
-        return when (E::class.java) {
-            KeyEvent::class.java -> keyAction(this as EventType<KeyEvent>, withAction as KeyAction.() -> Unit) as R
-            MouseEvent::class.java -> mouseAction(this as EventType<MouseEvent>, withAction as MouseAction.() -> Unit) as R
-            else -> action(this, withAction as Action<E>.() -> Unit) as R
-        }
+        return actionFromEventType(withAction)
+    }
+
+
+    @Suppress("UNCHECKED_CAST")
+    inline fun <reified E : Event, reified R : Action<E>> EventType<E>.actionFromEventType(noinline withAction: R.() -> Unit) = when (E::class.java) {
+        KeyEvent::class.java -> keyAction(this as EventType<KeyEvent>, withAction as KeyAction.() -> Unit) as R
+        MouseEvent::class.java -> mouseAction(this as EventType<MouseEvent>, withAction as MouseAction.() -> Unit) as R
+        else -> action(this, withAction as Action<E>.() -> Unit) as R
     }
 
     /**
@@ -383,6 +393,15 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
      */
     protected open fun <E : Event> preInvokeCheck(action: Action<E>, event: E) = action.canHandleEvent(event.eventType) && testChecksForInheritedEventTypes(event)
 
+    /**
+     * Optional callback for before the extension functions [installActionSet] are called.
+     */
+    open fun preInstallSetup() {}
+
+    /**
+     * Optional callback for after the extension functions [removeActionSet] are called.
+     */
+    open fun postRemoveCleanUp() {}
 
     private inner class ActionSetActionEventHandler(val action: Action<out Event>) : EventHandler<Event> {
 
@@ -402,7 +421,9 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
     }
 
     companion object {
-        private val ACTION_LOGGER: Logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass().name)
+
+        private val ACTION_SET_LOGGER: Logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass().name)
+        private val ACTION_LOGGER: Logger = LoggerFactory.getLogger("${MethodHandles.lookup().lookupClass().name}-Action")
         private val FILTER_LOGGER: Logger = LoggerFactory.getLogger("${MethodHandles.lookup().lookupClass().name}-Filter")
 
         /**
