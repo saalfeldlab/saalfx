@@ -267,12 +267,13 @@ interface MatchSelectionNode {
 }
 
 
-class MatchSelectionMenuButton(text: String, candidates: List<String>, override val processSelection: (String?) -> Unit) : MenuButton(text), MatchSelectionNode {
+class MatchSelectionMenuButton(candidates: List<String>, text: String? = null, matcherMaxWidth: Double? = null, override val processSelection: (String?) -> Unit) : MenuButton(text), MatchSelectionNode {
 
-    constructor(menuText: String, candidates: List<String>, processSelection: Consumer<String?>) : this(menuText, candidates, processSelection::accept)
+    @JvmOverloads
+    constructor(candidates: List<String>, menuText: String, matcherMaxWidth: Double? = null, processSelection: Consumer<String?>) : this(candidates, menuText, matcherMaxWidth, processSelection::accept)
 
     override var cutoff: Int? = null
-    override var maxWidth: Double? = null
+    override var maxWidth: Double? = matcherMaxWidth
         set(value) {
             matcher.maxWidth = value ?: Region.USE_COMPUTED_SIZE
             field = value
@@ -291,18 +292,23 @@ class MatchSelectionMenuButton(text: String, candidates: List<String>, override 
     }
 }
 
-class MatchSelectionMenu(menuText: String, candidates: List<String>, override val processSelection: (String?) -> Unit) : Menu(menuText), MatchSelectionNode {
+class MatchSelectionMenu(candidates: List<String>, menuText: String = "", matcherMaxWidth: Double? = null, override val processSelection: (String?) -> Unit) : Menu(menuText), MatchSelectionNode {
 
-    constructor(menuText: String, candidates: List<String>, processSelection: Consumer<String?>) : this(menuText, candidates, processSelection::accept)
+    @JvmOverloads
+    constructor(candidates: List<String>, menuText: String = "", maxWidth: Double? = null, processSelection: Consumer<String?>) : this(candidates, menuText, maxWidth, processSelection::accept)
 
     override var cutoff: Int? = null
-    override var maxWidth: Double? = null
+    override var maxWidth: Double? = matcherMaxWidth
         set(value) {
             matcher.maxWidth = value ?: Region.USE_COMPUTED_SIZE
             field = value
         }
 
-    private val matcher by LazyForeignValue({ cutoff }) { getMatcher(candidates) }
+    private val matcher by LazyForeignValue({ cutoff }) {
+        getMatcher(candidates).also {
+            this.maxWidth?.let { w -> it.maxWidth = w }
+        }
+    }
 
     init {
         matcher
