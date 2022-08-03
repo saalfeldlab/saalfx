@@ -34,9 +34,7 @@ import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
 import javafx.geometry.Insets
 import javafx.scene.Node
-import javafx.scene.control.Label
-import javafx.scene.control.TextField
-import javafx.scene.control.Tooltip
+import javafx.scene.control.*
 import javafx.scene.input.KeyCode
 import javafx.scene.input.MouseEvent
 import javafx.scene.layout.*
@@ -45,6 +43,9 @@ import me.xdrop.fuzzywuzzy.FuzzySearch
 import me.xdrop.fuzzywuzzy.model.ExtractedResult
 import org.janelia.saalfeldlab.fx.Labels
 import org.janelia.saalfeldlab.fx.Separators
+import org.janelia.saalfeldlab.fx.extensions.LazyForeignValue
+import org.janelia.saalfeldlab.fx.ui.MatchSelection.Companion.fuzzySorted
+import org.janelia.saalfeldlab.fx.util.InvokeOnJavaFXApplicationThread
 import org.slf4j.LoggerFactory
 import java.lang.invoke.MethodHandles
 import java.util.Optional
@@ -63,7 +64,7 @@ class MatchSelection(
     candidates: List<String>,
     private val matcher: BiFunction<String, List<String>, List<String>>,
     private val onConfirm: (String?) -> Unit
-) : Region() {
+) : VBox() {
 
     private val candidates = candidates.map { it }
 
@@ -127,6 +128,7 @@ class MatchSelection(
                         }
                     }
                     maxWidthProperty().set(Double.MAX_VALUE)
+                    textFill = Color.BLACK
                 }
                 labels.add(label)
             }
@@ -197,7 +199,7 @@ class MatchSelection(
      *
      * @return [Region.getChildrenUnmodifiable]
      */
-    public override fun getChildren(): ObservableList<Node?> = super.getChildrenUnmodifiable()
+    override fun getChildren(): ObservableList<Node?> = super.getChildrenUnmodifiable()
 
     companion object {
 
@@ -208,7 +210,7 @@ class MatchSelection(
             cutoff?.let {
                 return MatchSelection(candidates, FuzzyMatcher { query, from -> FuzzySearch.extractSorted(query, from, cutoff) }, onConfirm)
             }
-            return MatchSelection(candidates, FuzzyMatcher(BiFunction { query, choices -> FuzzySearch.extractSorted(query, choices) }), onConfirm)
+            return MatchSelection(candidates, FuzzyMatcher { query, choices -> FuzzySearch.extractSorted(query, choices) }, onConfirm)
         }
 
         fun fuzzyTop(candidates: List<String>, onConfirm: ((String?) -> Unit), limit: Int, cutoff: Int? = null): MatchSelection {
@@ -235,5 +237,80 @@ class MatchSelection(
 
     }
 
+
+}
+
+interface MatchSelectionNode {
+
+    val processSelection: (String?) -> Unit
+
+    var cutoff: Int?
+    var maxWidth: Double?
+
+    fun getItems(): ObservableList<MenuItem>
+
+    fun hide()
+
+    fun hideAndProcess(value: String?) {
+        hide()
+        processSelection(value)
+    }
+
+    fun getMatcher(candidates: List<String>): MatchSelection {
+        return fuzzySorted(candidates, { hideAndProcess(it) }, cutoff).also { matcher ->
+            maxWidth?.let { matcher.maxWidth = it }
+            val cmi = CustomMenuItem(matcher, false)
+            cmi.styleClass.clear()
+            getItems().setAll(cmi)
+        }
+    }
+}
+
+
+class MatchSelectionMenuButton(text: String, candidates: List<String>, override val processSelection: (String?) -> Unit) : MenuButton(text), MatchSelectionNode {
+
+    constructor(menuText: String, candidates: List<String>, processSelection: Consumer<String?>) : this(menuText, candidates, processSelection::accept)
+
+    override var cutoff: Int? = null
+    override var maxWidth: Double? = null
+        set(value) {
+            matcher.maxWidth = value ?: Region.USE_COMPUTED_SIZE
+            field = value
+        }
+
+    private val matcher by LazyForeignValue({ cutoff }) { getMatcher(candidates) }
+
+    init {
+        /* Call manually the first time */
+        matcher
+        setOnShowing {
+            InvokeOnJavaFXApplicationThread {
+                matcher.requestFocus()
+            }
+        }
+    }
+}
+
+class MatchSelectionMenu(menuText: String, candidates: List<String>, override val processSelection: (String?) -> Unit) : Menu(menuText), MatchSelectionNode {
+
+    constructor(menuText: String, candidates: List<String>, processSelection: Consumer<String?>) : this(menuText, candidates, processSelection::accept)
+
+    override var cutoff: Int? = null
+    override var maxWidth: Double? = null
+        set(value) {
+            matcher.maxWidth = value ?: Region.USE_COMPUTED_SIZE
+            field = value
+        }
+
+    private val matcher by LazyForeignValue({ cutoff }) { getMatcher(candidates) }
+
+    init {
+        matcher
+        setOnShowing {
+            InvokeOnJavaFXApplicationThread {
+                matcher.requestFocus()
+            }
+        }
+    }
 
 }
