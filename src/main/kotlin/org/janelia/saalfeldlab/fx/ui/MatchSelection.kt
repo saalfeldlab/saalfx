@@ -39,11 +39,7 @@ import javafx.scene.control.TextField
 import javafx.scene.control.Tooltip
 import javafx.scene.input.KeyCode
 import javafx.scene.input.MouseEvent
-import javafx.scene.layout.Background
-import javafx.scene.layout.BackgroundFill
-import javafx.scene.layout.CornerRadii
-import javafx.scene.layout.Region
-import javafx.scene.layout.VBox
+import javafx.scene.layout.*
 import javafx.scene.paint.Color
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import me.xdrop.fuzzywuzzy.model.ExtractedResult
@@ -51,7 +47,6 @@ import org.janelia.saalfeldlab.fx.Labels
 import org.janelia.saalfeldlab.fx.Separators
 import org.slf4j.LoggerFactory
 import java.lang.invoke.MethodHandles
-import java.util.ArrayList
 import java.util.Optional
 import java.util.function.BiFunction
 import java.util.function.Consumer
@@ -65,9 +60,10 @@ import kotlin.math.min
  * https://bugs.openjdk.java.net/browse/JDK-8219620
  */
 class MatchSelection(
-        candidates: List<String>,
-        private val matcher: BiFunction<String, List<String>, List<String>>,
-        private val onConfirm: (String?) -> Unit) : Region() {
+    candidates: List<String>,
+    private val matcher: BiFunction<String, List<String>, List<String>>,
+    private val onConfirm: (String?) -> Unit
+) : Region() {
 
     private val candidates = candidates.map { it }
 
@@ -80,7 +76,7 @@ class MatchSelection(
     private val fuzzySearchField = TextField(null)
 
     private class FuzzyMatcher(private val matcher: BiFunction<String, List<String>, List<ExtractedResult>>) :
-            BiFunction<String, List<String>, List<String>> {
+        BiFunction<String, List<String>, List<String>> {
 
         constructor(matcher: (String, List<String>) -> List<ExtractedResult>) : this(BiFunction { s, l -> matcher(s, l) })
 
@@ -112,19 +108,27 @@ class MatchSelection(
                     currentSelection.value = currentOrder.size - 1
             }
         }
-
-        val labelBox = VBox()
+        val labelBox = VBox().also {
+            it.maxWidthProperty().bind(maxWidthProperty())
+        }
         currentOrder.addListener(ListChangeListener {
             val copy = currentOrder.map { it }
             val labels = ArrayList<Label>()
             for (i in copy.indices) {
                 val text = copy[i]
-                labels.add(toLabel(
-                        text,
-                        { currentSelection.set(i) },
-                        { currentSelection.set(0) },
-                        { onConfirm(text) },
-                        { currentSelection.set(i) }))
+                val label = Labels.withTooltip(text).apply {
+                    setOnMouseEntered { currentSelection.set(i) }
+                    setOnMouseExited { currentSelection.set(0) }
+                    setOnMouseMoved { currentSelection.set(i) }
+                    setOnMousePressed { e ->
+                        if (e.isPrimaryButtonDown) {
+                            onConfirm(text)
+                            e.consume()
+                        }
+                    }
+                    maxWidthProperty().set(Double.MAX_VALUE)
+                }
+                labels.add(label)
             }
             labelBox.children.setAll(labels)
             currentSelection.set(-1)
@@ -195,27 +199,6 @@ class MatchSelection(
      */
     public override fun getChildren(): ObservableList<Node?> = super.getChildrenUnmodifiable()
 
-    private fun toLabel(
-            text: String,
-            onMouseEntered: () -> Unit,
-            onMouseExited: () -> Unit,
-            onMousePressed: () -> Unit,
-            onMouseMoved: () -> Unit): Label {
-
-        val label = Labels.withTooltip(text)
-        label.setOnMouseEntered { onMouseEntered() }
-        label.setOnMouseExited { onMouseExited() }
-        label.setOnMouseMoved { onMouseMoved() }
-        label.setOnMousePressed { e ->
-            if (e.isPrimaryButtonDown) {
-                onMousePressed()
-                e.consume()
-            }
-        }
-        label.maxWidthProperty().bind(maxWidthProperty())
-        return label
-    }
-
     companion object {
 
         private val LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
@@ -247,7 +230,7 @@ class MatchSelection(
         @JvmStatic
         fun fuzzyTop(candidates: List<String>, onConfirm: Consumer<String?>, limit: Int, cutoff: Int? = null): MatchSelection {
             val convertOnConfirm: (String?) -> Unit = { onConfirm.accept(it) }
-            return fuzzyTop(candidates, convertOnConfirm, limit, cutoff);
+            return fuzzyTop(candidates, convertOnConfirm, limit, cutoff)
         }
 
     }
