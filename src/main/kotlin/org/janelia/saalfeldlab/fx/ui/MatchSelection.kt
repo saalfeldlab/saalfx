@@ -248,14 +248,14 @@ interface MatchSelectionNode {
 }
 
 
-class MatchSelectionMenuButton(candidates: List<String>, menuText: String? = null, matcherMaxWidth: Double? = null, override val processSelection: (String?) -> Unit) : MenuButton(menuText), MatchSelectionNode {
+open class MatchSelectionMenuButton(candidates: List<String>, menuText: String? = null, matcherMaxWidth: Double? = null, override val processSelection: (String?) -> Unit) : MenuButton(menuText), MatchSelectionNode {
 
     @JvmOverloads
     constructor(candidates: List<String>, menuText: String, matcherMaxWidth: Double? = null, processSelection: Consumer<String?>) : this(candidates, menuText, matcherMaxWidth, processSelection::accept)
 
-    override var limit: Int? = null
-    override var cutoff: Int? = null
-    override var maxWidth: Double? = matcherMaxWidth
+    final override var limit: Int? = null
+    final override var cutoff: Int? = null
+    final override var maxWidth: Double? = matcherMaxWidth
         set(value) {
             matcher.maxWidth = value ?: Region.USE_COMPUTED_SIZE
             field = value
@@ -277,14 +277,14 @@ class MatchSelectionMenuButton(candidates: List<String>, menuText: String? = nul
     }
 }
 
-class MatchSelectionMenu(candidates: List<String>, menuText: String = "", matcherMaxWidth: Double? = null, override val processSelection: (String?) -> Unit) : Menu(menuText), MatchSelectionNode {
+open class MatchSelectionMenu(candidates: List<String>, menuText: String = "", matcherMaxWidth: Double? = null, override val processSelection: (String?) -> Unit) : Menu(menuText), MatchSelectionNode {
 
     @JvmOverloads
     constructor(candidates: List<String>, menuText: String = "", maxWidth: Double? = null, processSelection: Consumer<String?>) : this(candidates, menuText, maxWidth, processSelection::accept)
 
-    override var limit: Int? = null
-    override var cutoff: Int? = null
-    override var maxWidth: Double? = matcherMaxWidth
+    final override var limit: Int? = null
+    final override var cutoff: Int? = null
+    final override var maxWidth: Double? = matcherMaxWidth
         set(value) {
             matcher.maxWidth = value ?: Region.USE_COMPUTED_SIZE
             field = value
