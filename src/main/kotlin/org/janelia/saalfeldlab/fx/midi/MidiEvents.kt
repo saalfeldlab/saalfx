@@ -6,10 +6,7 @@ import javafx.scene.input.InputEvent
 abstract class FxMidiEvent(val handle : Int, val value: Int, eventType: EventType<out FxMidiEvent>) : InputEvent(eventType) {
 
     companion object {
-
         val ANY = EventType<FxMidiEvent>(InputEvent.ANY, "MIDI")
-
-        private val FADER = EventType(ANY, "FADER")
     }
 
 }
@@ -38,5 +35,12 @@ class MidiToggleEvent(handle : Int, value: Int, eventType: EventType<out MidiTog
     companion object {
 
         val BUTTON_TOGGLE = EventType<MidiToggleEvent>(BUTTON, "BUTTON_TOGGLE")
+    }
+}
+
+class MidiFaderEvent(handle : Int, value: Int, eventType: EventType<out MidiFaderEvent>) : FxMidiEvent(handle, value, eventType) {
+
+    companion object {
+        val FADER : EventType<MidiFaderEvent> = EventType(ANY, "FADER")
     }
 }

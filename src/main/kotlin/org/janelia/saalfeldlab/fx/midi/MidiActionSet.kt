@@ -7,16 +7,16 @@ import org.janelia.saalfeldlab.control.VPotControl
 import org.janelia.saalfeldlab.control.mcu.MCUButtonControl
 import org.janelia.saalfeldlab.control.mcu.MCUControl
 import org.janelia.saalfeldlab.control.mcu.MCUControlPanel
+import org.janelia.saalfeldlab.control.mcu.MCUFaderControl
 import org.janelia.saalfeldlab.control.mcu.MCUVPotControl
 import org.janelia.saalfeldlab.fx.actions.Action
 import org.janelia.saalfeldlab.fx.actions.ActionSet
 import org.janelia.saalfeldlab.fx.event.KeyTracker
 import java.util.function.IntConsumer
 
-open class MidiActionSet(name: String, private val device: MCUControlPanel, private val target: EventTarget, keyTracker: KeyTracker? = null, apply: (MidiActionSet.() -> Unit)?=  null) : ActionSet(name, keyTracker) {
+open class MidiActionSet(name: String, private val device: MCUControlPanel, private val target: EventTarget, keyTracker: KeyTracker? = null, callback: MidiActionSet.() -> Unit = {}) : ActionSet(name, keyTracker) {
     init {
-        /* Initialize with empty lambda, so only drag state updates occur */
-        apply?.invoke(this)
+        callback()
     }
 
     override fun preInstallSetup() {
@@ -43,6 +43,10 @@ open class MidiActionSet(name: String, private val device: MCUControlPanel, priv
         return toggleAction(this, handle, withAction)
     }
 
+    operator fun EventType<MidiFaderEvent>.invoke(handle: Int, withAction: FaderAction.() -> Unit): FaderAction {
+        return faderAction(this, handle, withAction)
+    }
+
 
     @JvmSynthetic
     fun potentiometerAction(eventType: EventType<MidiPotentiometerEvent>, handle: Int, withAction: PotentiometerAction.() -> Unit = {}): PotentiometerAction {
@@ -57,6 +61,11 @@ open class MidiActionSet(name: String, private val device: MCUControlPanel, priv
     @JvmSynthetic
     fun buttonAction(eventType: EventType<MidiButtonEvent>, handle: Int, withAction: ButtonAction.() -> Unit = {}): ButtonAction {
         return ButtonAction(eventType, device, handle, withAction).also { addAction(it) }
+    }
+
+    @JvmSynthetic
+    fun faderAction(eventType: EventType<MidiFaderEvent>, handle: Int, withAction: FaderAction.() -> Unit = {}): FaderAction {
+        return FaderAction(eventType, device, handle, withAction).also { addAction(it) }
     }
 
 }
@@ -185,5 +194,43 @@ class ToggleAction(eventType: EventType<MidiToggleEvent>, device: MCUControlPane
         eventFiringListener = IntConsumer { Event.fireEvent(target, MidiToggleEvent(handle, it, eventType)) }
         control.addListener(eventFiringListener)
         afterRegisterEvent()
+    }
+}
+
+class FaderAction(eventType: EventType<MidiFaderEvent>, device: MCUControlPanel, handle: Int, withAction: FaderAction.() -> Unit = {}) : MidiAction<MidiFaderEvent>(eventType, device, handle) {
+
+    override val control: MCUFaderControl = device.getFaderControl(handle)
+    override var eventFiringListener: IntConsumer? = null
+
+    /**
+     * Desired minimum value for the fader event.
+     */
+    var min: Int = control.min
+
+    /**
+     * Desired maximum value for the fader event.
+     */
+    var max: Int = control.max
+
+
+    val value: Int = control.value
+
+
+    init {
+        verify("Correct Handle") { it?.handle == handle}
+        apply(withAction)
+    }
+
+    override fun registerEvent(target: EventTarget?) {
+        eventFiringListener = IntConsumer {
+            val valInRange = (it.toDouble() / FADER_MAX) * (max - min) + min
+            Event.fireEvent(target, MidiFaderEvent(handle, valInRange.toInt(), eventType))
+        }
+        control.addListener(eventFiringListener)
+        afterRegisterEvent()
+    }
+
+    companion object {
+        private const val FADER_MAX = 127
     }
 }
