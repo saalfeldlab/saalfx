@@ -29,13 +29,20 @@
 package org.janelia.saalfeldlab.fx.ortho
 
 import com.sun.javafx.application.PlatformImpl
+import com.sun.javafx.stage.WindowHelper
 import javafx.application.Platform
+import javafx.event.Event
+import javafx.event.EventHandler
 import javafx.geometry.Orientation
 import javafx.scene.Node
 import javafx.scene.Scene
 import javafx.scene.control.Label
 import javafx.scene.control.SplitPane
+import javafx.scene.layout.BorderPane
+import javafx.stage.Modality
 import javafx.stage.Stage
+import javafx.stage.Window
+import javafx.stage.WindowEvent
 import org.janelia.saalfeldlab.fx.ui.HVBox
 
 class DynamicCellPane(nodes: List<List<Node>>) : SplitPane() {
@@ -57,8 +64,19 @@ class DynamicCellPane(nodes: List<List<Node>>) : SplitPane() {
 
 
     fun addRow(row: Int, vararg nodes: Node) {
+        val cells = cells()
+        /* Can't have duplicate nodes*/
+        for (node in nodes) {
+            if (node in cells) {
+                duplicateNodeError()
+            }
+        }
         items.add(row, SplitPane(*nodes))
         distributeAllDividers()
+    }
+
+    private fun duplicateNodeError() {
+        error("Cannot add the same node to the pane multiple times. ")
     }
 
     fun remove(node: Node?): Boolean {
@@ -119,6 +137,9 @@ class DynamicCellPane(nodes: List<List<Node>>) : SplitPane() {
     }
 
     fun add(row: Int, col: Int, node: Node) {
+        if (node in cells()) {
+            duplicateNodeError()
+        }
         (items[row.coerceAtMost(items.size - 1)] as? SplitPane)?.items?.let { it.add(col.coerceAtMost(it.size - 1), node) }
     }
 
@@ -140,6 +161,21 @@ class DynamicCellPane(nodes: List<List<Node>>) : SplitPane() {
     }
 
     operator fun contains(node: Node?) = node in cells()
+
+    fun indexOf(node: Node?): Pair<Int, Int>? {
+        node?.let {
+            for (row in items.indices) {
+                (items[row] as? SplitPane)?.items?.let { cols ->
+                    for (col in cols.indices) {
+                        if (cols[col] == node) {
+                            return row to col
+                        }
+                    }
+                }
+            }
+        }
+        return null
+    }
 
     fun cells(): List<Node> {
         return items
@@ -196,17 +232,94 @@ class DynamicCellPane(nodes: List<List<Node>>) : SplitPane() {
         distributeDividers()
     }
 
-    companion object {
-        @JvmStatic
-        fun getCellIndex(col: Int, row: Int): Int {
-            assert(col in 0..1)
-            assert(row in 0..1)
-            return if (row == 0) {
-                if (col == 0) 0 else 1
-            } else {
-                if (col == 0) 2 else 3
+    fun toggleNodeDetach(
+        node: Node,
+        title: String? = null,
+        topProvider: ((BorderPane) -> Node)? = null,
+        bottomProvider: ((BorderPane) -> Node)? = null,
+        onClose: (Stage) -> Unit = {},
+        beforeShow: (Stage) -> Unit = {},
+        reAttachIndices: Pair<Int, Int>? = null
+    ) {
+        /* close the cell if it is detached, otherwise, detach the cell */
+        if (closeNodeIfDetached(node)) {
+            return
+        }
+        /* rows before */
+        val rowsBefore = items.size
+        /* indices of node for re-attaching */
+        val (row, col) = indexOf(node) ?: return
+        if (remove(node)) {
+            distributeAllDividers()
+            /* get a new window */
+            Stage().let { stage ->
+                title?.let { stage.title = it }
+
+                val newRoot = BorderPane(node)
+                newRoot.centerProperty().addListener { _, _, new ->
+                    if (new == null) {
+                        closeNodeIfDetached(newRoot)
+                    }
+                }
+
+                topProvider?.let { newRoot.top = it(newRoot) }
+                bottomProvider?.let { newRoot.bottom = it(newRoot) }
+
+                stage.scene = Scene(newRoot, scene.width, scene.height)
+                stage.scene.stylesheets.setAll(scene.stylesheets)
+
+                stage.initModality(Modality.NONE)
+                beforeShow(stage)
+
+
+                val cleanUp = {
+                    onClose(stage)
+                    /* if the DynamicCellPane is maximized, unmaximize it first */
+                    if (maximized) toggleMaximize()
+
+                    /* if the cell was already removed, do nothing */
+                    if (newRoot.center != null) {
+                        /* grab the original cell location */
+                        val (reattachRow, reattachCol) = reAttachIndices ?: (row to col)
+
+                        /* Node cannot already be in the cellpane, remove in case */
+                        remove(node)
+                        /* recombine in original window */
+                        if (rowsBefore > items.size) {
+                            addRow(reattachRow, node)
+                        } else {
+                            add(reattachRow, reattachCol, node)
+                        }
+                        distributeAllDividers()
+                    }
+                }
+                stage.onCloseRequest = EventHandler { cleanUp() }
+                stage.show()
             }
         }
+    }
+
+    private fun closeNodeIfDetached(node: Node): Boolean {
+        var root = node
+        /* get the top-most node */
+        while (root.scene == null && root.parent != null) {
+            root = root.parent
+        }
+        /* If we have a scene that is different from the main scene, then it means we
+        * are already detached. In that case, we want to close the window, which
+        * will trigger the detached viewer to re-attach to the pain scene */
+        return (root.scene != null && root.scene != scene).also { nodeIsDetached ->
+            if (nodeIsDetached) closeWindow(root.scene.window)
+        }
+    }
+
+    private fun closeWindow(window: Window) {
+        /* Something to note; I didn't think them manual unfocus would be necessary, but seemingly there is a difference in close behavior
+		*   when you close programatically (as below) compare to a system close (e.g. clicking X or Alt+F4), whereby the node doesn't unfocus.
+		*   To resolve, we do it manually first. */
+        WindowHelper.setFocused(window, false)
+        window.hide()
+        Event.fireEvent(window, WindowEvent(window, WindowEvent.WINDOW_CLOSE_REQUEST))
     }
 }
 
