@@ -43,7 +43,6 @@ import javafx.stage.Modality
 import javafx.stage.Stage
 import javafx.stage.Window
 import javafx.stage.WindowEvent
-import org.janelia.saalfeldlab.fx.ui.HVBox
 
 class DynamicCellPane(nodes: List<List<Node>>) : SplitPane() {
 
@@ -329,8 +328,8 @@ fun main() {
     Platform.runLater {
         val cellPane = DynamicCellPane(
             listOf(
-                listOf(HVBox(Label("Test")), HVBox(Label("Test"))),
-                listOf(HVBox(Label("Test")), HVBox(Label("Test")))
+                listOf(Label("Test"), Label("Test")),
+                listOf(Label("Test"), Label("Test"))
             )
         )
         val scene = Scene(cellPane)
