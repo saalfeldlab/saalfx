@@ -21,7 +21,7 @@ public class MCUFaderControl extends MCUControl implements ClippingIntControl {
 		this.value = Math.min(max, Math.max(min, value));
 
 		for (final IntConsumer listener : listeners) {
-			listener.accept(value);
+			listener.accept(this.value);
 		}
 	}
 
