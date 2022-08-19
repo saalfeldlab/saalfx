@@ -223,7 +223,7 @@ class FaderAction(eventType: EventType<MidiFaderEvent>, device: MCUControlPanel,
 
     override fun registerEvent(target: EventTarget?) {
         eventFiringListener = IntConsumer {
-            val valInRange = (it.toDouble() / FADER_MAX) * (max - min) + min
+            val valInRange = (it.toDouble() / (FADER_MAX - FADER_MIN)) * (max - min) + min
             Event.fireEvent(target, MidiFaderEvent(handle, valInRange.toInt(), eventType))
         }
         control.addListener(eventFiringListener)
@@ -232,5 +232,6 @@ class FaderAction(eventType: EventType<MidiFaderEvent>, device: MCUControlPanel,
 
     companion object {
         private const val FADER_MAX = 127
+        private const val FADER_MIN = 0
     }
 }
