@@ -4,11 +4,7 @@ import javafx.event.Event
 import javafx.event.EventTarget
 import javafx.event.EventType
 import org.janelia.saalfeldlab.control.VPotControl
-import org.janelia.saalfeldlab.control.mcu.MCUButtonControl
-import org.janelia.saalfeldlab.control.mcu.MCUControl
-import org.janelia.saalfeldlab.control.mcu.MCUControlPanel
-import org.janelia.saalfeldlab.control.mcu.MCUFaderControl
-import org.janelia.saalfeldlab.control.mcu.MCUVPotControl
+import org.janelia.saalfeldlab.control.mcu.*
 import org.janelia.saalfeldlab.fx.actions.Action
 import org.janelia.saalfeldlab.fx.actions.ActionSet
 import org.janelia.saalfeldlab.fx.event.KeyTracker
@@ -72,15 +68,15 @@ open class MidiActionSet(name: String, private val device: MCUControlPanel, priv
 
 abstract class MidiAction<E : FxMidiEvent>(eventType: EventType<E>, val device: MCUControlPanel, val handle: Int, withAction: MidiAction<E>.() -> Unit = {}) : Action<E>(eventType) {
     abstract val control: MCUControl
-    protected abstract var eventFiringListener : IntConsumer?
+    protected abstract var eventFiringListener: IntConsumer?
 
     init {
         ignoreKeys()
         apply(withAction)
     }
 
-    var afterRegisterEvent : () -> Unit =  {}
-    var afterRemoveEvent : () -> Unit =  {}
+    var afterRegisterEvent: () -> Unit = {}
+    var afterRemoveEvent: () -> Unit = {}
 
     abstract fun registerEvent(target: EventTarget?)
     fun removeEvent() {
@@ -127,7 +123,7 @@ class PotentiometerAction(eventType: EventType<MidiPotentiometerEvent>, device: 
             MidiPotentiometerEvent.POTENTIOMETER_RELATIVE -> absolute = false
             MidiPotentiometerEvent.POTENTIOMETER_ABSOLUTE -> absolute = true
         }
-        verify("Correct Handle") { it?.handle == handle}
+        verify("Correct Handle") { it?.handle == handle }
         verify("Control State Has Not Changed") { control.min == min && control.max == max && control.isAbsolute == absolute }
         apply(withAction)
         if (!absolute) {
@@ -214,24 +210,32 @@ class FaderAction(eventType: EventType<MidiFaderEvent>, device: MCUControlPanel,
 
 
     val value: Int = control.value
+    val step: Int
+        get() = control.value
 
+    /**
+     * Mapping from the fader's internal steps [0-127] to the target step.
+     */
+    var stepToValueConverter: ((Int) -> Int) = {
+        ((it.toDouble() / (FADER_MAX - FADER_MIN))).toInt() * (max - min) + min
+    }
 
     init {
-        verify("Correct Handle") { it?.handle == handle}
+        verify("Correct Handle") { it?.handle == handle }
         apply(withAction)
     }
 
     override fun registerEvent(target: EventTarget?) {
         eventFiringListener = IntConsumer {
-            val valInRange = (it.toDouble() / (FADER_MAX - FADER_MIN)) * (max - min) + min
-            Event.fireEvent(target, MidiFaderEvent(handle, valInRange.toInt(), eventType))
+            val converter = stepToValueConverter
+            Event.fireEvent(target, MidiFaderEvent(handle, converter(it), eventType))
         }
         control.addListener(eventFiringListener)
         afterRegisterEvent()
     }
 
     companion object {
-        private const val FADER_MAX = 127
-        private const val FADER_MIN = 0
+        const val FADER_MAX = 127
+        const val FADER_MIN = 0
     }
 }
