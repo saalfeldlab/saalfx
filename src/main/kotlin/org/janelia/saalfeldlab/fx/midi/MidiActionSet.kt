@@ -79,7 +79,7 @@ abstract class MidiAction<E : FxMidiEvent>(eventType: EventType<E>, val device: 
     var afterRemoveEvent: () -> Unit = {}
 
     abstract fun registerEvent(target: EventTarget?)
-    fun removeEvent() {
+    open fun removeEvent() {
         eventFiringListener?.let {
             if (control.removeListener(eventFiringListener)) {
                 eventFiringListener = null
@@ -191,6 +191,13 @@ class ToggleAction(eventType: EventType<MidiToggleEvent>, device: MCUControlPane
         control.addListener(eventFiringListener)
         afterRegisterEvent()
     }
+
+    override fun removeEvent() {
+        super.removeEvent()
+        /* Just to clean up the device, so it doesn't treat the button as a toggle anymore */
+        control.isToggle = false
+    }
+
 }
 
 class FaderAction(eventType: EventType<MidiFaderEvent>, device: MCUControlPanel, handle: Int, withAction: FaderAction.() -> Unit = {}) : MidiAction<MidiFaderEvent>(eventType, device, handle) {
