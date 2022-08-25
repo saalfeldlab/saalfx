@@ -55,12 +55,14 @@ public class MCUButtonControl extends MCUControl implements ButtonControl {
 	@Override
 	public void setValue(final int value) {
 
-		this.value = Math.min(127, Math.max(0, value));
+		var normValue = Math.min(127, Math.max(0, value));
+		if (normValue != this.value) {
+			this.value = normValue;
+			display();
 
-		display();
-
-		for (final IntConsumer listener : listeners) {
-			listener.accept(value);
+			for (final IntConsumer listener : listeners) {
+				listener.accept(this.value);
+			}
 		}
 	}
 
