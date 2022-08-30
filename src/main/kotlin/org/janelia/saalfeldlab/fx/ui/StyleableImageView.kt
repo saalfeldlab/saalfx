@@ -14,7 +14,7 @@ class StyleableImageView() : ImageView(), Styleable {
     init {
         styleClass += "styleable-image-view"
         fitWidthProperty.addListener { _, _, new -> new?.let { width -> fitWidth = width.toDouble() } }
-        fitWidthProperty.addListener { _, _, new -> new?.let { height -> fitHeight = height.toDouble() } }
+		fitHeightProperty.addListener { _, _, new -> new?.let { height -> fitHeight = height.toDouble() } }
     }
 
     override fun getCssMetaData(): MutableList<CssMetaData<out Styleable, *>> {
