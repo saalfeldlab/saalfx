@@ -248,7 +248,7 @@ interface MatchSelectionNode {
 }
 
 
-open class MatchSelectionMenuButton(candidates: List<String>, menuText: String? = null, matcherMaxWidth: Double? = null, override val processSelection: (String?) -> Unit) : MenuButton(menuText), MatchSelectionNode {
+open class MatchSelectionMenuButton(private val candidates: List<String>, menuText: String? = null, matcherMaxWidth: Double? = null, override val processSelection: (String?) -> Unit) : MenuButton(menuText), MatchSelectionNode {
 
     @JvmOverloads
     constructor(candidates: List<String>, menuText: String, matcherMaxWidth: Double? = null, processSelection: Consumer<String?>) : this(candidates, menuText, matcherMaxWidth, processSelection::accept)
@@ -264,7 +264,7 @@ open class MatchSelectionMenuButton(candidates: List<String>, menuText: String? 
     private var forceupdateMatcher = 0
 
     private val matcherHash: Int
-        get() = HashCodeBuilder().append(limit).append(cutoff).append(forceupdateMatcher).toHashCode()
+        get() = HashCodeBuilder().append(limit).append(cutoff).append(forceupdateMatcher).append(candidates).toHashCode()
     private val matcher by LazyForeignValue(this::matcherHash) { getMatcher(candidates) }
 
     init {
@@ -277,7 +277,7 @@ open class MatchSelectionMenuButton(candidates: List<String>, menuText: String? 
     }
 }
 
-open class MatchSelectionMenu(candidates: List<String>, menuText: String = "", matcherMaxWidth: Double? = null, override val processSelection: (String?) -> Unit) : Menu(menuText), MatchSelectionNode {
+open class MatchSelectionMenu(private val candidates: List<String>, menuText: String = "", matcherMaxWidth: Double? = null, override val processSelection: (String?) -> Unit) : Menu(menuText), MatchSelectionNode {
 
     @JvmOverloads
     constructor(candidates: List<String>, menuText: String = "", maxWidth: Double? = null, processSelection: Consumer<String?>) : this(candidates, menuText, maxWidth, processSelection::accept)
@@ -293,7 +293,7 @@ open class MatchSelectionMenu(candidates: List<String>, menuText: String = "", m
     private var forceupdateMatcher = 0
 
     private val matcherHash: Int
-        get() = HashCodeBuilder().append(limit).append(cutoff).toHashCode()
+        get() = HashCodeBuilder().append(limit).append(cutoff).append(candidates).toHashCode()
     private val matcher by LazyForeignValue(this::matcherHash) { getMatcher(candidates) }
 
     init {
