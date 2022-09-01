@@ -14,7 +14,6 @@ import org.janelia.saalfeldlab.fx.actions.Action.Companion.removeAction
 import org.janelia.saalfeldlab.fx.event.KeyTracker
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.lang.invoke.MethodHandles
 import java.util.function.Consumer
 
 /**
@@ -74,6 +73,9 @@ import java.util.function.Consumer
  */
 open class Action<E : Event>(val eventType: EventType<E>) {
 
+    val logger: Logger by lazy {
+        LoggerFactory.getLogger(name ?: this.toString())
+    }
 
     /**
      * Name of the [Action]. Used as part of `toString` for the resulting [EventHandler]
@@ -101,19 +103,22 @@ open class Action<E : Event>(val eventType: EventType<E>) {
     var keyTracker: KeyTracker? = null
 
     /**
-     * Not used internally. Provided for developers as a way to override the results of [ActionSet.preInvokeCheck]
+     * List of Keys required to be down for this action to be valid
      */
-    var triggerIfDisabled = false /* Can be utilized by the called to block certain actions when the state of the application is disabled. */
+    var keysDown: List<KeyCode>? = listOf()
 
-    private var keysDown: List<KeyCode>? = listOf()
-
-    private val checks = mutableListOf<(E) -> Boolean>()
+    private val checks = mutableListOf<Pair<String?, (E?) -> Boolean>>()
 
     private var exceptionHandler: ((Exception) -> Unit)? = null
 
-    private var action: (E) -> Unit = {}
+    private var action: (E?) -> Unit = {}
 
     private var onException: (Exception) -> Unit = {}
+
+    /**
+     * Optional graphic to provide, in case the action is triggerable via a graphical interaction (i.e. a button)
+     */
+    var graphic: (() -> Node)? = null
 
     /**
      * Lazy reference to the [ActionEventHandler] created by this [Action]
@@ -123,11 +128,13 @@ open class Action<E : Event>(val eventType: EventType<E>) {
     /**
      * Verify the check prior to triggering action
      *
-     * @param check callback to verify the event of type  [E] is valid for this [Action].
+     * @param description of the condition you are verifying to be true. Logged against in case of a check failure.
+     * @param check callback to verify the event of type  [E] is valid for this [Action], OR null, if we are not trigger via an event.
      * @receiver
      */
-    fun verify(check: (E) -> Boolean) {
-        checks.add(check)
+    @JvmOverloads
+    fun verify(description: String? = null, check: (E?) -> Boolean) {
+        checks.add(description to check)
     }
 
     internal tailrec fun canHandleEvent(checkEventType: EventType<*>?): Boolean {
@@ -141,8 +148,11 @@ open class Action<E : Event>(val eventType: EventType<E>) {
      * @param event to check if is a valid trigger for this [Action]
      * @return true if [Action] trigger should proceed.
      */
-    fun isValid(event: E): Boolean {
-        return canHandleEvent(event.eventType) && verifyKeys(event) && testChecks(event)
+    fun isValid(event: E?): Boolean {
+        val validForEventOrNull = event?.let {
+            canHandleEvent(it.eventType) && verifyKeys(event)
+        } ?: true
+        return validForEventOrNull && testChecks(event)
     }
 
     /**
@@ -160,21 +170,36 @@ open class Action<E : Event>(val eventType: EventType<E>) {
         if (keysDown == null) return true
 
         /* Three conditions to check;
-         *  - If we expect no keys to be down
+         *  - If we expect no keys, but don't care if some are down
+         *  - If we strictly expect no keys to be down
          *  - If ONLY the keys we expect are down
          *  - If AT LEAST the keys we expect are down  */
         return keyTracker?.run {
             when {
-                keysDown!!.isEmpty() -> noKeysActive()
-                keysExclusive -> areOnlyTheseKeysDown(*keysDown!!.toTypedArray())
-                else -> areKeysDown(*keysDown!!.toTypedArray())
+                keysDown!!.isEmpty() && !keysExclusive -> true
+                keysDown!!.isEmpty() -> noKeysActive().also { if (!it) logger.trace("expected no keys, but some were down") }
+                keysExclusive -> areOnlyTheseKeysDown(*keysDown!!.toTypedArray()).also { if (!it) logger.trace("expected only these keys: ${keysDown}, but others were also down") }
+                else -> areKeysDown(*keysDown!!.toTypedArray()).also { if (!it) logger.trace("expected keys: $keysDown, but some were not down") }
             }
         } ?: false
 
     }
 
-    private fun testChecks(event: E): Boolean {
-        return checks.isEmpty() || checks.reduce { l, r -> { l(event) && r(event) } }.invoke(event)
+    private fun testChecks(event: E?): Boolean {
+        return checks.isEmpty() || let {
+            var valid = true
+            for ((description, check) in checks) {
+                valid = valid && check(event)
+                if (!valid) {
+                    val msg = description?.let {
+                        "$it (${check::class.java})"
+                    } ?: "(${check::class.java})"
+                    logger.trace("Check: $msg did not pass ")
+                    break
+                }
+            }
+            valid
+        }
     }
 
     /**
@@ -192,7 +217,7 @@ open class Action<E : Event>(val eventType: EventType<E>) {
      * @param handle callback when the [Action] is valid
      */
     @JvmSynthetic
-    fun onAction(handle: (E) -> Unit) {
+    fun onAction(handle: (E?) -> Unit) {
         action = handle
     }
 
@@ -201,7 +226,7 @@ open class Action<E : Event>(val eventType: EventType<E>) {
      *
      * @param handle callback when the [Action] is valid
      */
-    fun onAction(handle: Consumer<E>) {
+    fun onAction(handle: Consumer<E?>) {
         action = { handle.accept(it) }
     }
 
@@ -247,19 +272,47 @@ open class Action<E : Event>(val eventType: EventType<E>) {
         keysDown()
     }
 
+    /**
+     * Requires the action to only be triggerd by a valid event.
+     * By default, the actions act on a nullable event [E]?, which is meaningful when wanting
+     * to call the action either by an event, or programatically. However, sometimes the action
+     * actually requires information from the event during it's [onAction] and not just in [verify] blocks.
+     *
+     * In these cases, it is necessary to ensure event are not null, in which case it is safe to cast the event
+     * durin the [onAction] block to the non-nullable type, [E]!!
+     *
+     */
+    fun verifyEventNotNull() {
+        verify("Event Isn't Null") {
+            if (it != null) true else {
+                logger.trace("$name not valid when event is null")
+                false
+            }
+        }
+    }
 
-    operator fun invoke(event: E): Boolean {
-        return if (!event.isConsumed && isValid(event)) {
+
+    operator fun invoke(event: E?): Boolean {
+        val valid by lazy { isValid(event) }
+        val isConsumed = event?.isConsumed ?: false
+        return if (!isConsumed && valid) {
             try {
+                /* isValid(event) will only be true if event is E */
                 action(event)
             } catch (e: Exception) {
                 exceptionHandler?.invoke(e) ?: throw e
             }
             if (consume) {
-                event.consume()
+                event?.consume()
             }
+            logger.trace("$name completed successfully")
             true
-        } else false
+        } else {
+            if (!isConsumed) {
+                logger.trace("Event ($event) was invalid for this action")
+            }
+            false
+        }
     }
 
     /**
@@ -280,9 +333,6 @@ open class Action<E : Event>(val eventType: EventType<E>) {
     }
 
     companion object {
-        private val LOG: Logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass().name)
-
-
         /**
          * Creates an [Action] that will be triggered by [EventType] [T] and hande [Event]s of type [E].
          *
@@ -312,7 +362,7 @@ open class Action<E : Event>(val eventType: EventType<E>) {
          * @return the [Action] the was created
          */
         @Suppress("UNCHECKED_CAST")
-        inline fun <reified T : EventType<E>, E : Event> T.onAction(name: String? = null, noinline onAction: (E) -> Unit): Action<E> =
+        inline fun <reified T : EventType<E>, E : Event> T.onAction(name: String? = null, noinline onAction: (E?) -> Unit): Action<E> =
             when (T::class.java) {
                 KeyEvent::class.java -> KeyAction(this as EventType<KeyEvent>)
                 MouseEvent::class.java -> MouseAction(this as EventType<MouseEvent>)

@@ -2,15 +2,19 @@ package org.janelia.saalfeldlab.fx
 
 import javafx.beans.InvalidationListener
 import javafx.beans.Observable
+import javafx.beans.property.SimpleDoubleProperty
 import javafx.scene.input.MouseEvent
+import org.apache.commons.lang.builder.HashCodeBuilder
+import org.janelia.saalfeldlab.fx.extensions.nonnullVal
 
 class ObservablePosition(x: Double, y: Double) : Observable {
 
-    var x: Double = x
-        private set
 
-    var y: Double = y
-        private set
+    val xProperty: SimpleDoubleProperty = SimpleDoubleProperty(x)
+    val x: Double by xProperty.nonnullVal()
+
+    val yProperty: SimpleDoubleProperty = SimpleDoubleProperty(y)
+    val y: Double by yProperty.nonnullVal()
 
 
     private var listeners = mutableListOf<InvalidationListener>()
@@ -20,20 +24,36 @@ class ObservablePosition(x: Double, y: Double) : Observable {
     }
 
     fun set(x: Double, y: Double) {
-        this.x = x
-        this.y = y
-        notifyListeners()
+        if (x != this.x || y != this.y) {
+            this.xProperty.set(x)
+            this.yProperty.set(y)
+            notifyListeners()
+        }
     }
 
     fun setX(x: Double) {
-        this.x = x
-        notifyListeners()
+        if (x != this.x) {
+            this.xProperty.set(x)
+            notifyListeners()
+        }
     }
 
     fun setY(y: Double) {
-        this.y = y
-        notifyListeners()
+        if (y != this.y) {
+            this.yProperty.set(y)
+            notifyListeners()
+        }
     }
+
+    override fun equals(other: Any?): Boolean {
+        return (other as? ObservablePosition)?.let {
+            x == it.x && y == it.y
+        } ?: false
+    }
+
+    override fun toString() = "($x, $y)"
+
+    override fun hashCode() = HashCodeBuilder().append(x).append(y).toHashCode()
 
     private fun notifyListeners() {
         listeners.forEach { it.invalidated(this) }

@@ -4,10 +4,7 @@ import javafx.event.Event
 import javafx.event.EventHandler
 import javafx.event.EventType
 import javafx.scene.Node
-import javafx.scene.input.KeyCode
-import javafx.scene.input.KeyEvent
-import javafx.scene.input.MouseButton
-import javafx.scene.input.MouseEvent
+import javafx.scene.input.*
 import javafx.stage.Window
 import org.janelia.saalfeldlab.fx.event.KeyTracker
 import org.slf4j.Logger
@@ -42,11 +39,9 @@ import java.util.function.Consumer
  * ```
  * Above we created an action set with two actions, one for a key press, and one for a key release, which trigger some state change to the applications
  *
- * See [DragActionSet] and [org.janelia.saalfeldlab.fx.ortho.GridResizer] for more examples.
+ * See [DragActionSet] for more examples.
  *
  * @see DragActionSet
- * @see org.janelia.saalfeldlab.fx.ortho.GridResizer
- *
  *
  * @property name of the action set. If an [Action] is part of this [ActionSet] and has no name, this will be used for the [Action]s name as well.
  * @property keyTracker to use to keep track of the key state
@@ -59,17 +54,27 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
     @JvmOverloads
     constructor(name: String, keyTracker: KeyTracker? = null, apply: Consumer<ActionSet>?) : this(name, keyTracker, { apply?.accept(this) })
 
-    private val actions = mutableListOf<Action<out Event>>()
+    val actions = mutableListOf<Action<out Event>>()
     private val actionHandlerMap = mutableMapOf<EventType<Event>, MutableList<EventHandler<Event>>>()
     private val actionFilterMap = mutableMapOf<EventType<Event>, MutableList<EventHandler<Event>>>()
-    private val checks = mutableMapOf<EventType<out Event>, MutableList<(Event) -> Boolean>>()
+    private val checks = mutableMapOf<EventType<out Event>, MutableList<Pair<String, (Event) -> Boolean>>>()
 
     init {
         apply?.let { it(this) }
     }
 
     private fun testChecksForEventType(event: Event, eventType: EventType<out Event> = event.eventType): Boolean {
-        return (checks[eventType]?.reduce { l, r -> { l(event) && r(event) } }?.invoke(event) ?: true)
+        var pass = true
+        checks[eventType]?.let { checks ->
+            for ((reason, check) in checks) {
+                pass = pass && check(event)
+                if (!pass) {
+                    ACTION_SET_LOGGER.debug("Verify All Failed: $reason")
+                    return false
+                }
+            }
+        }
+        return pass
     }
 
     private tailrec fun testChecksForInheritedEventTypes(event: Event, eventType: EventType<out Event>? = event.eventType): Boolean {
@@ -82,13 +87,14 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
      *
      * @param E type of the [Event] that [check] acts on
      * @param eventType that we are checking against
+     * @param reason for which we are verifying
      * @param check callback to verify if an [Action] in this set is valid for an event
      * @receiver
      */
     @Suppress("UNCHECKED_CAST")
-    fun <E : Event> verifyAll(eventType: EventType<E>, check: (E) -> Boolean) {
-        checks[eventType]?.add(check as (Event) -> Boolean) ?: let {
-            checks[eventType] = mutableListOf(check as (Event) -> Boolean)
+    fun <E : Event> verifyAll(eventType: EventType<E>, reason: String = "", check: (E) -> Boolean) {
+        checks[eventType]?.add(reason to check as (Event) -> Boolean) ?: let {
+            checks[eventType] = mutableListOf(reason to check as (Event) -> Boolean)
         }
     }
 
@@ -160,18 +166,56 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
     }
 
     /**
-     * Convenience operator to create a [KeyAction] from a [KeyEvent] [EventType] receiver, while specifying the required [KeyCode]s
+     * Convenience operator to create a [KeyAction] from a [KeyEvent] [EventType] receiver, while specifying the required [KeyCodeCombination]
      *
-     * @param withKeysDown [KeyCode]s required to be down
+     * @param withKeys [KeyCodeCombination]s required to match the [KeyEvent].
      * @param withAction [KeyAction] configuration callback
      * @return the [KeyAction]
      */
-    operator fun EventType<KeyEvent>.invoke(vararg withKeysDown: KeyCode, withAction: KeyAction.() -> Unit): KeyAction {
-        return keyAction(this, withAction).apply {
-            if (withKeysDown.isNotEmpty()) {
-                keysDown(*withKeysDown)
+    operator fun EventType<KeyEvent>.invoke(withKeys: KeyCodeCombination, withAction: KeyAction.() -> Unit): KeyAction {
+        /* create the Action*/
+        val keyAction = KeyAction(this)
+            .also { it.keyTracker = this@ActionSet.keyTracker }
+
+        /* configure based on the withKeys paramters*/
+        keyAction.ignoreKeys()
+        keyAction.verify { withKeys.match(it) }
+
+        /* configure via the callback*/
+        keyAction.apply(withAction)
+        addAction(keyAction)
+
+        return keyAction
+    }
+
+    /**
+     * Convenience operator to create a [KeyAction] from a [KeyEvent] [EventType] receiver, while specifying the required [KeyCode]s
+     *
+     * @param withKeys [KeyCode]s required to be down UNLESS [KeyEvent] is [KeyEvent.KEY_RELEASED], in which case [withKeys] are passed to [KeyAction.keysReleased].
+     * @param withAction [KeyAction] configuration callback
+     * @return the [KeyAction]
+     */
+    operator fun EventType<KeyEvent>.invoke(vararg withKeys: KeyCode, withAction: KeyAction.() -> Unit): KeyAction {
+
+        /* create the Action*/
+        val keyAction = KeyAction(this)
+            .also { it.keyTracker = this@ActionSet.keyTracker }
+
+        /* configure based on the withKeys paramters*/
+        keyAction.apply {
+            if (this.eventType == KeyEvent.KEY_RELEASED) {
+                ignoreKeys()
+                keysReleased(*withKeys)
+            } else if (withKeys.isNotEmpty()) {
+                keysDown(*withKeys)
             }
         }
+
+        /* configure via the callback*/
+        keyAction.apply(withAction)
+        addAction(keyAction)
+
+        return keyAction
     }
 
     /**
@@ -183,48 +227,64 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
      * @return the [KeyAction]
      */
     operator fun EventType<KeyEvent>.invoke(keyBindings: NamedKeyCombination.CombinationMap, keyName: String, withAction: KeyAction.() -> Unit): KeyAction {
-        return keyAction(this, withAction).apply {
-            keyMatchesBinding(keyBindings, keyName)
-        }
+
+        /* create the Action*/
+        val keyAction = KeyAction(this)
+            .also { it.keyTracker = this@ActionSet.keyTracker }
+
+        /* configure based on the keyBinding paramters*/
+        keyAction.keyMatchesBinding(keyBindings, keyName)
+
+        /* configure via the callback*/
+        keyAction.apply(withAction)
+        addAction(keyAction)
+
+        return keyAction
     }
 
     /**
-     *  Extension to create and add a [MouseAction] to this [ActionSet]
+     *  Extension to create and add a [MouseAction] with various configuration options.
+     *
+     *  @param mouseButtonTrigger to check against the event. If none provided, any mouse button will be valid
+     *  @param onRelease only meaningful if [mouseButtonTrigger] is provided. Dictates whether to trigger on mouse press or release
+     *  @param withKeysDown optional keys to check against when the action is triggered
+     *  @param keysExclusive whether [withKeysDown] is strict, or allows other keys as well
+     *  @param withAction [MouseAction] configuration callback
+     *
      */
+    @JvmOverloads
     @Suppress("UNCHECKED_CAST")
-    operator fun <E : MouseEvent> EventType<E>.invoke(withAction: MouseAction.() -> Unit): MouseAction {
-        return mouseAction(this as EventType<MouseEvent>, withAction)
-    }
+    operator fun <E : MouseEvent> EventType<E>.invoke(
+        mouseButtonTrigger: MouseButton? = null,
+        onRelease: Boolean = false,
+        withKeysDown: Array<KeyCode>? = null,
+        keysExclusive: Boolean = false,
+        withAction: MouseAction.() -> Unit
+    ): MouseAction {
 
-    /**
-     *  Extension to create and add a [MouseAction] with required [KeyCode]s held down
-     */
-    @Suppress("UNCHECKED_CAST")
-    operator fun <E : MouseEvent> EventType<E>.invoke(vararg withKeysDown: KeyCode, withAction: MouseAction.() -> Unit): MouseAction {
-        return mouseAction(this as EventType<MouseEvent>, withAction).apply {
-            if (withKeysDown.isNotEmpty()) keysDown(*withKeysDown)
-        }
-    }
+        /* create the Action*/
+        val mouseAction = MouseAction(this as EventType<MouseEvent>)
+            .also { it.keyTracker = this@ActionSet.keyTracker }
 
-    /**
-     *  Extension to create and add a [MouseAction] configured to accept only a single [withOnlyButtonsDown] mouse press
-     */
-    @Suppress("UNCHECKED_CAST")
-    operator fun <E : MouseEvent> EventType<E>.invoke(vararg withOnlyButtonsDown: MouseButton, withAction: MouseAction.() -> Unit): MouseAction {
-        return mouseAction(this as EventType<MouseEvent>, withAction).apply {
-            verifyButtonsDown(*withOnlyButtonsDown, exclusive = true)
-        }
-    }
+        /* copnfigure based on the parameters */
+        mouseAction.apply {
+            mouseButtonTrigger?.let {
+                /* default to exclusive if pressed, and NOT exclusive if released*/
+                verifyButtonTrigger(mouseButtonTrigger, released = onRelease, exclusive = !onRelease)
+            }
 
-    /**
-     *  Extension to create and add a [MouseAction] configured to trigger on a [MouseButton] trigger, either on [released] or pressed.
-     */
-    @Suppress("UNCHECKED_CAST")
-    operator fun <E : MouseEvent> EventType<E>.invoke(withButtonTrigger: MouseButton, released: Boolean = false, withAction: MouseAction.() -> Unit): MouseAction {
-        return mouseAction(this as EventType<MouseEvent>, withAction).apply {
-            /* default to exclusive if pressed, and NOT exclusive if released*/
-            verifyButtonTrigger(withButtonTrigger, released = released, exclusive = !released)
+            withKeysDown?.let {
+                keysDown(*it, exclusive = keysExclusive)
+            } ?: ignoreKeys()
+
         }
+
+        /* configure based on the callback, and add to ActionSet */
+        mouseAction
+            .apply(withAction)
+            .also { addAction(it) }
+
+        return mouseAction
     }
 
     /**
@@ -245,12 +305,8 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
      */
     @Suppress("UNCHECKED_CAST")
     inline operator fun <reified E : Event, reified R : Action<E>> EventType<E>.invoke(vararg withKeysDown: KeyCode, noinline withAction: R.() -> Unit): R {
-        return when (E::class.java) {
-            KeyEvent::class.java -> keyAction(this as EventType<KeyEvent>, withAction as KeyAction.() -> Unit) as R
-            MouseEvent::class.java -> mouseAction(this as EventType<MouseEvent>, withAction as MouseAction.() -> Unit) as R
-            else -> action(this, withAction as Action<E>.() -> Unit) as R
-        }.apply {
-            if (withKeysDown.isNotEmpty()) keysDown(*withKeysDown)
+        return actionFromEventType(withAction).apply {
+            if (withKeysDown.isNotEmpty()) keysDown(*withKeysDown, exclusive = this.keysExclusive)
         }
     }
 
@@ -267,13 +323,16 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
      * @receiver [EventType] the resultant action will trigger
      * @return the created action of type [R]
      */
-    @Suppress("UNCHECKED_CAST")
     inline operator fun <reified E : Event, reified R : Action<E>> EventType<E>.invoke(noinline withAction: R.() -> Unit): R {
-        return when (E::class.java) {
-            KeyEvent::class.java -> keyAction(this as EventType<KeyEvent>, withAction as KeyAction.() -> Unit) as R
-            MouseEvent::class.java -> mouseAction(this as EventType<MouseEvent>, withAction as MouseAction.() -> Unit) as R
-            else -> action(this, withAction as Action<E>.() -> Unit) as R
-        }
+        return actionFromEventType(withAction)
+    }
+
+
+    @Suppress("UNCHECKED_CAST")
+    inline fun <reified E : Event, reified R : Action<E>> EventType<E>.actionFromEventType(noinline withAction: R.() -> Unit) = when (E::class.java) {
+        KeyEvent::class.java -> keyAction(this as EventType<KeyEvent>, withAction as KeyAction.() -> Unit) as R
+        MouseEvent::class.java -> mouseAction(this as EventType<MouseEvent>, withAction as MouseAction.() -> Unit) as R
+        else -> action(this, withAction as Action<E>.() -> Unit) as R
     }
 
     /**
@@ -311,18 +370,15 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
     private operator fun <E : Event> invoke(event: E, action: Action<E>) {
         if (preInvokeCheck(action, event)) {
             try {
-                if (action(event)) {
-                    val logger = if (action.filter) FILTER_LOGGER else ACTION_LOGGER
-                    val nameText = action.name?.let { "$name: $it" } ?: name
-                    /* Log success and not a filter */
-                    logger.trace(" $nameText performed")
-                }
+                action(event)
             } catch (e: Exception) {
                 val logger = if (action.filter) FILTER_LOGGER else ACTION_LOGGER
                 val nameText = action.name?.let { "$name: $it" } ?: name
                 logger.error("$nameText (${event.eventType} was valid, but failed (${e.localizedMessage})")
                 throw e
             }
+        } else {
+            action.logger.trace("preInvokeCheck failed")
         }
     }
 
@@ -337,6 +393,15 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
      */
     protected open fun <E : Event> preInvokeCheck(action: Action<E>, event: E) = action.canHandleEvent(event.eventType) && testChecksForInheritedEventTypes(event)
 
+    /**
+     * Optional callback for before the extension functions [installActionSet] are called.
+     */
+    open fun preInstallSetup() {}
+
+    /**
+     * Optional callback for after the extension functions [removeActionSet] are called.
+     */
+    open fun postRemoveCleanUp() {}
 
     private inner class ActionSetActionEventHandler(val action: Action<out Event>) : EventHandler<Event> {
 
@@ -356,7 +421,9 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
     }
 
     companion object {
-        private val ACTION_LOGGER: Logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass().name)
+
+        private val ACTION_SET_LOGGER: Logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass().name)
+        private val ACTION_LOGGER: Logger = LoggerFactory.getLogger("${MethodHandles.lookup().lookupClass().name}-Action")
         private val FILTER_LOGGER: Logger = LoggerFactory.getLogger("${MethodHandles.lookup().lookupClass().name}-Filter")
 
         /**
@@ -366,6 +433,7 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
          */
         @JvmStatic
         fun Node.installActionSet(actionSet: ActionSet) {
+            actionSet.preInstallSetup()
             actionSet.actionFilterMap.forEach { (eventType, actions) ->
                 actions.forEach { action ->
                     addEventFilter(eventType, action)
@@ -395,6 +463,7 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
                     removeEventHandler(eventType, action)
                 }
             }
+            actionSet.postRemoveCleanUp()
         }
 
         /**
@@ -404,6 +473,7 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
          */
         @JvmStatic
         fun Window.installActionSet(actionSet: ActionSet) {
+            actionSet.preInstallSetup()
             actionSet.actionFilterMap.forEach { (eventType, actions) ->
                 actions.forEach { action ->
                     addEventFilter(eventType, action)
@@ -414,6 +484,7 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
                     addEventHandler(eventType, action)
                 }
             }
+            actionSet.postRemoveCleanUp()
         }
 
         /**
@@ -433,6 +504,7 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
                     removeEventHandler(eventType, action)
                 }
             }
+            actionSet.postRemoveCleanUp()
         }
     }
 }

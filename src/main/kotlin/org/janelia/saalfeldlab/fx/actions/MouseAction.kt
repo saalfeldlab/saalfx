@@ -30,20 +30,32 @@ class MouseAction(eventType: EventType<MouseEvent>) : Action<MouseEvent>(eventTy
     @JvmOverloads
     fun verifyButtonTrigger(trigger: MouseButton, released: Boolean = false, exclusive: Boolean = false) {
         /* If a trigger is required, check if it was correct, on either press or release */
-        verify {
-            if (released) {
-                it.wasButtonReleased(trigger)
-            } else {
-                it.button == trigger
-            }
+        var expected = ""
+        val desc = "$trigger was ${if (released) "Released" else "Pressed"}"
+        verify(desc) { mouseEvent ->
+            mouseEvent?.let {
+                if (released) {
+                    it.wasButtonReleased(trigger).also { release ->
+                        if (!release) expected = "expected $trigger to be released, but wasn't"
+                    }
+                } else {
+                    (it.button == trigger).also { match -> if (!match) expected = "expected $trigger but button was ${it.button}" }
+                }.also { valid ->
+                    if (!valid) logger.trace("button trigger was not valid: $expected")
+                }
+            } ?: true
         }
         /* If the mouse down buttons are exclusive, ensure no other buttons are pressed */
         if (exclusive) {
-            verify { event ->
-                MouseButton.values()
-                    .filter { it != trigger && it != MouseButton.NONE }
-                    .map { !event.isButtonDown(it) }
-                    .reduce { l, r -> l && r }
+            verify(" Only $trigger Was Active") { mouseEvent ->
+                mouseEvent?.let { event ->
+                    MouseButton.values()
+                        .filter { it != trigger && it != MouseButton.NONE }
+                        .map { !event.isButtonDown(it) }
+                        .reduce { l, r -> l && r }.also {
+                            if (!it) logger.trace("expected only $trigger but other mouse buttons were down")
+                        }
+                } ?: true
             }
         }
     }
@@ -58,18 +70,26 @@ class MouseAction(eventType: EventType<MouseEvent>) : Action<MouseEvent>(eventTy
     fun verifyButtonsDown(vararg buttons: MouseButton, exclusive: Boolean = false) {
         /* Check if required keys are down */
         if (buttons.isNotEmpty()) {
-            verify { event ->
-                buttons.map { event.isButtonDown(it) }
-                    .reduce { l, r -> l && r }
+            verify { mouseEvent ->
+                mouseEvent?.let { event ->
+                    buttons.map { event.isButtonDown(it) }
+                        .reduce { l, r -> l && r }.also {
+                            if (!it) logger.trace("expected buttons ${buttons.contentToString()} to be down, but some were not. ")
+                        }
+                } ?: true
             }
         }
         /* If the mouse down buttons are exclusive, ensure no other buttons are pressed */
         if (exclusive) {
-            verify { event ->
-                MouseButton.values()
-                    .filter { it !in buttons }
-                    .map { !event.isButtonDown(it) }
-                    .reduce { l, r -> l && r }
+            verify { mouseEvent ->
+                mouseEvent?.let { event ->
+                    MouseButton.values()
+                        .filter { it !in buttons }
+                        .map { !event.isButtonDown(it) }
+                        .reduce { l, r -> l && r }.also {
+                            if (!it) logger.trace("expected only buttons ${buttons.contentToString()} to be down, but other buttons were down also. ")
+                        }
+                } ?: true
             }
         }
     }
@@ -108,11 +128,11 @@ class MouseAction(eventType: EventType<MouseEvent>) : Action<MouseEvent>(eventTy
          * @receiver the [EventType] to trigger this [MouseAction] on
          */
         @JvmSynthetic
-        fun <T : EventType<MouseEvent>> T.onAction(onAction: (MouseEvent) -> Unit) = MouseAction(this).also { action ->
+        fun <T : EventType<MouseEvent>> T.onAction(onAction: (MouseEvent?) -> Unit) = MouseAction(this).also { action ->
             action.onAction { onAction(it) }
         }
 
         @JvmStatic
-        fun <T : EventType<MouseEvent>> T.onAction(onAction: Consumer<MouseEvent>) = onAction { onAction.accept(it) }
+        fun <T : EventType<MouseEvent>> T.onAction(onAction: Consumer<MouseEvent?>) = onAction { onAction.accept(it) }
     }
 }

@@ -1,0 +1,8 @@
+.list-cell:focused {
+    -fx-background-color: #0093ff;
+    -fx-text-fill: white;
+}
+
+.list-cell:empty {
+    -fx-opacity: 0;
+}

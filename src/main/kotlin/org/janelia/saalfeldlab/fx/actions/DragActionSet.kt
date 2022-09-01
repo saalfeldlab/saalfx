@@ -31,6 +31,7 @@ open class DragActionSet @JvmOverloads constructor(name: String, keyTracker: Key
     val dragDetectedAction = DRAG_DETECTED {
         this.name = "${this@DragActionSet.name} (drag detected)"
         this.filter = filter
+        verifyEventNotNull()
     }
 
     /**
@@ -39,6 +40,7 @@ open class DragActionSet @JvmOverloads constructor(name: String, keyTracker: Key
     val dragAction = MOUSE_DRAGGED {
         this.name = "${this@DragActionSet.name} (drag)"
         this.filter = filter
+        verifyEventNotNull()
         verify { isDragging }
     }
 
@@ -48,6 +50,7 @@ open class DragActionSet @JvmOverloads constructor(name: String, keyTracker: Key
     val dragReleaseAction = MOUSE_RELEASED {
         this.name = "${this@DragActionSet.name} (drag released)"
         this.filter = filter
+        verifyEventNotNull()
         verify { isDragging }
     }
 
@@ -84,7 +87,7 @@ open class DragActionSet @JvmOverloads constructor(name: String, keyTracker: Key
         onDragDetected { }
         onDrag { }
         onDragReleased { }
-        apply?.let { it(this) }
+        apply?.let { it() }
     }
 
 
@@ -96,8 +99,9 @@ open class DragActionSet @JvmOverloads constructor(name: String, keyTracker: Key
     @JvmSynthetic
     fun onDragDetected(onDragDetected: (MouseEvent) -> Unit) {
         dragDetectedAction.apply {
+            verifyEventNotNull()
             onAction {
-                initDragState(it)
+                initDragState(it!!)
                 onDragDetected(it)
             }
         }
@@ -111,8 +115,9 @@ open class DragActionSet @JvmOverloads constructor(name: String, keyTracker: Key
     @JvmSynthetic
     fun onDrag(onDrag: (MouseEvent) -> Unit) {
         dragAction.apply {
+            verifyEventNotNull()
             onAction {
-                onDrag(it)
+                onDrag(it!!)
                 updateDragState(it)
             }
         }
@@ -126,9 +131,10 @@ open class DragActionSet @JvmOverloads constructor(name: String, keyTracker: Key
     @JvmSynthetic
     fun onDragReleased(onDragReleased: (MouseEvent) -> Unit) {
         dragReleaseAction.apply {
+            verifyEventNotNull()
             onAction {
                 endDragState()
-                onDragReleased(it)
+                onDragReleased(it!!)
             }
         }
     }
@@ -165,10 +171,13 @@ open class DragActionSet @JvmOverloads constructor(name: String, keyTracker: Key
     /**
      * Add a check to verify before triggering a drag action (only [dragDetectedAction] and [dragAction] )
      *
+     * NOTE: Because drag event inherently depend on the MoueEvent, we require the non-nullable type here, and cast it.
+     *
      * @param dragCheck check against the [MouseEvent] before triggering a drag action
      */
-    fun verify(dragCheck: (MouseEvent) -> Boolean) {
-        dragDetectedAction.verify { dragCheck(it) }
-        dragAction.verify { dragCheck(it) }
+    @JvmOverloads
+    fun verify(description: String? = null, dragCheck: (MouseEvent) -> Boolean) {
+        dragDetectedAction.verify(description) { dragCheck(it!!) }
+        dragAction.verify(description) { dragCheck(it!!) }
     }
 }

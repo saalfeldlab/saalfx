@@ -31,13 +31,8 @@ package org.janelia.saalfeldlab.fx.ui
 import com.sun.javafx.application.PlatformImpl
 import javafx.application.Platform
 import javafx.beans.binding.Bindings
-import javafx.beans.property.DoubleProperty
-import javafx.beans.property.IntegerProperty
-import javafx.beans.property.LongProperty
-import javafx.beans.property.LongPropertyBase
-import javafx.beans.property.Property
-import javafx.beans.property.SimpleDoubleProperty
-import javafx.beans.property.SimpleIntegerProperty
+import javafx.beans.property.*
+import javafx.geometry.Pos
 import javafx.scene.Scene
 import javafx.scene.control.TextField
 import javafx.scene.layout.HBox
@@ -52,13 +47,19 @@ class NumberField<P : Property<Number>>(
         value: P,
         converter: StringConverter<Number>,
         vararg submitOn: SubmitOn) : ObjectField<Number, P>(value, converter, *submitOn) {
+
+    init {
+        textField.alignment = Pos.BOTTOM_RIGHT
+    }
+
     companion object {
 
         @JvmStatic
         fun doubleField(
-                initialValue: Double,
-                test: DoublePredicate,
-                vararg submitOn: SubmitOn): NumberField<DoubleProperty> {
+            initialValue: Double,
+            test: DoublePredicate,
+            vararg submitOn: SubmitOn
+        ): NumberField<DoubleProperty> {
             val converter = object : StringConverter<Number>() {
                 override fun toString(number: Number) = number.toDouble().toString()
 

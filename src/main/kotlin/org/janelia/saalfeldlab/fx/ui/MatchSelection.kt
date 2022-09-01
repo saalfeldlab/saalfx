@@ -28,35 +28,30 @@
  */
 package org.janelia.saalfeldlab.fx.ui
 
-import javafx.beans.property.SimpleIntegerProperty
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
-import javafx.geometry.Insets
 import javafx.scene.Node
-import javafx.scene.control.Label
-import javafx.scene.control.TextField
-import javafx.scene.control.Tooltip
+import javafx.scene.control.*
+import javafx.scene.control.skin.ListViewSkin
 import javafx.scene.input.KeyCode
+import javafx.scene.input.KeyEvent
 import javafx.scene.input.MouseEvent
-import javafx.scene.layout.Background
-import javafx.scene.layout.BackgroundFill
-import javafx.scene.layout.CornerRadii
 import javafx.scene.layout.Region
 import javafx.scene.layout.VBox
-import javafx.scene.paint.Color
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import me.xdrop.fuzzywuzzy.model.ExtractedResult
-import org.janelia.saalfeldlab.fx.Labels
+import org.apache.commons.lang.builder.HashCodeBuilder
 import org.janelia.saalfeldlab.fx.Separators
+import org.janelia.saalfeldlab.fx.extensions.LazyForeignValue
+import org.janelia.saalfeldlab.fx.extensions.bindHeightToItemSize
+import org.janelia.saalfeldlab.fx.ui.MatchSelection.Companion.fuzzySorted
+import org.janelia.saalfeldlab.fx.ui.MatchSelection.Companion.fuzzyTop
+import org.janelia.saalfeldlab.fx.util.InvokeOnJavaFXApplicationThread
 import org.slf4j.LoggerFactory
 import java.lang.invoke.MethodHandles
-import java.util.ArrayList
-import java.util.Optional
 import java.util.function.BiFunction
 import java.util.function.Consumer
-import kotlin.math.abs
-import kotlin.math.min
 
 /**
  * Menus cannot be updated dynamically. Use custom node for (fuzzy) filtering
@@ -65,22 +60,17 @@ import kotlin.math.min
  * https://bugs.openjdk.java.net/browse/JDK-8219620
  */
 class MatchSelection(
-        candidates: List<String>,
-        private val matcher: BiFunction<String, List<String>, List<String>>,
-        private val onConfirm: (String?) -> Unit) : Region() {
+    candidates: List<String>,
+    private val matcher: BiFunction<String, List<String>, List<String>>,
+    private val onConfirm: (String?) -> Unit
+) : Region() {
 
     private val candidates = candidates.map { it }
-
-    private val currentSelection = SimpleIntegerProperty(this, "current selection", 0)
-
-    private val defaultLabelBackground = Label().background
-
-    private val highlightLabelBackground = Background(BackgroundFill(Color.GRAY.brighter(), CornerRadii.EMPTY, Insets.EMPTY))
 
     private val fuzzySearchField = TextField(null)
 
     private class FuzzyMatcher(private val matcher: BiFunction<String, List<String>, List<ExtractedResult>>) :
-            BiFunction<String, List<String>, List<String>> {
+        BiFunction<String, List<String>, List<String>> {
 
         constructor(matcher: (String, List<String>) -> List<ExtractedResult>) : this(BiFunction { s, l -> matcher(s, l) })
 
@@ -103,87 +93,80 @@ class MatchSelection(
         }
         val currentOrder = FXCollections.observableArrayList<String>()
         fuzzySearchField.textProperty().addListener { _, _, newv -> currentOrder.setAll(if (newv == null || newv.isEmpty()) candidates else matcher.apply(newv, candidates)) }
-        currentSelection.addListener { _, oldv, newv ->
-            LOG.debug("Updating current selection from {} to {}", oldv, newv)
-            if (currentOrder.size > 0) {
-                if (newv.toInt() < 0)
-                    currentSelection.value = currentOrder.size - min(currentOrder.size, abs(newv.toInt()))
-                else if (newv.toInt() >= currentOrder.size)
-                    currentSelection.value = currentOrder.size - 1
+
+        val labelList = ListView(currentOrder)
+        labelList.selectionModel.selectionMode = SelectionMode.SINGLE
+        labelList.stylesheets.add("matcher.css")
+
+        labelList.maxWidthProperty().bind(maxWidthProperty())
+        labelList.prefWidthProperty().bind(maxWidthProperty())
+        labelList.bindHeightToItemSize()
+
+
+        /* NOTE: I would have prefered that `labelList.scrollTo(idx)` would have worked here,
+        * but that always calls `scrollToTop()` which we don't want. We create our own skin here,
+        * expose it's virtual flow, and call the correct `scrollTo` method on it */
+        val listViewSkin = object : ListViewSkin<String>(labelList) {
+            val flow = virtualFlow
+        }
+        labelList.skin = listViewSkin
+        labelList.focusModel.focusedIndexProperty().addListener { _, _, new ->
+            (new?.toInt())?.let { idx ->
+                listViewSkin.flow.scrollTo(idx)
             }
         }
 
-        val labelBox = VBox()
-        currentOrder.addListener(ListChangeListener {
-            val copy = currentOrder.map { it }
-            val labels = ArrayList<Label>()
-            for (i in copy.indices) {
-                val text = copy[i]
-                labels.add(toLabel(
-                        text,
-                        { currentSelection.set(i) },
-                        { currentSelection.set(0) },
-                        { onConfirm(text) },
-                        { currentSelection.set(i) }))
-            }
-            labelBox.children.setAll(labels)
-            currentSelection.set(-1)
-            currentSelection.set(0)
-        })
+        labelList.cellFactoryProperty().set {
+            object : ListCell<String>() {
+                init {
+                    hoverProperty().addListener { _, _, hovered ->
+                        if (hovered) listView.focusModel.focus(index)
+                    }
+                }
 
-        currentSelection.addListener { _, oldv, newv ->
-            LOG.debug("Updating current selection from {} to {}", oldv, newv)
-            val items = labelBox.children
-            val newIndex = newv.toInt()
-            val oldIndex = oldv.toInt()
-            if (newIndex >= 0 && newIndex < items.size)
-                (items[newIndex] as Label).background = highlightLabelBackground
-            if (oldIndex >= 0 && oldIndex < items.size)
-                (items[oldIndex] as Label).background = defaultLabelBackground
+                override fun updateItem(item: String?, empty: Boolean) {
+                    super.updateItem(item, empty)
+                    item?.let { text = it }
+                }
+            }
         }
 
-        currentSelection.set(-1)
+        labelList.selectionModel.selectedItemProperty().addListener { _, _, selected -> selected?.let(onConfirm) }
+
         fuzzySearchField.text = ""
 
-        val contents = VBox(fuzzySearchField, Separators.horizontal(), labelBox)
-        contents.setOnKeyPressed { e ->
-            LOG.debug("Key pressed in contents with code {}", e.code)
+        val handleNavigationKeys: (KeyEvent) -> Boolean = { e ->
             when (e.code) {
-                KeyCode.ESCAPE -> if (Optional.ofNullable(fuzzySearchField.text).filter { it.isNotEmpty() }.isPresent) {
-                    fuzzySearchField.text = ""
-                    e.consume()
-                }
-                KeyCode.ENTER -> {
-                    val selection = currentSelection.get()
-                    onConfirm(if (selection < 0 || selection >= currentOrder.size) null else currentOrder[selection])
-                    e.consume()
-                }
                 KeyCode.DOWN -> {
-                    currentSelection.set(currentSelection.value!! + 1)
+                    labelList.focusModel.focusNext()
                     e.consume()
                 }
                 KeyCode.UP -> {
-                    currentSelection.set(currentSelection.value!! - 1)
+                    labelList.focusModel.focusPrevious()
                     e.consume()
                 }
                 else -> {
+                }
+            }
+            e.isConsumed
+        }
+
+        val contents = VBox(fuzzySearchField, Separators.horizontal(), labelList)
+        contents.setOnKeyPressed { e ->
+            LOG.debug("Key pressed in contents with code {}", e.code)
+            if (!handleNavigationKeys(e)) {
+                if (e.code == KeyCode.ESCAPE && fuzzySearchField.text?.isNotEmpty() == true) {
+                    fuzzySearchField.text = ""
+                    e.consume()
+                } else if (e.code == KeyCode.ENTER) {
+                    labelList.focusModel.focusedItem?.let(onConfirm)
+                    e.consume()
                 }
             }
         }
         fuzzySearchField.setOnKeyPressed { e ->
             LOG.debug("Key pressed in fuzzy search field with code {}", e.code)
-            when (e.code) {
-                KeyCode.DOWN -> {
-                    currentSelection.set(currentSelection.value!! + 1)
-                    e.consume()
-                }
-                KeyCode.UP -> {
-                    currentSelection.set(currentSelection.value!! - 1)
-                    e.consume()
-                }
-                else -> {
-                }
-            }
+            handleNavigationKeys(e)
         }
         contents.focusedProperty().addListener { _, _, newv -> if (newv != null && newv) fuzzySearchField.requestFocus() }
         return contents
@@ -193,28 +176,7 @@ class MatchSelection(
      *
      * @return [Region.getChildrenUnmodifiable]
      */
-    public override fun getChildren(): ObservableList<Node?> = super.getChildrenUnmodifiable()
-
-    private fun toLabel(
-            text: String,
-            onMouseEntered: () -> Unit,
-            onMouseExited: () -> Unit,
-            onMousePressed: () -> Unit,
-            onMouseMoved: () -> Unit): Label {
-
-        val label = Labels.withTooltip(text)
-        label.setOnMouseEntered { onMouseEntered() }
-        label.setOnMouseExited { onMouseExited() }
-        label.setOnMouseMoved { onMouseMoved() }
-        label.setOnMousePressed { e ->
-            if (e.isPrimaryButtonDown) {
-                onMousePressed()
-                e.consume()
-            }
-        }
-        label.maxWidthProperty().bind(maxWidthProperty())
-        return label
-    }
+    override fun getChildren(): ObservableList<Node?> = super.getChildrenUnmodifiable()
 
     companion object {
 
@@ -225,7 +187,7 @@ class MatchSelection(
             cutoff?.let {
                 return MatchSelection(candidates, FuzzyMatcher { query, from -> FuzzySearch.extractSorted(query, from, cutoff) }, onConfirm)
             }
-            return MatchSelection(candidates, FuzzyMatcher(BiFunction { query, choices -> FuzzySearch.extractSorted(query, choices) }), onConfirm)
+            return MatchSelection(candidates, FuzzyMatcher { query, choices -> FuzzySearch.extractSorted(query, choices) }, onConfirm)
         }
 
         fun fuzzyTop(candidates: List<String>, onConfirm: ((String?) -> Unit), limit: Int, cutoff: Int? = null): MatchSelection {
@@ -247,10 +209,110 @@ class MatchSelection(
         @JvmStatic
         fun fuzzyTop(candidates: List<String>, onConfirm: Consumer<String?>, limit: Int, cutoff: Int? = null): MatchSelection {
             val convertOnConfirm: (String?) -> Unit = { onConfirm.accept(it) }
-            return fuzzyTop(candidates, convertOnConfirm, limit, cutoff);
+            return fuzzyTop(candidates, convertOnConfirm, limit, cutoff)
         }
 
     }
 
 
+}
+
+interface MatchSelectionNode {
+
+    val processSelection: (String?) -> Unit
+
+    var cutoff: Int?
+    var maxWidth: Double?
+    var limit: Int?
+
+    fun getItems(): ObservableList<MenuItem>
+
+    fun hide()
+
+    fun hideAndProcess(value: String?) {
+        hide()
+        processSelection(value)
+    }
+
+    fun getMatcher(candidates: List<String>): MatchSelection {
+        val matcher = limit?.let { topN ->
+            fuzzyTop(candidates, { hideAndProcess(it) }, topN, cutoff)
+        } ?: fuzzySorted(candidates, { hideAndProcess(it) }, cutoff)
+        return matcher.also {
+            maxWidth?.let { matcher.maxWidth = it }
+            val cmi = CustomMenuItem(matcher, false)
+            cmi.styleClass.clear()
+            getItems().setAll(cmi)
+        }
+    }
+}
+
+
+open class MatchSelectionMenuButton(private val candidates: List<String>, menuText: String? = null, matcherMaxWidth: Double? = null, override val processSelection: (String?) -> Unit) : MenuButton(menuText), MatchSelectionNode {
+
+    @JvmOverloads
+    constructor(candidates: List<String>, menuText: String, matcherMaxWidth: Double? = null, processSelection: Consumer<String?>) : this(candidates, menuText, matcherMaxWidth, processSelection::accept)
+
+    final override var limit: Int? = null
+    final override var cutoff: Int? = null
+    final override var maxWidth: Double? = matcherMaxWidth
+        set(value) {
+            matcher.maxWidth = value ?: Region.USE_COMPUTED_SIZE
+            field = value
+        }
+
+    private var forceupdateMatcher = 0
+
+    private val matcherHash: Int
+        get() = HashCodeBuilder().append(limit).append(cutoff).append(forceupdateMatcher).append(candidates).toHashCode()
+    private val matcher by LazyForeignValue(this::matcherHash) { getMatcher(candidates) }
+
+    init {
+        matcher.maxWidth = maxWidth ?: Region.USE_COMPUTED_SIZE
+        setOnShowing {
+            InvokeOnJavaFXApplicationThread {
+                matcher.requestFocus()
+            }
+        }
+    }
+}
+
+open class MatchSelectionMenu(private val candidates: List<String>, menuText: String = "", matcherMaxWidth: Double? = null, override val processSelection: (String?) -> Unit) : Menu(menuText), MatchSelectionNode {
+
+    @JvmOverloads
+    constructor(candidates: List<String>, menuText: String = "", maxWidth: Double? = null, processSelection: Consumer<String?>) : this(candidates, menuText, maxWidth, processSelection::accept)
+
+    final override var limit: Int? = null
+    final override var cutoff: Int? = null
+    final override var maxWidth: Double? = matcherMaxWidth
+        set(value) {
+            matcher.maxWidth = value ?: Region.USE_COMPUTED_SIZE
+            field = value
+        }
+
+    private var forceupdateMatcher = 0
+
+    private val matcherHash: Int
+        get() = HashCodeBuilder().append(limit).append(cutoff).append(candidates).toHashCode()
+    private val matcher by LazyForeignValue(this::matcherHash) { getMatcher(candidates) }
+
+    init {
+        matcher.maxWidth = maxWidth ?: Region.USE_COMPUTED_SIZE
+        setOnShowing {
+            InvokeOnJavaFXApplicationThread {
+                matcher.requestFocus()
+            }
+        }
+        if (candidates is ObservableList<String>) {
+            candidates.addListener(ListChangeListener {
+                forceupdateMatcher++
+                matcher
+            })
+        }
+    }
+
+    override fun hide() {
+        super.hide()
+        parentPopup.hide()
+    }
 }

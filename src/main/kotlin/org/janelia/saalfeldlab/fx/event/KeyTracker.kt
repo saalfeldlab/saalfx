@@ -47,13 +47,15 @@ class KeyTracker {
                 ignoreKeys()
                 filter = true
                 consume = false
-                onAction { addKey(it.code) }
+                verifyEventNotNull()
+                onAction { addKey(it!!.code) }
             }
             KEY_RELEASED {
                 ignoreKeys()
                 filter = true
                 consume = false
-                onAction { removeKey(it.code) }
+                verifyEventNotNull()
+                onAction { removeKey(it!!.code) }
             }
         }
     }
@@ -91,6 +93,26 @@ class KeyTracker {
     private fun <R> MutableSet<KeyCode>.synchronized(run: MutableSet<KeyCode>.() -> R): R {
         synchronized(this) {
             return run(this)
+        }
+    }
+
+    companion object {
+        @JvmStatic
+        fun keysToString(vararg keys: KeyCode): String {
+            val codes = mutableListOf<KeyCode>()
+            val modifiers = mutableListOf<KeyCode>()
+
+            keys.forEach { key ->
+                if (key.isModifierKey) {
+                    modifiers += key
+                } else {
+                    codes += key
+                }
+            }
+            val orderedKeys = mutableListOf<KeyCode>()
+            orderedKeys += modifiers
+            orderedKeys += codes
+            return orderedKeys.map { it.name }.reduce { l, r -> "$l + $r" }
         }
     }
 

@@ -176,11 +176,11 @@ class UndoFromEvents<T>(
             val buttonBox = HBox(filler, undoButton, redoButton)
             val tp = TitledPane("Events", undo.node)
 
-            undoButton.setOnAction { e -> undo.undo() }
-            redoButton.setOnAction { e -> undo.redo() }
+            undoButton.setOnAction { undo.undo() }
+            redoButton.setOnAction { undo.redo() }
 
-            undo.canUndo.addListener { obs, oldv, newv -> undoButton.isDisable = !newv }
-            undo.canRedo.addListener { obs, oldv, newv -> redoButton.isDisable = !newv }
+            undo.canUndo.addListener { _, _, newv -> undoButton.isDisable = !newv }
+            undo.canRedo.addListener { _, _, newv -> redoButton.isDisable = !newv }
             undoButton.isDisable = !undo.canUndo.get()
             redoButton.isDisable = !undo.canRedo.get()
 
