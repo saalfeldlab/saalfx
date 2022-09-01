@@ -189,19 +189,3 @@ class MatchSelectionNodeTest : ApplicationTest() {
         }
     }
 }
-
-//fun main() {
-//    PlatformImpl.startup { }
-//    PlatformImpl.setImplicitExit(true)
-//    val choices = (0..20).map { "Number: $it" }.toList()
-//    val root = MatchSelectionMenu(choices, "This is a Test") { println(it) }
-//    root.cutoff = 50
-////    root.limit = 5
-//    Platform.runLater {
-//        val scene = Scene(MenuButton("Menu", null, root))
-//        val stage = Stage()
-//        stage.scene = scene
-////        ScenicView.show(scene)
-//        stage.show()
-//    }
-//}
