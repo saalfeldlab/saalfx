@@ -3,7 +3,10 @@ package org.janelia.saalfeldlab.fx.midi
 import javafx.scene.Scene
 import javafx.scene.layout.HBox
 import javafx.stage.Stage
-import org.janelia.saalfeldlab.control.mcu.*
+import org.janelia.saalfeldlab.control.mcu.MCUButtonControl
+import org.janelia.saalfeldlab.control.mcu.MCUControlPanel
+import org.janelia.saalfeldlab.control.mcu.MCUFaderControl
+import org.janelia.saalfeldlab.control.mcu.MCUVPotControl
 import org.janelia.saalfeldlab.fx.actions.ActionSet.Companion.installActionSet
 import org.janelia.saalfeldlab.fx.midi.MidiPotentiometerEvent.Companion.POTENTIOMETER_ABSOLUTE
 import org.janelia.saalfeldlab.fx.midi.MidiPotentiometerEvent.Companion.POTENTIOMETER_RELATIVE
@@ -18,7 +21,7 @@ import kotlin.test.assertEquals
 
 class MidiActionSetTest : ApplicationTest() {
 
-    companion object XTouchMiniFx {
+    companion object XTouchMiniFxTest {
 
         private val dummyTransmitter = object : Transmitter {
             override fun close() {}
@@ -176,7 +179,7 @@ class MidiActionSetTest : ApplicationTest() {
     fun `toggle button`() {
         var prevValue = false
         MidiActionSet("Toggle Button", dummyDevice, root) {
-            MidiToggleEvent.BUTTON_TOGGLE(0) { onAction { prevValue = it!!.isOn }}
+            MidiToggleEvent.BUTTON_TOGGLE(0) { onAction { prevValue = it!!.isOn } }
             root.installActionSet(this)
         }
 
