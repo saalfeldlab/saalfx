@@ -224,7 +224,7 @@ class FaderAction(eventType: EventType<MidiFaderEvent>, device: MCUControlPanel,
      * Mapping from the fader's internal steps [0-127] to the target step.
      */
     var stepToValueConverter: ((Int) -> Int) = {
-        ((it.toDouble() / (FADER_MAX - FADER_MIN))).toInt() * (max - min) + min
+        ((it.toDouble() / (FADER_MAX - FADER_MIN)) * (max - min) + min).toInt()
     }
 
     init {
