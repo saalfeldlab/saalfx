@@ -39,12 +39,13 @@ import javafx.scene.Scene
 import javafx.scene.control.Label
 import javafx.scene.control.SplitPane
 import javafx.scene.layout.BorderPane
+import javafx.scene.layout.StackPane
 import javafx.stage.Modality
 import javafx.stage.Stage
 import javafx.stage.Window
 import javafx.stage.WindowEvent
 
-class DynamicCellPane(nodes: List<List<Node>>) : SplitPane() {
+class DynamicCellPane @JvmOverloads constructor(vararg nodes: List<Node> = arrayOf()) : SplitPane() {
 
     init {
         nodes.forEach { cells ->
@@ -55,6 +56,7 @@ class DynamicCellPane(nodes: List<List<Node>>) : SplitPane() {
     }
 
     private var maximizedNodes: MutableMap<Node, Pair<Int, Int>>? = null
+    private var detachedNodes: MutableList<Node> = mutableListOf()
     val maximized: Boolean
         get() = maximizedNodes != null
 
@@ -62,7 +64,16 @@ class DynamicCellPane(nodes: List<List<Node>>) : SplitPane() {
     private val rowWhenMaximized by lazy { SplitPane() }
 
 
-    fun addRow(row: Int, vararg nodes: Node) {
+    /**
+     * Add a new row at index [idx] containing [nodes].
+     * If a row already exists at [idx], insert this row before it, and shift all remaining rows down.
+     * If [idx] is greater than current number of rows, then this row will be created at the end.
+     *
+     * @param idx to add the row to.
+     * @param nodes to add to the new row
+     */
+   @JvmOverloads
+    fun addRow(idx: Int? = null, vararg nodes: Node) {
         val cells = cells()
         /* Can't have duplicate nodes*/
         for (node in nodes) {
@@ -70,7 +81,11 @@ class DynamicCellPane(nodes: List<List<Node>>) : SplitPane() {
                 duplicateNodeError()
             }
         }
-        items.add(row, SplitPane(*nodes))
+        if (idx == null || idx > items.size - 1) {
+            items.add(SplitPane(*nodes))
+        } else {
+            items.add(idx, SplitPane(*nodes))
+        }
         distributeAllDividers()
     }
 
@@ -78,6 +93,12 @@ class DynamicCellPane(nodes: List<List<Node>>) : SplitPane() {
         error("Cannot add the same node to the pane multiple times. ")
     }
 
+    /**
+     * Remove all occurences of [node].
+     *
+     * @param node to remove
+     * @return true if removed, else false
+     */
     fun remove(node: Node?): Boolean {
 
         for (rowIdx in items.indices) {
@@ -95,6 +116,13 @@ class DynamicCellPane(nodes: List<List<Node>>) : SplitPane() {
     }
 
 
+    /**
+     * Remove the node at ([row], [col])
+     *
+     * @param row index
+     * @param col index
+     * @return the node if one was removed, or else null
+     */
     fun remove(row: Int, col: Int): Node? {
         return (items[row] as? SplitPane)?.items?.let { rowItems ->
             val removed = rowItems.removeAt(col)
@@ -105,69 +133,136 @@ class DynamicCellPane(nodes: List<List<Node>>) : SplitPane() {
         }
     }
 
-    fun add(node: Node, row: Int, col: Int) {
-        if (items[row] == null) {
-            items.add(row, SplitPane())
+    /**
+     * Remove all nodes at row [idx].
+     *
+     * @param idx of the row to remove
+     * @return the nodes that where removed, or null if no corresponding row at [idx]
+     */
+    fun removeRow(idx: Int): List<Node>? {
+        return if (idx < items.size) {
+            (items.removeAt(idx) as? SplitPane)?.items
+        } else {
+            null
         }
-        (items[row] as? SplitPane)?.items?.add(col, node)
+
     }
 
-    fun replace(oldValue: Node, newValue: Node, row: Int, col: Int): Boolean {
-        return if (this[row, col] == oldValue) {
+    /**
+     * Remove all nodes at columns [idx].
+     *
+     * @param idx of the column to remove
+     * @return the nodes that where removed, or null if no corresponding  col at [idx]
+     */
+    fun removeColumn(idx: Int): List<Node>? {
+        var removed: MutableList<Node>? = null
+        items.mapNotNull { it as? SplitPane }.forEach {
+            if (idx < it.items.size) {
+                removed = removed ?: mutableListOf()
+                removed?.add(it.items.removeAt(idx))
+            }
+        }
+        return removed?.toList()
+    }
+
+    /**
+     * If [currentNode] is the current node at ([row], [col]), remove it and replace it with [newNode]
+     *
+     * @param currentNode
+     * @param newNode
+     * @param row
+     * @param col
+     * @return
+     */
+    fun replace(currentNode: Node, newNode: Node, row: Int, col: Int): Boolean {
+        return if (this[row, col] == currentNode) {
             remove(row, col)
-            add(newValue, row, col)
+            add(row, col, newNode)
             true
         } else {
             false
         }
     }
 
+    /**
+     * Swap the node at ([row1], [col1]) with the node at ([row2], [col2]).
+     * If either coordinate does not contain as node, the swap does not occur
+     *
+     * @param row1 row index of the first node
+     * @param col1 column index of the first node
+     * @param row2 row index of the second node
+     * @param col2 coluimn index of the second node
+     * @return true if the swap occured, otherwise false
+     */
     fun swap(row1: Int, col1: Int, row2: Int, col2: Int): Boolean {
-        val node1 = this[row1, col1]
-        val node2 = this[row2, col2]
-
-        if (node1 != null && node2 != null) {
-            this[row1, col1] = node2
-            this[row2, col2] = node1
-            return true
+        this[row1, col1]?.let { node1 ->
+            this[row2, col2]?.let { node2 ->
+                this[row1, col1] = node2
+                this[row2, col2] = node1
+                return true
+            }
         }
         return false
 
     }
 
+    /**
+     * Add [node] to the pane at ([row], [col]).
+     * If [row] is larger than the current number of rows, see [addRow]
+     * If [col] is larger than the current number of items in the row at [row], add [node] to the end.
+     *
+     * @param row
+     * @param col
+     * @param node
+     */
     fun add(row: Int, col: Int, node: Node) {
         if (node in cells()) {
             duplicateNodeError()
         }
-        (items[row.coerceAtMost(items.size - 1)] as? SplitPane)?.items?.let { it.add(col.coerceAtMost(it.size - 1), node) }
+        if (row > items.size - 1) {
+            addRow(row, node)
+        } else {
+            (items[row] as? SplitPane)?.let {
+                if (col > it.items.size - 1) {
+                    it.items.add(node)
+                } else {
+                    it.items.add(col, node)
+                }
+            }
+        }
     }
 
     operator fun set(row: Int, col: Int, node: Node?): Node? = (items[row] as? SplitPane)?.items?.set(col, node)
 
-    operator fun get(row: Int, col: Int): Node? = (items[row] as? SplitPane)?.items?.get(col)
+    operator fun get(row: Int, col: Int): Node? = (items[row] as? SplitPane)?.items?.getOrNull(col)
 
-    operator fun get(node: Node?): Pair<Int, Int>? {
+    /**
+     * See [indexOf].
+     */
+    operator fun get(node: Node?): Pair<Int, Int>? = indexOf(node)
+
+    /**
+     * Determine if the this [DynamicCellPane] contains [node].
+     *
+     * @param node to check for.
+     * @return true if the [node] exists any cell.
+     */
+    operator fun contains(node: Node?) = node in cells()
+
+
+    /**
+     * Get the (row,col) coordinates of [node].
+     *
+     * @param node to get the coordinates for
+     * @return the (row, col) coordinates if [node] is present, else null
+     */
+    fun indexOf(node: Node?): Pair<Int, Int>? {
         node?.let {
             for (rowIdx in items.indices) {
                 (items[rowIdx] as? SplitPane)?.items?.let {
                     for (colIdx in it.indices) {
-                        if (it[colIdx] == node) return rowIdx to colIdx
-                    }
-                }
-            }
-        }
-        return null
-    }
-
-    operator fun contains(node: Node?) = node in cells()
-
-    fun indexOf(node: Node?): Pair<Int, Int>? {
-        node?.let {
-            for (row in items.indices) {
-                (items[row] as? SplitPane)?.items?.let { cols ->
-                    for (col in cols.indices) {
-                        if (cols[col] == node) {
-                            return row to col
+                        if (it[colIdx] == node) {
+                            return rowIdx to colIdx
                         }
                     }
                 }
@@ -176,6 +271,11 @@ class DynamicCellPane(nodes: List<List<Node>>) : SplitPane() {
         return null
     }
 
+    /**
+     * A flat list of all the nodes, in row-major order.
+     *
+     * @return list of nodes
+     */
     fun cells(): List<Node> {
         return items
             .flatMap { (it as? SplitPane)?.items ?: listOf() }
@@ -183,6 +283,14 @@ class DynamicCellPane(nodes: List<List<Node>>) : SplitPane() {
 
     }
 
+    /**
+     * Toggle maximized state of [nodes].
+     *
+     * If there are no current maximized nodes, then [nodes] are maximized such that there is a single row, containing all [nodes] in the order specified.
+     * If some nodes are maximized, then [nodes] is ignored, and the state of the cells is returned to how it was before the prior call to [toggleMaximize].
+     *
+     * @param nodes to maximize
+     */
     fun toggleMaximize(vararg nodes: Node) {
         if (maximizedNodes?.size == 0) maximizedNodes = null
         maximizedNodes?.let {
@@ -226,19 +334,36 @@ class DynamicCellPane(nodes: List<List<Node>>) : SplitPane() {
         setDividerPositions(*(1 until items.size).map { it.toDouble() / items.size }.toDoubleArray())
     }
 
+    /**
+     * Resize all cells within a rwo to have the same width.
+     */
     fun distributeAllDividers() {
         items.forEach { row -> (row as? SplitPane)?.distributeDividers() }
         distributeDividers()
     }
 
+    /**
+     * Detach a node, such that it is removed from the current [Stage] containing this [DynamicCellPane], and added to its own [Stage].
+     * Handlers are attached to the new [Stage] such that when it is closed, it attemps to re-attach to the original stage.
+     * The root of the new [Stage] is a [StackPane] which contains a [BorderPane], which in turn places [node] at its [BorderPane.setCenter].
+     * [uiCallback] provides the [StackPane] and [BorderPane] for additional modification.
+     *
+     *
+     *
+     * @param node to detach
+     * @param title of the new stage
+     * @param onClose when the stage is closed, this is called.
+     * @param beforeShow prior to showing the new stage, this is called
+     * @param reAttachIndices if porivded, [node] will be added back to this [DynamicCellPane] at these indices, instead of the starting indices
+     * @param uiCallback callback which provides the stackpane and border pane that are created for this detached window.
+     */
     fun toggleNodeDetach(
         node: Node,
         title: String? = null,
-        topProvider: ((BorderPane) -> Node)? = null,
-        bottomProvider: ((BorderPane) -> Node)? = null,
         onClose: (Stage) -> Unit = {},
         beforeShow: (Stage) -> Unit = {},
-        reAttachIndices: Pair<Int, Int>? = null
+        reAttachIndices: Pair<Int, Int>? = null,
+        uiCallback: ((StackPane, BorderPane) -> Unit)? = null,
     ) {
         /* close the cell if it is detached, otherwise, detach the cell */
         if (closeNodeIfDetached(node)) {
@@ -254,17 +379,20 @@ class DynamicCellPane(nodes: List<List<Node>>) : SplitPane() {
             Stage().let { stage ->
                 title?.let { stage.title = it }
 
-                val newRoot = BorderPane(node)
-                newRoot.centerProperty().addListener { _, _, new ->
+                detachedNodes += node
+
+                val borderPane = BorderPane(node)
+                val stackPaneRoot = StackPane(borderPane)
+//                stackPaneRoot.isPickOnBounds = false
+
+                borderPane.centerProperty().addListener { _, _, new ->
                     if (new == null) {
-                        closeNodeIfDetached(newRoot)
+                        closeNodeIfDetached(stackPaneRoot)
                     }
                 }
 
-                topProvider?.let { newRoot.top = it(newRoot) }
-                bottomProvider?.let { newRoot.bottom = it(newRoot) }
-
-                stage.scene = Scene(newRoot, scene.width, scene.height)
+                stage.scene = Scene(stackPaneRoot, scene.width, scene.height)
+                uiCallback?.invoke(stackPaneRoot, borderPane)
                 stage.scene.stylesheets.setAll(scene.stylesheets)
 
                 stage.initModality(Modality.NONE)
@@ -272,30 +400,50 @@ class DynamicCellPane(nodes: List<List<Node>>) : SplitPane() {
 
 
                 val cleanUp = {
-                    onClose(stage)
-                    /* if the DynamicCellPane is maximized, unmaximize it first */
-                    if (maximized) toggleMaximize()
+                    if (node in detachedNodes) {
+                        onClose(stage)
+                        detachedNodes.remove(node)
+                        /* if the DynamicCellPane is maximized, unmaximize it first */
+                        if (maximized) toggleMaximize()
 
-                    /* if the cell was already removed, do nothing */
-                    if (newRoot.center != null) {
-                        /* grab the original cell location */
-                        val (reattachRow, reattachCol) = reAttachIndices ?: (row to col)
+                        /* if the cell was already removed, do nothing */
+                        if (borderPane.center != null) {
+                            /* grab the original cell location */
+                            val (reattachRow, reattachCol) = reAttachIndices ?: (row to col)
 
-                        /* Node cannot already be in the cellpane, remove in case */
-                        remove(node)
-                        /* recombine in original window */
-                        if (rowsBefore > items.size) {
-                            addRow(reattachRow, node)
-                        } else {
-                            add(reattachRow, reattachCol, node)
+                            /* Node cannot already be in the cellpane, remove in case */
+                            remove(node)
+                            /* recombine in original window */
+                            if (rowsBefore > items.size) {
+                                addRow(reattachRow, node)
+                            } else {
+                                add(reattachRow, reattachCol, node)
+                            }
+                            distributeAllDividers()
                         }
-                        distributeAllDividers()
                     }
                 }
                 stage.onCloseRequest = EventHandler { cleanUp() }
                 stage.show()
             }
         }
+    }
+
+    /**
+     * remove all nodes from this [DynamicCellPane]
+     *
+     */
+    fun removeAll() {
+        if (maximized) {
+            toggleMaximize()
+        }
+        detachedNodes.toList().forEach {
+            toggleNodeDetach(it)
+        }
+        while (items.size != 0) {
+            removeRow(0)
+        }
+
     }
 
     private fun closeNodeIfDetached(node: Node): Boolean {
@@ -327,10 +475,8 @@ fun main() {
     PlatformImpl.setImplicitExit(true)
     Platform.runLater {
         val cellPane = DynamicCellPane(
-            listOf(
-                listOf(Label("Test"), Label("Test")),
-                listOf(Label("Test"), Label("Test"))
-            )
+            listOf(Label("Test"), Label("Test")),
+            listOf(Label("Test"), Label("Test"))
         )
         val scene = Scene(cellPane)
         val stage = Stage()
