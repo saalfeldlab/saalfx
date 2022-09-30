@@ -167,8 +167,9 @@ class UtilityTask<V>(private val onCall: (UtilityTask<V>) -> V) : Task<V>() {
      * @param executorService to execute this task on.
      */
     @JvmOverloads
-    fun submitAndWait(executorService: ExecutorService = TASK_SERVICE) {
+    fun submitAndWait(executorService: ExecutorService = TASK_SERVICE) : V  {
         executorService.submit(this).get()
+        return this.value
     }
 
     /**
