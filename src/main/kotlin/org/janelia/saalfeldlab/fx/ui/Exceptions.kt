@@ -46,6 +46,17 @@ class Exceptions {
 
     companion object {
 
+		@JvmStatic
+		fun java.lang.Exception.alert(owner : Window? = null) : Alert {
+			return exceptionAlert(
+				javaClass.simpleName,
+				this.message ?: "",
+				this,
+				stackTraceToString(),
+				owner
+			)
+		}
+
         @JvmStatic
         @JvmOverloads
         fun exceptionAlert(
@@ -119,7 +130,7 @@ class Exceptions {
                 contentText: String? = null,
                 owner: Window? = null
         ): Consumer<Exception> {
-            return Consumer { e -> exceptionAlert(title, headerText, e, contentText, owner = owner) }
+            return Consumer { e -> exceptionAlert(title, headerText, e, contentText, owner = owner).showAndWait() }
         }
 
         private fun getRootCause(e: Throwable): Throwable {

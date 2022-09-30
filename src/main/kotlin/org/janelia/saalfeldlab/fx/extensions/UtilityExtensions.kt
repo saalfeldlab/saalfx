@@ -1,11 +1,10 @@
 package org.janelia.saalfeldlab.fx.extensions
 
-import java.util.Optional
+import javafx.util.Pair
+import java.util.*
 
-class UtilityExtensions {
+val <T> Optional<T>.nullable: T?
+	get() = orElse(null)
 
-    companion object {
-        val <T> Optional<T>.nullable: T?
-            get() = orElse(null)
-    }
-}
+operator fun <A, B> Pair<A, B>.component1() = key
+operator fun <A, B> Pair<A, B>.component2() = value
