@@ -119,7 +119,7 @@ class Exceptions {
                 contentText: String? = null,
                 owner: Window? = null
         ): Consumer<Exception> {
-            return Consumer { e -> exceptionAlert(title, headerText, e, contentText, owner = owner) }
+            return Consumer { e -> exceptionAlert(title, headerText, e, contentText, owner = owner).showAndWait() }
         }
 
         private fun getRootCause(e: Throwable): Throwable {
