@@ -64,17 +64,17 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
     }
 
     private fun testChecksForEventType(event: Event, eventType: EventType<out Event> = event.eventType): Boolean {
-        var pass = true
-        checks[eventType]?.let { checks ->
+        return checks[eventType]?.let { checks ->
+            var pass = true
             for ((reason, check) in checks) {
-                pass = pass && check(event)
-                if (!pass) {
+                if (!check(event)) {
                     ACTION_SET_LOGGER.debug("Verify All Failed: $reason")
-                    return false
+                    pass = false
+                    break
                 }
             }
-        }
-        return pass
+            pass
+        } ?: true
     }
 
     private tailrec fun testChecksForInheritedEventTypes(event: Event, eventType: EventType<out Event>? = event.eventType): Boolean {
@@ -303,7 +303,6 @@ open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply
      * @receiver [EventType] the resultant action will trigger
      * @return the created action of type [R]
      */
-    @Suppress("UNCHECKED_CAST")
     inline operator fun <reified E : Event, reified R : Action<E>> EventType<E>.invoke(vararg withKeysDown: KeyCode, noinline withAction: R.() -> Unit): R {
         return actionFromEventType(withAction).apply {
             if (withKeysDown.isNotEmpty()) keysDown(*withKeysDown, exclusive = this.keysExclusive)
