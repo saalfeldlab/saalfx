@@ -15,9 +15,7 @@ import org.testfx.util.WaitForAsyncUtils
 import java.lang.invoke.MethodHandles
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
-import java.util.function.DoublePredicate
 import kotlin.coroutines.cancellation.CancellationException
-import kotlin.math.abs
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
@@ -29,8 +27,8 @@ class TasksTest : ApplicationTest() {
         list = ListView()
         val pane = Pane(list)
         stage.scene = Scene(pane, SCENE_WIDTH, SCENE_HEIGHT)
-                .also { it.addEventFilter(Event.ANY) { LOG.trace("Filtering event in scene: {}", it) } }
-                .also { it.addEventFilter(MouseEvent.ANY) { LOG.trace("Filtering mouse event in scene: {}", it) } }
+            .also { it.addEventFilter(Event.ANY) { LOG.trace("Filtering event in scene: {}", it) } }
+            .also { it.addEventFilter(MouseEvent.ANY) { LOG.trace("Filtering mouse event in scene: {}", it) } }
         stage.show()
         // This is necessary to make sure that the stage grabs focus from OS and events are registered
         // https://stackoverflow.com/a/47685356/1725687
@@ -49,8 +47,8 @@ class TasksTest : ApplicationTest() {
     fun testOnSucess() {
         val testText = "Single onSuccess Test"
         Tasks.createTask<String> { testText }
-                .onSuccess { _, t -> list.items.add(t.value) }
-                .submit()
+            .onSuccess { _, t -> list.items.add(t.value) }
+            .submit()
 
         WaitForAsyncUtils.waitForFxEvents()
 
@@ -63,15 +61,30 @@ class TasksTest : ApplicationTest() {
     fun testOnEndWithSuccess() {
         val endOnSuccessText = "Single onEnd Test, expecting success"
         val task = Tasks.createTask<String> { endOnSuccessText }
-                .onSuccess { _, t -> list.items.add(t.value) }
-                .onEnd { t -> list.items.add(t.value) }
-                .submit()
+            .onSuccess { _, t -> list.items.add(t.value) }
+            .onEnd { t -> list.items.add(t.value) }
+            .submit()
 
         WaitForAsyncUtils.waitForFxEvents()
 
         val items = list.items
         Assert.assertTrue(task.isDone)
         Assert.assertEquals(endOnSuccessText, task.get())
+        Assert.assertArrayEquals(arrayOf(endOnSuccessText, endOnSuccessText), items.toTypedArray())
+    }
+
+    @Test
+    fun testOnEndWithSuccessBlocking() {
+        val endOnSuccessText = "Single onEnd Test, expecting success"
+        val result = Tasks.createTask<String> { endOnSuccessText }
+            .onSuccess { _, t -> list.items.add(t.value) }
+            .onEnd { t -> list.items.add(t.value) }
+            .submitAndWait()
+
+        WaitForAsyncUtils.waitForFxEvents()
+
+        val items = list.items
+        Assert.assertEquals(endOnSuccessText, result)
         Assert.assertArrayEquals(arrayOf(endOnSuccessText, endOnSuccessText), items.toTypedArray())
     }
 
@@ -90,8 +103,8 @@ class TasksTest : ApplicationTest() {
             textWithoutCancel
         }
             .onSuccess { _, t -> list.items.add(t.get()) }
-                .onEnd { list.items.add(textWithCancel) }
-                .submit()
+            .onEnd { list.items.add(textWithCancel) }
+            .submit()
 
         task.cancel()
         canceled = true
@@ -110,8 +123,8 @@ class TasksTest : ApplicationTest() {
         /* Intentionally trigger failed*/
         val task = Tasks.createTask<String> { throw RuntimeException("Forced failure!") }
             .onSuccess { _, t -> list.items.add(t.get()) }
-                .onEnd { list.items.add(textWithFailure) }
-                .submit()
+            .onEnd { list.items.add(textWithFailure) }
+            .submit()
 
         WaitForAsyncUtils.waitForFxEvents()
 
@@ -127,10 +140,10 @@ class TasksTest : ApplicationTest() {
         val textWithFailure = "Single onFailure Test, expecting failure"
         /* Intentionally trigger failure, with custom onFailed */
         val task = Tasks.createTask<String> { throw RuntimeException("Forced failure!") }
-                .onSuccess { _, t -> list.items.add(t.get()) }
-                .onEnd { list.items.add(textWithEnd) }
-                .onFailed { _, _ -> list.items.add(textWithFailure) }
-                .submit()
+            .onSuccess { _, t -> list.items.add(t.get()) }
+            .onEnd { list.items.add(textWithEnd) }
+            .onFailed { _, _ -> list.items.add(textWithFailure) }
+            .submit()
 
         WaitForAsyncUtils.waitForFxEvents()
 
@@ -151,13 +164,13 @@ class TasksTest : ApplicationTest() {
         /* Intentionally trigger failure, with custom onFailed. onEnd should also trigger*/
         val task = Tasks.createTask<String> { throw IntentionalTestException("Forced failure!") }
             .onSuccess { _, t -> list.items.add(t.get()) }
-                .onEnd { list.items.add(textWithEnd) }
-                .onFailed { _, _ -> list.items.add(textWithFailure) }
-                .submit()
+            .onEnd { list.items.add(textWithEnd) }
+            .onFailed { _, _ -> list.items.add(textWithFailure) }
+            .submit()
 
         WaitForAsyncUtils.waitForFxEvents()
 
-        var thrownException : Throwable? = null
+        var thrownException: Throwable? = null
         InvokeOnJavaFXApplicationThread {
             thrownException = task.exception
         }
@@ -167,6 +180,8 @@ class TasksTest : ApplicationTest() {
         Assert.assertFalse(task.isCancelled)
         Assert.assertTrue(task.isDone)
         Assert.assertNotNull(thrownException)
+
+        @Suppress("AssertBetweenInconvertibleTypes") /*Intentional, to trigger the failure case */
         Assert.assertEquals(IntentionalTestException::class.java, thrownException!!::class.java)
         Assert.assertArrayEquals(arrayOf(textWithEnd, textWithFailure), items.toTypedArray())
     }
@@ -174,15 +189,9 @@ class TasksTest : ApplicationTest() {
     companion object {
         private val LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
 
-        const val START_WIDTH = 100.0
-
         const val SCENE_WIDTH = 800.0
 
         const val SCENE_HEIGHT = 600.0
-
-        const val RESIZABLE_DISTANE = 5.0
-
-        val IS_WITHIN_MARGIN_OF_BORDER = DoublePredicate { abs(it) < RESIZABLE_DISTANE }
 
     }
 
