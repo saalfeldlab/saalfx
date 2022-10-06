@@ -37,9 +37,9 @@ class Tasks private constructor() {
 }
 
 private val THREAD_FACTORY: ThreadFactory = ThreadFactoryBuilder()
-        .setDaemon(true)
-        .setNameFormat("task-thread-%d")
-        .build()
+    .setDaemon(true)
+    .setNameFormat("task-thread-%d")
+    .build()
 
 private val TASK_SERVICE = Executors.newCachedThreadPool(THREAD_FACTORY)
 
@@ -163,13 +163,14 @@ class UtilityTask<V>(private val onCall: (UtilityTask<V>) -> V) : Task<V>() {
 
     /**
      * Submit this task to the [executorService], and block while waiting for it to return.
+     * This will return after the task completes, but possibbly BEFORE the [onSuccess]/[onEnd] call finish.
      *
      * @param executorService to execute this task on.
      */
     @JvmOverloads
-    fun submitAndWait(executorService: ExecutorService = TASK_SERVICE) : V  {
-        executorService.submit(this).get()
-        return this.value
+    fun submitAndWait(executorService: ExecutorService = TASK_SERVICE): V {
+        executorService.submit(this)
+        return this.get()
     }
 
     /**

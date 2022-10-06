@@ -383,7 +383,6 @@ class DynamicCellPane @JvmOverloads constructor(vararg nodes: List<Node> = array
 
                 val borderPane = BorderPane(node)
                 val stackPaneRoot = StackPane(borderPane)
-//                stackPaneRoot.isPickOnBounds = false
 
                 borderPane.centerProperty().addListener { _, _, new ->
                     if (new == null) {
