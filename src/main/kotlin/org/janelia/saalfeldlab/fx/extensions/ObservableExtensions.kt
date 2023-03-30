@@ -23,6 +23,20 @@ inline fun <reified T, Obj, Obs> Obs.createNonNullValueBinding(vararg observable
     return Bindings.createObjectBinding({ obsValToObj(value) }, this, *observables)
 }
 
+inline fun <reified T, Obj, Obs> Obs.createNonNullProperty(vararg observables: Observable, crossinline obsValToObj: (T) -> Obj): Property<Obj> where Obs : Property<T> {
+	val mappingBinding = createNonNullValueBinding(*observables) { obsValToObj(it)}
+	val property = SimpleObjectProperty<Obj>()
+	property.bind(mappingBinding)
+	return property
+}
+
+inline fun <reified T, Obj, Obs> Obs.createNullableProperty(vararg observables: Observable, crossinline obsValToObj: (T?) -> Obj): Property<Obj?> where Obs : Property<T> {
+	val mappingBinding = createNonNullValueBinding(*observables) { obsValToObj(it)}
+	val property = SimpleObjectProperty<Obj>()
+	property.bind(mappingBinding)
+	return property
+}
+
 inline operator fun <reified T : Node> T.invoke(apply: T.() -> Unit): T {
     apply(this)
     return this
