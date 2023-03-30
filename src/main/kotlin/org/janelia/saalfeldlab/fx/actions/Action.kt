@@ -181,7 +181,10 @@ open class Action<E : Event>(val eventType: EventType<E>) {
                 keysExclusive -> areOnlyTheseKeysDown(*keysDown!!.toTypedArray()).also { if (!it) logger.trace("expected only these keys: ${keysDown}, but others were also down") }
                 else -> areKeysDown(*keysDown!!.toTypedArray()).also { if (!it) logger.trace("expected keys: $keysDown, but some were not down") }
             }
-        } ?: false
+        } ?: let {
+            logger.trace("keyTracker is null")
+            false
+        }
 
     }
 
