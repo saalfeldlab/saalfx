@@ -69,6 +69,7 @@ open class MidiActionSet(name: String, private val device: MCUControlPanel, priv
 abstract class MidiAction<E : FxMidiEvent>(eventType: EventType<E>, val device: MCUControlPanel, val handle: Int, withAction: MidiAction<E>.() -> Unit = {}) : Action<E>(eventType) {
     abstract val control: MCUControl
     protected abstract var eventFiringListener: IntConsumer?
+    var supressEvents = false
 
     init {
         ignoreKeys()
@@ -78,6 +79,13 @@ abstract class MidiAction<E : FxMidiEvent>(eventType: EventType<E>, val device: 
     var afterRegisterEvent: () -> Unit = {}
     var afterRemoveEvent: () -> Unit = {}
 
+    fun updateControlSilently(value : Int) {
+        val prevSuppressFlag = supressEvents
+        supressEvents = true
+        control.value = value
+        supressEvents = prevSuppressFlag
+    }
+
     abstract fun registerEvent(target: EventTarget?)
     open fun removeEvent() {
         eventFiringListener?.let {
@@ -85,6 +93,7 @@ abstract class MidiAction<E : FxMidiEvent>(eventType: EventType<E>, val device: 
                 eventFiringListener = null
             }
         }
+        control.value = 0
         afterRemoveEvent()
     }
 }
@@ -133,7 +142,10 @@ class PotentiometerAction(eventType: EventType<MidiPotentiometerEvent>, device: 
     }
 
     override fun registerEvent(target: EventTarget?) {
-        eventFiringListener = IntConsumer { Event.fireEvent(target, MidiPotentiometerEvent(handle, it, eventType)) }
+        eventFiringListener = IntConsumer {
+            if (supressEvents) return@IntConsumer
+            Event.fireEvent(target, MidiPotentiometerEvent(handle, it, eventType))
+        }
         control.addListener(eventFiringListener)
         afterRegisterEvent()
     }
@@ -162,6 +174,8 @@ class ButtonAction(eventType: EventType<MidiButtonEvent>, device: MCUControlPane
     }
 
     private fun listener(target: EventTarget?): IntConsumer = IntConsumer {
+        if (supressEvents) return@IntConsumer
+
         if (eventType == MidiButtonEvent.BUTTON_PRESED && it != 0) {
             Event.fireEvent(target, MidiButtonEvent(handle, it, eventType))
         } else if (eventType == MidiButtonEvent.BUTTON_RELEASED && it == 0) {
@@ -187,7 +201,10 @@ class ToggleAction(eventType: EventType<MidiToggleEvent>, device: MCUControlPane
 
 
     override fun registerEvent(target: EventTarget?) {
-        eventFiringListener = IntConsumer { Event.fireEvent(target, MidiToggleEvent(handle, it, eventType)) }
+        eventFiringListener = IntConsumer {
+            if (supressEvents) return@IntConsumer
+            Event.fireEvent(target, MidiToggleEvent(handle, it, eventType))
+        }
         control.addListener(eventFiringListener)
         afterRegisterEvent()
     }
@@ -195,6 +212,7 @@ class ToggleAction(eventType: EventType<MidiToggleEvent>, device: MCUControlPane
     override fun removeEvent() {
         super.removeEvent()
         /* Just to clean up the device, so it doesn't treat the button as a toggle anymore */
+        control.value = MCUButtonControl.TOGGLE_OFF
         control.isToggle = false
     }
 
@@ -234,6 +252,7 @@ class FaderAction(eventType: EventType<MidiFaderEvent>, device: MCUControlPanel,
 
     override fun registerEvent(target: EventTarget?) {
         eventFiringListener = IntConsumer {
+            if (supressEvents) return@IntConsumer
             val converter = stepToValueConverter
             Event.fireEvent(target, MidiFaderEvent(handle, converter(it), eventType))
         }
