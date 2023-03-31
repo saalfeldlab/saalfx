@@ -55,7 +55,6 @@
 		<!-- JavaFx-->
 		<javafx.version>16</javafx.version>
 		<dokka.version>1.4.30</dokka.version>
-		<license.excludes>**/src/**</license.excludes>
 	</properties>
 
 	<developers>
