@@ -1,8 +1,12 @@
 package org.janelia.saalfeldlab.fx.ui
 
+import javafx.application.Application
 import javafx.scene.Scene
 import javafx.scene.control.ListView
+import javafx.scene.control.Menu
+import javafx.scene.control.MenuBar
 import javafx.scene.control.MenuButton
+import javafx.scene.control.MenuItem
 import javafx.scene.layout.HBox
 import javafx.stage.Stage
 import org.janelia.saalfeldlab.fx.util.InvokeOnJavaFXApplicationThread
@@ -159,10 +163,7 @@ class MatchSelectionNodeTest : ApplicationTest() {
     fun `menu no limit`() {
 
         val choices = (0 until 30).map { "Number: $it" }.toList()
-        val matcher = object : MatchSelectionMenu(choices, "menu no limit", null, {}) {
-            /* NOTE: We do this to avoid calling `parentPopup.hide()` which causes an issues with TestFX. It works fine outside the test framework. */
-            override fun hide() {}
-        }
+        val matcher = MatchSelectionMenu(choices, "menu no limit", null, {})
         val menuButton = MenuButton("Test Menu Button", null, matcher)
         InvokeOnJavaFXApplicationThread {
             root.children += menuButton
@@ -188,4 +189,48 @@ class MatchSelectionNodeTest : ApplicationTest() {
             assertEquals(30, it.items.size, "Size Should be 30")
         }
     }
+}
+
+class TestApp : Application() {
+
+    override fun init() {
+
+    }
+
+    override fun start(primaryStage: Stage) {
+        fun newMenu() : Menu {
+            val matchSelectionMenu = MatchSelectionMenu(
+                listOf("0qw1erq2wer2", "1qw2erq3wer3", "2qw3erq4wer4", "3qw4erq5wer5", "4qw5erq6wer6", "5qw6erq7wer7"),
+                "test"
+            ) { println(it)}
+            val matchSelectionMenu2 = MatchSelectionMenu(
+                listOf("0qw1erq2wer2", "1qw2erq3wer3", "2qw3erq4wer4", "3qw4erq5wer5", "4qw5erq6wer6", "5qw6erq7wer7"),
+                "test"
+            ) { println(it)}
+            val matchSelectionMenu3 = MatchSelectionMenu(
+                listOf("0qw1erq2wer2", "1qw2erq3wer3", "2qw3erq4wer4", "3qw4erq5wer5", "4qw5erq6wer6", "5qw6erq7wer7"),
+                "test"
+            ) { println(it)}
+            val menu  = Menu("Menu")
+            menu.items += MenuItem("0 - menu test")
+            menu.items += matchSelectionMenu
+            menu.items += matchSelectionMenu2
+            menu.items += MenuItem("1 - menu test")
+            menu.items += MenuItem("2 - menu test")
+            menu.items += matchSelectionMenu3
+            menu.items += MenuItem("3 - menu test")
+            menu.items += MenuItem("4 - menu test")
+            menu.items += MenuItem("5 - menu test")
+            menu.items += MenuItem("6 - menu test")
+            return menu
+        }
+        val menuBar = MenuBar(newMenu(), newMenu())
+        val scene = Scene(menuBar)
+        primaryStage.scene = scene
+        primaryStage.show()
+    }
+}
+
+fun main() {
+    Application.launch(TestApp::class.java)
 }
