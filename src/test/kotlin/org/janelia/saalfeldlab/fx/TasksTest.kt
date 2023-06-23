@@ -21,178 +21,178 @@ import kotlin.test.Test
 
 class TasksTest : ApplicationTest() {
 
-    private lateinit var list: ListView<String>
+	private lateinit var list: ListView<String>
 
-    override fun start(stage: Stage) {
-        list = ListView()
-        val pane = Pane(list)
-        stage.scene = Scene(pane, SCENE_WIDTH, SCENE_HEIGHT)
-            .also { it.addEventFilter(Event.ANY) { LOG.trace("Filtering event in scene: {}", it) } }
-            .also { it.addEventFilter(MouseEvent.ANY) { LOG.trace("Filtering mouse event in scene: {}", it) } }
-        stage.show()
-        // This is necessary to make sure that the stage grabs focus from OS and events are registered
-        // https://stackoverflow.com/a/47685356/1725687
-        Platform.runLater { stage.isIconified = true; stage.isIconified = false }
-    }
+	override fun start(stage: Stage) {
+		list = ListView()
+		val pane = Pane(list)
+		stage.scene = Scene(pane, SCENE_WIDTH, SCENE_HEIGHT)
+			.also { it.addEventFilter(Event.ANY) { LOG.trace("Filtering event in scene: {}", it) } }
+			.also { it.addEventFilter(MouseEvent.ANY) { LOG.trace("Filtering mouse event in scene: {}", it) } }
+		stage.show()
+		// This is necessary to make sure that the stage grabs focus from OS and events are registered
+		// https://stackoverflow.com/a/47685356/1725687
+		Platform.runLater { stage.isIconified = true; stage.isIconified = false }
+	}
 
-    @BeforeTest
-    fun clearList() {
-        InvokeOnJavaFXApplicationThread.invokeAndWait {
-            list.items.clear()
-        }
-        WaitForAsyncUtils.waitForFxEvents()
-    }
+	@BeforeTest
+	fun clearList() {
+		InvokeOnJavaFXApplicationThread.invokeAndWait {
+			list.items.clear()
+		}
+		WaitForAsyncUtils.waitForFxEvents()
+	}
 
-    @Test
-    fun testOnSucess() {
-        val testText = "Single onSuccess Test"
-        Tasks.createTask<String> { testText }
-            .onSuccess { _, t -> list.items.add(t.value) }
-            .submit()
+	@Test
+	fun testOnSucess() {
+		val testText = "Single onSuccess Test"
+		Tasks.createTask<String> { testText }
+			.onSuccess { _, t -> list.items.add(t.value) }
+			.submit()
 
-        WaitForAsyncUtils.waitForFxEvents()
+		WaitForAsyncUtils.waitForFxEvents()
 
-        val items = list.items
-        Assert.assertArrayEquals(arrayOf(testText), items.toTypedArray())
-    }
-
-
-    @Test
-    fun testOnEndWithSuccess() {
-        val endOnSuccessText = "Single onEnd Test, expecting success"
-        val task = Tasks.createTask<String> { endOnSuccessText }
-            .onSuccess { _, t -> list.items.add(t.value) }
-            .onEnd { t -> list.items.add(t.value) }
-            .submit()
-
-        WaitForAsyncUtils.waitForFxEvents()
-
-        val items = list.items
-        Assert.assertTrue(task.isDone)
-        Assert.assertEquals(endOnSuccessText, task.get())
-        Assert.assertArrayEquals(arrayOf(endOnSuccessText, endOnSuccessText), items.toTypedArray())
-    }
-
-    @Test
-    fun testOnEndWithSuccessBlocking() {
-        val endOnSuccessText = "Single onEnd Test, expecting success"
-        val result = Tasks.createTask<String> { endOnSuccessText }
-            .onSuccess { _, t -> list.items.add(t.value) }
-            .onEnd { t -> list.items.add(t.value) }
-            .submitAndWait()
-
-        WaitForAsyncUtils.waitForFxEvents()
-
-        val items = list.items
-        Assert.assertEquals(endOnSuccessText, result)
-        Assert.assertArrayEquals(arrayOf(endOnSuccessText, endOnSuccessText), items.toTypedArray())
-    }
-
-    @Test
-    fun testOnEndWithCancel() {
-        val items = list.items
-        val textWithoutCancel = "Single onEnd Test, expecting to never see this"
-        val textWithCancel = "Single onEnd Test, expecting cancel"
-        var canceled = false
-        val maxTime = LocalDateTime.now().plus(5, ChronoUnit.SECONDS)
-        val task = Tasks.createTask<String> {
-            /* waiting for the task to be canceled. If too long, we have failed. */
-            while (!canceled || LocalDateTime.now().isBefore(maxTime)) {
-                sleep(20)
-            }
-            textWithoutCancel
-        }
-            .onSuccess { _, t -> list.items.add(t.get()) }
-            .onEnd { list.items.add(textWithCancel) }
-            .submit()
-
-        task.cancel()
-        canceled = true
-
-        WaitForAsyncUtils.waitForFxEvents()
-
-        Assert.assertTrue(task.isCancelled)
-        Assert.assertThrows(CancellationException::class.java) { task.get() }
-        Assert.assertArrayEquals(arrayOf(textWithCancel), items.toTypedArray())
-    }
-
-    @Test
-    fun testOnEndWithFailure() {
-        val items = list.items
-        val textWithFailure = "Single onEnd Test, expecting failure"
-        /* Intentionally trigger failed*/
-        val task = Tasks.createTask<String> { throw RuntimeException("Forced failure!") }
-            .onSuccess { _, t -> list.items.add(t.get()) }
-            .onEnd { list.items.add(textWithFailure) }
-            .submit()
-
-        WaitForAsyncUtils.waitForFxEvents()
-
-        Assert.assertFalse(task.isCancelled)
-        Assert.assertTrue(task.isDone)
-        Assert.assertArrayEquals(arrayOf(textWithFailure), items.toTypedArray())
-    }
-
-    @Test
-    fun testOnEndOnFailed() {
-        val items = list.items
-        val textWithEnd = "Single onFailure Test, expecting end"
-        val textWithFailure = "Single onFailure Test, expecting failure"
-        /* Intentionally trigger failure, with custom onFailed */
-        val task = Tasks.createTask<String> { throw RuntimeException("Forced failure!") }
-            .onSuccess { _, t -> list.items.add(t.get()) }
-            .onEnd { list.items.add(textWithEnd) }
-            .onFailed { _, _ -> list.items.add(textWithFailure) }
-            .submit()
-
-        WaitForAsyncUtils.waitForFxEvents()
-
-        Assert.assertFalse(task.isCancelled)
-        Assert.assertTrue(task.isDone)
-        Assert.assertArrayEquals(arrayOf(textWithEnd, textWithFailure), items.toTypedArray())
-    }
+		val items = list.items
+		Assert.assertArrayEquals(arrayOf(testText), items.toTypedArray())
+	}
 
 
-    @Test
-    fun testOnFailedDefaultExceptionHandler() {
+	@Test
+	fun testOnEndWithSuccess() {
+		val endOnSuccessText = "Single onEnd Test, expecting success"
+		val task = Tasks.createTask<String> { endOnSuccessText }
+			.onSuccess { _, t -> list.items.add(t.value) }
+			.onEnd { t -> list.items.add(t.value) }
+			.submit()
 
-        class IntentionalTestException(msg: String) : Throwable(msg)
+		WaitForAsyncUtils.waitForFxEvents()
 
-        val items = list.items
-        val textWithEnd = "Single onFailure Test, expecting end"
-        val textWithFailure = "Single onFailure Test, expecting failure"
-        /* Intentionally trigger failure, with custom onFailed. onEnd should also trigger*/
-        val task = Tasks.createTask<String> { throw IntentionalTestException("Forced failure!") }
-            .onSuccess { _, t -> list.items.add(t.get()) }
-            .onEnd { list.items.add(textWithEnd) }
-            .onFailed { _, _ -> list.items.add(textWithFailure) }
-            .submit()
+		val items = list.items
+		Assert.assertTrue(task.isDone)
+		Assert.assertEquals(endOnSuccessText, task.get())
+		Assert.assertArrayEquals(arrayOf(endOnSuccessText, endOnSuccessText), items.toTypedArray())
+	}
 
-        WaitForAsyncUtils.waitForFxEvents()
+	@Test
+	fun testOnEndWithSuccessBlocking() {
+		val endOnSuccessText = "Single onEnd Test, expecting success"
+		val result = Tasks.createTask<String> { endOnSuccessText }
+			.onSuccess { _, t -> list.items.add(t.value) }
+			.onEnd { t -> list.items.add(t.value) }
+			.submitAndWait()
 
-        var thrownException: Throwable? = null
-        InvokeOnJavaFXApplicationThread {
-            thrownException = task.exception
-        }
+		WaitForAsyncUtils.waitForFxEvents()
 
-        WaitForAsyncUtils.waitForFxEvents()
+		val items = list.items
+		Assert.assertEquals(endOnSuccessText, result)
+		Assert.assertArrayEquals(arrayOf(endOnSuccessText, endOnSuccessText), items.toTypedArray())
+	}
 
-        Assert.assertFalse(task.isCancelled)
-        Assert.assertTrue(task.isDone)
-        Assert.assertNotNull(thrownException)
+	@Test
+	fun testOnEndWithCancel() {
+		val items = list.items
+		val textWithoutCancel = "Single onEnd Test, expecting to never see this"
+		val textWithCancel = "Single onEnd Test, expecting cancel"
+		var canceled = false
+		val maxTime = LocalDateTime.now().plus(5, ChronoUnit.SECONDS)
+		val task = Tasks.createTask<String> {
+			/* waiting for the task to be canceled. If too long, we have failed. */
+			while (!canceled || LocalDateTime.now().isBefore(maxTime)) {
+				sleep(20)
+			}
+			textWithoutCancel
+		}
+			.onSuccess { _, t -> list.items.add(t.get()) }
+			.onEnd { list.items.add(textWithCancel) }
+			.submit()
 
-        @Suppress("AssertBetweenInconvertibleTypes") /*Intentional, to trigger the failure case */
-        Assert.assertEquals(IntentionalTestException::class.java, thrownException!!::class.java)
-        Assert.assertArrayEquals(arrayOf(textWithEnd, textWithFailure), items.toTypedArray())
-    }
+		task.cancel()
+		canceled = true
 
-    companion object {
-        private val LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
+		WaitForAsyncUtils.waitForFxEvents()
 
-        const val SCENE_WIDTH = 800.0
+		Assert.assertTrue(task.isCancelled)
+		Assert.assertThrows(CancellationException::class.java) { task.get() }
+		Assert.assertArrayEquals(arrayOf(textWithCancel), items.toTypedArray())
+	}
 
-        const val SCENE_HEIGHT = 600.0
+	@Test
+	fun testOnEndWithFailure() {
+		val items = list.items
+		val textWithFailure = "Single onEnd Test, expecting failure"
+		/* Intentionally trigger failed*/
+		val task = Tasks.createTask<String> { throw RuntimeException("Forced failure!") }
+			.onSuccess { _, t -> list.items.add(t.get()) }
+			.onEnd { list.items.add(textWithFailure) }
+			.submit()
 
-    }
+		WaitForAsyncUtils.waitForFxEvents()
+
+		Assert.assertFalse(task.isCancelled)
+		Assert.assertTrue(task.isDone)
+		Assert.assertArrayEquals(arrayOf(textWithFailure), items.toTypedArray())
+	}
+
+	@Test
+	fun testOnEndOnFailed() {
+		val items = list.items
+		val textWithEnd = "Single onFailure Test, expecting end"
+		val textWithFailure = "Single onFailure Test, expecting failure"
+		/* Intentionally trigger failure, with custom onFailed */
+		val task = Tasks.createTask<String> { throw RuntimeException("Forced failure!") }
+			.onSuccess { _, t -> list.items.add(t.get()) }
+			.onEnd { list.items.add(textWithEnd) }
+			.onFailed { _, _ -> list.items.add(textWithFailure) }
+			.submit()
+
+		WaitForAsyncUtils.waitForFxEvents()
+
+		Assert.assertFalse(task.isCancelled)
+		Assert.assertTrue(task.isDone)
+		Assert.assertArrayEquals(arrayOf(textWithEnd, textWithFailure), items.toTypedArray())
+	}
+
+
+	@Test
+	fun testOnFailedDefaultExceptionHandler() {
+
+		class IntentionalTestException(msg: String) : Throwable(msg)
+
+		val items = list.items
+		val textWithEnd = "Single onFailure Test, expecting end"
+		val textWithFailure = "Single onFailure Test, expecting failure"
+		/* Intentionally trigger failure, with custom onFailed. onEnd should also trigger*/
+		val task = Tasks.createTask<String> { throw IntentionalTestException("Forced failure!") }
+			.onSuccess { _, t -> list.items.add(t.get()) }
+			.onEnd { list.items.add(textWithEnd) }
+			.onFailed { _, _ -> list.items.add(textWithFailure) }
+			.submit()
+
+		WaitForAsyncUtils.waitForFxEvents()
+
+		var thrownException: Throwable? = null
+		InvokeOnJavaFXApplicationThread {
+			thrownException = task.exception
+		}
+
+		WaitForAsyncUtils.waitForFxEvents()
+
+		Assert.assertFalse(task.isCancelled)
+		Assert.assertTrue(task.isDone)
+		Assert.assertNotNull(thrownException)
+
+		@Suppress("AssertBetweenInconvertibleTypes") /*Intentional, to trigger the failure case */
+		Assert.assertEquals(IntentionalTestException::class.java, thrownException!!::class.java)
+		Assert.assertArrayEquals(arrayOf(textWithEnd, textWithFailure), items.toTypedArray())
+	}
+
+	companion object {
+		private val LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
+
+		const val SCENE_WIDTH = 800.0
+
+		const val SCENE_HEIGHT = 600.0
+
+	}
 
 }

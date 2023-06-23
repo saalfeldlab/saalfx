@@ -37,29 +37,29 @@ import java.lang.invoke.MethodHandles
 
 class MouseTracker : EventHandler<MouseEvent> {
 
-    var isDragging: Boolean = false
-        private set
+	var isDragging: Boolean = false
+		private set
 
-    val xProperty = SimpleDoubleProperty(0.0)
-    val yProperty = SimpleDoubleProperty(0.0)
+	val xProperty = SimpleDoubleProperty(0.0)
+	val yProperty = SimpleDoubleProperty(0.0)
 
-    var x by xProperty.nonnull()
-        private set
-    var y by yProperty.nonnull()
-        private set
+	var x by xProperty.nonnull()
+		private set
+	var y by yProperty.nonnull()
+		private set
 
-    override fun handle(event: MouseEvent) {
-        if (event.eventType == MouseEvent.MOUSE_PRESSED)
-            this.isDragging = false
-        else if (event.eventType == MouseEvent.DRAG_DETECTED)
-            this.isDragging = true
-        LOG.trace("Updated x {}->{} and y {}->{}", x, event.x, y, event.y)
-        x = event.x
-        y = event.y
-    }
+	override fun handle(event: MouseEvent) {
+		if (event.eventType == MouseEvent.MOUSE_PRESSED)
+			this.isDragging = false
+		else if (event.eventType == MouseEvent.DRAG_DETECTED)
+			this.isDragging = true
+		LOG.trace("Updated x {}->{} and y {}->{}", x, event.x, y, event.y)
+		x = event.x
+		y = event.y
+	}
 
-    companion object {
-        private val LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
-    }
+	companion object {
+		private val LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
+	}
 
 }

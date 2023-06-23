@@ -44,10 +44,10 @@ import java.util.function.Consumer
 
 class Exceptions {
 
-    companion object {
+	companion object {
 
 		@JvmStatic
-		fun java.lang.Exception.alert(owner : Window? = null) : Alert {
+		fun java.lang.Exception.alert(owner: Window? = null): Alert {
 			return exceptionAlert(
 				javaClass.simpleName,
 				this.message ?: "",
@@ -57,89 +57,90 @@ class Exceptions {
 			)
 		}
 
-        @JvmStatic
-        @JvmOverloads
-        fun exceptionAlert(
-                title: String,
-                headerText: String,
-                e: Exception,
-                contentText: String? = null,
-                owner: Window? = null): Alert {
-            val alert = Alert(Alert.AlertType.ERROR)
-            alert.title = title
-            alert.headerText = headerText
-            alert.contentText = contentText ?: e.message
+		@JvmStatic
+		@JvmOverloads
+		fun exceptionAlert(
+			title: String,
+			headerText: String,
+			e: Exception,
+			contentText: String? = null,
+			owner: Window? = null
+		): Alert {
+			val alert = Alert(Alert.AlertType.ERROR)
+			alert.title = title
+			alert.headerText = headerText
+			alert.contentText = contentText ?: e.message
 
-            // Get the root cause of the exception
-            val cause = getRootCause(e)
+			// Get the root cause of the exception
+			val cause = getRootCause(e)
 
-            // Create expandable Exception.
-            val stringWriter = StringWriter()
-            val printWriter = PrintWriter(stringWriter)
-            cause.printStackTrace(printWriter)
-            val exceptionText = stringWriter.toString()
+			// Create expandable Exception.
+			val stringWriter = StringWriter()
+			val printWriter = PrintWriter(stringWriter)
+			cause.printStackTrace(printWriter)
+			val exceptionText = stringWriter.toString()
 
-            val label = Label("Stack trace:")
+			val label = Label("Stack trace:")
 
-            val textArea = TextArea(exceptionText)
-            textArea.isEditable = false
-            textArea.isWrapText = true
+			val textArea = TextArea(exceptionText)
+			textArea.isEditable = false
+			textArea.isWrapText = true
 
-            textArea.maxWidth = java.lang.Double.MAX_VALUE
-            textArea.maxHeight = java.lang.Double.MAX_VALUE
-            GridPane.setVgrow(textArea, Priority.ALWAYS)
-            GridPane.setHgrow(textArea, Priority.ALWAYS)
+			textArea.maxWidth = java.lang.Double.MAX_VALUE
+			textArea.maxHeight = java.lang.Double.MAX_VALUE
+			GridPane.setVgrow(textArea, Priority.ALWAYS)
+			GridPane.setHgrow(textArea, Priority.ALWAYS)
 
-            val grid = GridPane()
-            grid.maxWidth = java.lang.Double.MAX_VALUE
-            grid.add(label, 0, 0)
-            grid.add(textArea, 0, 1)
+			val grid = GridPane()
+			grid.maxWidth = java.lang.Double.MAX_VALUE
+			grid.add(label, 0, 0)
+			grid.add(textArea, 0, 1)
 
-            // Set expandable Exception into the dialog pane.
-            alert.dialogPane.expandableContent = grid
+			// Set expandable Exception into the dialog pane.
+			alert.dialogPane.expandableContent = grid
 
-            // workaround to make resize work properly
-            // https://stackoverflow.com/a/30805637/1725687
-            val stage = alert.dialogPane.scene.window as Stage
-            alert.dialogPane.expandedProperty().addListener { _ ->
-                Platform.runLater {
-                    alert.dialogPane.requestLayout()
-                    stage.sizeToScene()
-                }
-            }
-            // We'd like it alerts to always be on top of the applications, so any change to focus/showing should ensure the screen is moved to the front.
-            stage.focusedProperty().addListener { _, _, _ -> stage.toFront() }
-            stage.showingProperty().addListener { _, _, _ -> stage.toFront() }
+			// workaround to make resize work properly
+			// https://stackoverflow.com/a/30805637/1725687
+			val stage = alert.dialogPane.scene.window as Stage
+			alert.dialogPane.expandedProperty().addListener { _ ->
+				Platform.runLater {
+					alert.dialogPane.requestLayout()
+					stage.sizeToScene()
+				}
+			}
+			// We'd like it alerts to always be on top of the applications, so any change to focus/showing should ensure the screen is moved to the front.
+			stage.focusedProperty().addListener { _, _, _ -> stage.toFront() }
+			stage.showingProperty().addListener { _, _, _ -> stage.toFront() }
 
 
-            owner?.let {
-                /* Ensure the window opens up over the main view if possible */
-                alert.initModality(Modality.APPLICATION_MODAL)
-                alert.initOwner(it)
-            }
+			owner?.let {
+				/* Ensure the window opens up over the main view if possible */
+				alert.initModality(Modality.APPLICATION_MODAL)
+				alert.initOwner(it)
+			}
 
-            return alert
+			return alert
 
-        }
+		}
 
-        @JvmStatic
-        @JvmOverloads
-        fun handler(
-                title: String,
-                headerText: String,
-                contentText: String? = null,
-                owner: Window? = null
-        ): Consumer<Exception> {
-            return Consumer { e -> exceptionAlert(title, headerText, e, contentText, owner = owner).showAndWait() }
-        }
+		@JvmStatic
+		@JvmOverloads
+		fun handler(
+			title: String,
+			headerText: String,
+			contentText: String? = null,
+			owner: Window? = null
+		): Consumer<Exception> {
+			return Consumer { e -> exceptionAlert(title, headerText, e, contentText, owner = owner).showAndWait() }
+		}
 
-        private fun getRootCause(e: Throwable): Throwable {
-            var cause = e
-            while (cause.cause != null && cause.cause !== cause)
-                cause = cause.cause!!
-            return cause
-        }
+		private fun getRootCause(e: Throwable): Throwable {
+			var cause = e
+			while (cause.cause != null && cause.cause !== cause)
+				cause = cause.cause!!
+			return cause
+		}
 
-    }
+	}
 
 }

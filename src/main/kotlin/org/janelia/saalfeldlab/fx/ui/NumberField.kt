@@ -44,143 +44,145 @@ import java.util.function.IntPredicate
 import java.util.function.LongPredicate
 
 class NumberField<P : Property<Number>>(
-        value: P,
-        converter: StringConverter<Number>,
-        vararg submitOn: SubmitOn) : ObjectField<Number, P>(value, converter, *submitOn) {
+	value: P,
+	converter: StringConverter<Number>,
+	vararg submitOn: SubmitOn
+) : ObjectField<Number, P>(value, converter, *submitOn) {
 
-    init {
-        textField.alignment = Pos.BOTTOM_RIGHT
-    }
+	init {
+		textField.alignment = Pos.BOTTOM_RIGHT
+	}
 
-    companion object {
+	companion object {
 
-        @JvmStatic
-        fun doubleField(
-            initialValue: Double,
-            test: DoublePredicate,
-            vararg submitOn: SubmitOn
-        ): NumberField<DoubleProperty> {
-            val converter = object : StringConverter<Number>() {
-                override fun toString(number: Number) = number.toDouble().toString()
+		@JvmStatic
+		fun doubleField(
+			initialValue: Double,
+			test: DoublePredicate,
+			vararg submitOn: SubmitOn
+		): NumberField<DoubleProperty> {
+			val converter = object : StringConverter<Number>() {
+				override fun toString(number: Number) = number.toDouble().toString()
 
-                override fun fromString(s: String): Number {
-                    try {
-                        val value = java.lang.Double.parseDouble(s)
-                        if (!test.test(value))
-                            throw InvalidUserInput("Illegal value: $s")
-                        return value
-                    } catch (e: NumberFormatException) {
-                        throw InvalidUserInput("Unable to convert: $s", e)
-                    }
+				override fun fromString(s: String): Number {
+					try {
+						val value = java.lang.Double.parseDouble(s)
+						if (!test.test(value))
+							throw InvalidUserInput("Illegal value: $s")
+						return value
+					} catch (e: NumberFormatException) {
+						throw InvalidUserInput("Unable to convert: $s", e)
+					}
 
-                }
-            }
+				}
+			}
 
-            return NumberField(SimpleDoubleProperty(initialValue), converter, *submitOn)
-        }
+			return NumberField(SimpleDoubleProperty(initialValue), converter, *submitOn)
+		}
 
-        @JvmStatic
-        fun longField(initialValue: Long, test: LongPredicate, vararg submitOn: SubmitOn): NumberField<LongProperty> {
-            val converter = object : StringConverter<Number>() {
-                override fun toString(number: Number) =number.toLong().toString()
+		@JvmStatic
+		fun longField(initialValue: Long, test: LongPredicate, vararg submitOn: SubmitOn): NumberField<LongProperty> {
+			val converter = object : StringConverter<Number>() {
+				override fun toString(number: Number) = number.toLong().toString()
 
-                override fun fromString(s: String): Number {
-                    try {
-                        val value = java.lang.Long.parseLong(s)
-                        if (!test.test(value))
-                            throw InvalidUserInput("Illegal value: $s")
-                        return value
-                    } catch (e: NumberFormatException) {
-                        throw InvalidUserInput("Unable to convert: $s", e)
-                    }
+				override fun fromString(s: String): Number {
+					try {
+						val value = java.lang.Long.parseLong(s)
+						if (!test.test(value))
+							throw InvalidUserInput("Illegal value: $s")
+						return value
+					} catch (e: NumberFormatException) {
+						throw InvalidUserInput("Unable to convert: $s", e)
+					}
 
-                }
-            }
+				}
+			}
 
-            val lp = object : LongPropertyBase(initialValue) {
-                override fun getBean(): Any? {
-                    return null
-                }
+			val lp = object : LongPropertyBase(initialValue) {
+				override fun getBean(): Any? {
+					return null
+				}
 
-                override fun getName(): String {
-                    return ""
-                }
-            }
+				override fun getName(): String {
+					return ""
+				}
+			}
 
-            return NumberField(lp, converter, *submitOn)
-        }
+			return NumberField(lp, converter, *submitOn)
+		}
 
-        @JvmStatic
-        fun intField(
-                initialValue: Int,
-                test: IntPredicate,
-                vararg submitOn: SubmitOn): NumberField<IntegerProperty> {
-            val converter = object : StringConverter<Number>() {
-                override fun toString(number: Number): String {
-                    return java.lang.Long.toString(number.toInt().toLong())
-                }
+		@JvmStatic
+		fun intField(
+			initialValue: Int,
+			test: IntPredicate,
+			vararg submitOn: SubmitOn
+		): NumberField<IntegerProperty> {
+			val converter = object : StringConverter<Number>() {
+				override fun toString(number: Number): String {
+					return java.lang.Long.toString(number.toInt().toLong())
+				}
 
-                override fun fromString(s: String): Int {
-                    try {
-                        val `val` = Integer.parseInt(s)
-                        if (!test.test(`val`))
-                            throw InvalidUserInput("Illegal value: $s")
-                        return `val`
-                    } catch (e: NumberFormatException) {
-                        throw InvalidUserInput("Unable to convert: $s", e)
-                    }
+				override fun fromString(s: String): Int {
+					try {
+						val `val` = Integer.parseInt(s)
+						if (!test.test(`val`))
+							throw InvalidUserInput("Illegal value: $s")
+						return `val`
+					} catch (e: NumberFormatException) {
+						throw InvalidUserInput("Unable to convert: $s", e)
+					}
 
-                }
-            }
+				}
+			}
 
-            return NumberField(SimpleIntegerProperty(initialValue), converter, *submitOn)
-        }
+			return NumberField(SimpleIntegerProperty(initialValue), converter, *submitOn)
+		}
 
-        @JvmStatic
-        fun main(args: Array<String>) {
-            PlatformImpl.startup { }
+		@JvmStatic
+		fun main(args: Array<String>) {
+			PlatformImpl.startup { }
 
-            val df = doubleField(
-                    5.0,
-                    { _ -> true },
-                    SubmitOn.ENTER_PRESSED,
-                    SubmitOn.FOCUS_LOST
-            )
-            val lbl1 = TextField()
-            val converted1 = Bindings.convert(df.valueProperty())
-            lbl1.textProperty().bind(converted1)
-            val hb1 = HBox(df.textField, lbl1)
+			val df = doubleField(
+				5.0,
+				{ _ -> true },
+				SubmitOn.ENTER_PRESSED,
+				SubmitOn.FOCUS_LOST
+			)
+			val lbl1 = TextField()
+			val converted1 = Bindings.convert(df.valueProperty())
+			lbl1.textProperty().bind(converted1)
+			val hb1 = HBox(df.textField, lbl1)
 
-            val lf = longField(
-                    4,
-                    { _ -> true },
-                    SubmitOn.ENTER_PRESSED,
-                    SubmitOn.FOCUS_LOST
-            )
-            val lbl2 = TextField()
-            val converted2 = Bindings.convert(lf.valueProperty())
-            lbl2.textProperty().bind(converted2)
-            val hb2 = HBox(lf.textField, lbl2)
+			val lf = longField(
+				4,
+				{ _ -> true },
+				SubmitOn.ENTER_PRESSED,
+				SubmitOn.FOCUS_LOST
+			)
+			val lbl2 = TextField()
+			val converted2 = Bindings.convert(lf.valueProperty())
+			lbl2.textProperty().bind(converted2)
+			val hb2 = HBox(lf.textField, lbl2)
 
-            val ulf = longField(
-                    4,
-                    { d -> d >= 0 },
-                    SubmitOn.ENTER_PRESSED,
-                    SubmitOn.FOCUS_LOST
-            )
-            val lbl3 = TextField()
-            val converted3 = Bindings.convert(ulf.valueProperty())
-            lbl3.textProperty().bind(converted3)
-            val hb3 = HBox(ulf.textField, lbl3)
+			val ulf = longField(
+				4,
+				{ d -> d >= 0 },
+				SubmitOn.ENTER_PRESSED,
+				SubmitOn.FOCUS_LOST
+			)
+			val lbl3 = TextField()
+			val converted3 = Bindings.convert(ulf.valueProperty())
+			lbl3.textProperty().bind(converted3)
+			val hb3 = HBox(ulf.textField, lbl3)
 
 
-            Platform.runLater {
-                val pane = VBox(hb1, hb2, hb3)
-                val scene = Scene(pane)
-                val stage = Stage()
-                stage.scene = scene
-                stage.show()
-            }
-        }
-    }
+			Platform.runLater {
+				val pane = VBox(hb1, hb2, hb3)
+				val scene = Scene(pane)
+				val stage = Stage()
+				stage.scene = scene
+				stage.show()
+			}
+		}
+	}
 }

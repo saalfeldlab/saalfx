@@ -39,34 +39,34 @@ import java.util.function.Predicate
 
 class DirectoryField(initialFile: File?, browseButtonWidth: Double) {
 
-    private val chooser = DirectoryChooser()
+	private val chooser = DirectoryChooser()
 
-    private val directory: ObjectField<File?, Property<File?>> = ObjectField.fileField(initialFile, Predicate { it.exists() && it.isDirectory }, *ObjectField.SubmitOn.values())
+	private val directory: ObjectField<File?, Property<File?>> = ObjectField.fileField(initialFile, Predicate { it.exists() && it.isDirectory }, *ObjectField.SubmitOn.values())
 
-    private val browseButton = Button("Browse")
+	private val browseButton = Button("Browse")
 
-    private val contents: HBox
+	private val contents: HBox
 
-    constructor(initialFile: String?, browseButtonWidth: Double) : this(initialFile?.let { File(it) }, browseButtonWidth)
+	constructor(initialFile: String?, browseButtonWidth: Double) : this(initialFile?.let { File(it) }, browseButtonWidth)
 
-    init {
-        chooser.initialDirectoryProperty().bind(this.directory.valueProperty())
-        browseButton.prefWidth = browseButtonWidth
-        HBox.setHgrow(directory.textField, Priority.ALWAYS)
-        this.contents = HBox(this.directory.textField, browseButton)
-        this.browseButton.setOnAction { e ->
-            e.consume()
-            val d: File? = chooser.showDialog(browseButton.scene.window)
-            d?.let { directory.valueProperty().setValue(it) }
-        }
-    }
+	init {
+		chooser.initialDirectoryProperty().bind(this.directory.valueProperty())
+		browseButton.prefWidth = browseButtonWidth
+		HBox.setHgrow(directory.textField, Priority.ALWAYS)
+		this.contents = HBox(this.directory.textField, browseButton)
+		this.browseButton.setOnAction { e ->
+			e.consume()
+			val d: File? = chooser.showDialog(browseButton.scene.window)
+			d?.let { directory.valueProperty().setValue(it) }
+		}
+	}
 
-    fun asNode(): Node {
-        return this.contents
-    }
+	fun asNode(): Node {
+		return this.contents
+	}
 
-    fun directoryProperty(): Property<File?> {
-        return this.directory.valueProperty()
-    }
+	fun directoryProperty(): Property<File?> {
+		return this.directory.valueProperty()
+	}
 
 }

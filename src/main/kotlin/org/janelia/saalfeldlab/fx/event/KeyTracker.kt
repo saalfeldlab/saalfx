@@ -39,81 +39,81 @@ import org.janelia.saalfeldlab.fx.actions.ActionSet.Companion.removeActionSet
 
 class KeyTracker {
 
-    private val activeKeys = mutableSetOf<KeyCode>()
+	private val activeKeys = mutableSetOf<KeyCode>()
 
-    private val actions by lazy {
-        ActionSet("Key Tracker", this) {
-            KEY_PRESSED {
-                ignoreKeys()
-                filter = true
-                consume = false
-                verifyEventNotNull()
-                onAction { addKey(it!!.code) }
-            }
-            KEY_RELEASED {
-                ignoreKeys()
-                filter = true
-                consume = false
-                verifyEventNotNull()
-                onAction { removeKey(it!!.code) }
-            }
-        }
-    }
+	private val actions by lazy {
+		ActionSet("Key Tracker", this) {
+			KEY_PRESSED {
+				ignoreKeys()
+				filter = true
+				consume = false
+				verifyEventNotNull()
+				onAction { addKey(it!!.code) }
+			}
+			KEY_RELEASED {
+				ignoreKeys()
+				filter = true
+				consume = false
+				verifyEventNotNull()
+				onAction { removeKey(it!!.code) }
+			}
+		}
+	}
 
-    val clearOnUnfocused = ChangeListener<Boolean> { _, _, isFocused ->
-        if (isFocused) {
-            activeKeys.clear()
-        }
-    }
+	val clearOnUnfocused = ChangeListener<Boolean> { _, _, isFocused ->
+		if (isFocused) {
+			activeKeys.clear()
+		}
+	}
 
-    fun installInto(window: Window) {
-        window.installActionSet(actions)
-        window.focusedProperty().addListener(clearOnUnfocused)
-    }
+	fun installInto(window: Window) {
+		window.installActionSet(actions)
+		window.focusedProperty().addListener(clearOnUnfocused)
+	}
 
-    fun removeFrom(window: Window) {
-        window.removeActionSet(actions)
-        window.focusedProperty().removeListener(clearOnUnfocused)
-    }
+	fun removeFrom(window: Window) {
+		window.removeActionSet(actions)
+		window.focusedProperty().removeListener(clearOnUnfocused)
+	}
 
-    fun areOnlyTheseKeysDown(vararg codes: KeyCode) = activeKeys.synchronized { mutableSetOf(*codes) == this }
+	fun areOnlyTheseKeysDown(vararg codes: KeyCode) = activeKeys.synchronized { mutableSetOf(*codes) == this }
 
-    fun areKeysDown(vararg codes: KeyCode) = activeKeys.synchronized { containsAll(listOf(*codes)) }
+	fun areKeysDown(vararg codes: KeyCode) = activeKeys.synchronized { containsAll(listOf(*codes)) }
 
-    fun activeKeyCount() = activeKeys.synchronized { size }
+	fun activeKeyCount() = activeKeys.synchronized { size }
 
-    fun noKeysActive() = activeKeyCount() == 0
+	fun noKeysActive() = activeKeyCount() == 0
 
-    fun getActiveKeyCodes(includeModifiers: Boolean) = activeKeys.synchronized { filter { includeModifiers || !it.isModifierKey } }
+	fun getActiveKeyCodes(includeModifiers: Boolean) = activeKeys.synchronized { filter { includeModifiers || !it.isModifierKey } }
 
-    fun addKey(key: KeyCode) = activeKeys.synchronized { add(key) }
+	fun addKey(key: KeyCode) = activeKeys.synchronized { add(key) }
 
-    fun removeKey(key: KeyCode) = activeKeys.synchronized { remove(key) }
+	fun removeKey(key: KeyCode) = activeKeys.synchronized { remove(key) }
 
-    private fun <R> MutableSet<KeyCode>.synchronized(run: MutableSet<KeyCode>.() -> R): R {
-        synchronized(this) {
-            return run(this)
-        }
-    }
+	private fun <R> MutableSet<KeyCode>.synchronized(run: MutableSet<KeyCode>.() -> R): R {
+		synchronized(this) {
+			return run(this)
+		}
+	}
 
-    companion object {
-        @JvmStatic
-        fun keysToString(vararg keys: KeyCode): String {
-            val codes = mutableListOf<KeyCode>()
-            val modifiers = mutableListOf<KeyCode>()
+	companion object {
+		@JvmStatic
+		fun keysToString(vararg keys: KeyCode): String {
+			val codes = mutableListOf<KeyCode>()
+			val modifiers = mutableListOf<KeyCode>()
 
-            keys.forEach { key ->
-                if (key.isModifierKey) {
-                    modifiers += key
-                } else {
-                    codes += key
-                }
-            }
-            val orderedKeys = mutableListOf<KeyCode>()
-            orderedKeys += modifiers
-            orderedKeys += codes
-            return orderedKeys.map { it.name }.reduce { l, r -> "$l + $r" }
-        }
-    }
+			keys.forEach { key ->
+				if (key.isModifierKey) {
+					modifiers += key
+				} else {
+					codes += key
+				}
+			}
+			val orderedKeys = mutableListOf<KeyCode>()
+			orderedKeys += modifiers
+			orderedKeys += codes
+			return orderedKeys.map { it.name }.reduce { l, r -> "$l + $r" }
+		}
+	}
 
 }

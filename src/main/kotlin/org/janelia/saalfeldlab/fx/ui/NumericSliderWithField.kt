@@ -34,56 +34,59 @@ import org.janelia.saalfeldlab.fx.util.DoubleStringFormatter
 import kotlin.math.roundToInt
 
 class NumericSliderWithField @JvmOverloads constructor(
-        min: Double,
-        max: Double,
-        initialValue: Double,
-        numDecimals: Int = 2,
-        isInteger: Boolean = false) {
+	min: Double,
+	max: Double,
+	initialValue: Double,
+	numDecimals: Int = 2,
+	isInteger: Boolean = false
+) {
 
-    constructor(
-            min: Int,
-            max: Int,
-            initialValue: Int) : this(min.toDouble(), max.toDouble(), initialValue.toDouble(), 0, true)
+	constructor(
+		min: Int,
+		max: Int,
+		initialValue: Int
+	) : this(min.toDouble(), max.toDouble(), initialValue.toDouble(), 0, true)
 
-    constructor(
-            min: Long,
-            max: Long,
-            initialValue: Long) : this(min.toDouble(), max.toDouble(), initialValue.toDouble(), 0, true)
+	constructor(
+		min: Long,
+		max: Long,
+		initialValue: Long
+	) : this(min.toDouble(), max.toDouble(), initialValue.toDouble(), 0, true)
 
-    val slider: Slider
+	val slider: Slider
 
-    private val field: TextField
-    val textField: TextField
-        get() = this.field
+	private val field: TextField
+	val textField: TextField
+		get() = this.field
 
-    init {
+	init {
 
-        assert(initialValue >= min)
-        assert(initialValue <= max)
+		assert(initialValue >= min)
+		assert(initialValue <= max)
 
-        this.slider = Slider(min, max, initialValue)
-        this.field = TextField(initialValue.toString())
+		this.slider = Slider(min, max, initialValue)
+		this.field = TextField(initialValue.toString())
 
-        this.slider.isShowTickLabels = true
+		this.slider.isShowTickLabels = true
 
-        val formatter = DoubleStringFormatter.createFormatter(
-                slider.minProperty(),
-                slider.maxProperty(),
-                initialValue,
-                numDecimals
-        )
-        this.field.textFormatter = formatter
-        formatter.valueProperty().addListener { _, _, newv -> this.slider.value = newv!! }
-        this.slider.valueProperty().addListener { _, _, newv -> formatter.setValue(newv.toDouble()) }
-        if (isInteger)
-            this.slider.valueProperty().addListener { _, _, newv -> this.slider.value = newv.toDouble().roundToInt().toDouble() }
+		val formatter = DoubleStringFormatter.createFormatter(
+			slider.minProperty(),
+			slider.maxProperty(),
+			initialValue,
+			numDecimals
+		)
+		this.field.textFormatter = formatter
+		formatter.valueProperty().addListener { _, _, newv -> this.slider.value = newv!! }
+		this.slider.valueProperty().addListener { _, _, newv -> formatter.setValue(newv.toDouble()) }
+		if (isInteger)
+			this.slider.valueProperty().addListener { _, _, newv -> this.slider.value = newv.toDouble().roundToInt().toDouble() }
 
-    }
+	}
 
-    @Deprecated("Use getter syntax insead", ReplaceWith("getSlider()"))
-    fun slider() = slider
+	@Deprecated("Use getter syntax insead", ReplaceWith("getSlider()"))
+	fun slider() = slider
 
-    @Deprecated("Use getter syntax insead", ReplaceWith("getTextField()"))
-    fun textField() = textField
+	@Deprecated("Use getter syntax insead", ReplaceWith("getTextField()"))
+	fun textField() = textField
 
 }

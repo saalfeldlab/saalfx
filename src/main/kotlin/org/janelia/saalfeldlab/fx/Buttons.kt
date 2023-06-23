@@ -35,32 +35,36 @@ import javafx.scene.control.Tooltip
 
 class Buttons {
 
-    companion object {
+	companion object {
 
-        fun withTooltip(
-                labelText: String?,
-                handler: (ActionEvent) -> Unit) = withTooltip(labelText, EventHandler { handler(it) })
+		fun withTooltip(
+			labelText: String?,
+			handler: (ActionEvent) -> Unit
+		) = withTooltip(labelText, EventHandler { handler(it) })
 
-        @JvmStatic
-        fun withTooltip(
-                labelText: String?,
-                handler: EventHandler<ActionEvent>) = withTooltip(labelText, labelText, handler)
+		@JvmStatic
+		fun withTooltip(
+			labelText: String?,
+			handler: EventHandler<ActionEvent>
+		) = withTooltip(labelText, labelText, handler)
 
-        fun withTooltip(
-                labelText: String?,
-                tooltipText: String?,
-                handler: (ActionEvent) -> Unit) = withTooltip(labelText, tooltipText, EventHandler { handler(it) })
+		fun withTooltip(
+			labelText: String?,
+			tooltipText: String?,
+			handler: (ActionEvent) -> Unit
+		) = withTooltip(labelText, tooltipText, EventHandler { handler(it) })
 
-        @JvmStatic
-        fun withTooltip(
-                labelText: String?,
-                tooltipText: String?,
-                handler: EventHandler<ActionEvent>): Button {
-            val button = Button(labelText)
-            button.tooltip = Tooltip(tooltipText)
-            button.onAction = handler
-            return button
-        }
-    }
+		@JvmStatic
+		fun withTooltip(
+			labelText: String?,
+			tooltipText: String?,
+			handler: EventHandler<ActionEvent>
+		): Button {
+			val button = Button(labelText)
+			button.tooltip = Tooltip(tooltipText)
+			button.onAction = handler
+			return button
+		}
+	}
 
 }

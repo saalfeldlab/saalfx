@@ -38,91 +38,91 @@ import java.util.function.IntPredicate
 import java.util.function.LongPredicate
 
 class SpatialField<P : Property<Number>> private constructor(
-    val x: NumberField<P>,
-    val y: NumberField<P>,
-    val z: NumberField<P>,
-    textFieldWidth: Double = Region.USE_COMPUTED_SIZE
+	val x: NumberField<P>,
+	val y: NumberField<P>,
+	val z: NumberField<P>,
+	textFieldWidth: Double = Region.USE_COMPUTED_SIZE
 ) {
 
-    val node: Node
-    val editableProperty = SimpleBooleanProperty(true)
-    var editable: Boolean by editableProperty.nonnull()
+	val node: Node
+	val editableProperty = SimpleBooleanProperty(true)
+	var editable: Boolean by editableProperty.nonnull()
 
-    init {
-        x.textField.promptText = "X"
-        y.textField.promptText = "Y"
-        z.textField.promptText = "Z"
-        x.textField.prefWidth = textFieldWidth
-        y.textField.prefWidth = textFieldWidth
-        z.textField.prefWidth = textFieldWidth
+	init {
+		x.textField.promptText = "X"
+		y.textField.promptText = "Y"
+		z.textField.promptText = "Z"
+		x.textField.prefWidth = textFieldWidth
+		y.textField.prefWidth = textFieldWidth
+		z.textField.prefWidth = textFieldWidth
 
-        listOf(x, y, z).forEach { it.textField.editableProperty().bind(editableProperty) }
-        this.node = HBox(x.textField, y.textField, z.textField)
-    }
+		listOf(x, y, z).forEach { it.textField.editableProperty().bind(editableProperty) }
+		this.node = HBox(x.textField, y.textField, z.textField)
+	}
 
-    fun asLongArray() = LongArray(3).apply {
-        this[0] = x.value.toLong()
-        this[1] = y.value.toLong()
-        this[2] = z.value.toLong()
-    }
+	fun asLongArray() = LongArray(3).apply {
+		this[0] = x.value.toLong()
+		this[1] = y.value.toLong()
+		this[2] = z.value.toLong()
+	}
 
-    fun asIntArray() = IntArray(3).apply {
-        this[0] = x.value.toInt()
-        this[1] = y.value.toInt()
-        this[2] = z.value.toInt()
-    }
+	fun asIntArray() = IntArray(3).apply {
+		this[0] = x.value.toInt()
+		this[1] = y.value.toInt()
+		this[2] = z.value.toInt()
+	}
 
-    fun asDoubleArray() = DoubleArray(3).apply {
-        this[0] = x.value.toDouble()
-        this[1] = y.value.toDouble()
-        this[2] = z.value.toDouble()
-    }
+	fun asDoubleArray() = DoubleArray(3).apply {
+		this[0] = x.value.toDouble()
+		this[1] = y.value.toDouble()
+		this[2] = z.value.toDouble()
+	}
 
-    companion object {
+	companion object {
 
-        @JvmStatic
-        fun doubleField(
-            initialValue: Double,
-            test: DoublePredicate,
-            textFieldWidth: Double = Region.USE_COMPUTED_SIZE,
-            vararg submitOn: ObjectField.SubmitOn
-        ): SpatialField<DoubleProperty> {
-            return SpatialField(
-                    NumberField.doubleField(initialValue, test, *submitOn),
-                    NumberField.doubleField(initialValue, test, *submitOn),
-                    NumberField.doubleField(initialValue, test, *submitOn),
-                    textFieldWidth
-            )
-        }
+		@JvmStatic
+		fun doubleField(
+			initialValue: Double,
+			test: DoublePredicate,
+			textFieldWidth: Double = Region.USE_COMPUTED_SIZE,
+			vararg submitOn: ObjectField.SubmitOn
+		): SpatialField<DoubleProperty> {
+			return SpatialField(
+				NumberField.doubleField(initialValue, test, *submitOn),
+				NumberField.doubleField(initialValue, test, *submitOn),
+				NumberField.doubleField(initialValue, test, *submitOn),
+				textFieldWidth
+			)
+		}
 
-        @JvmStatic
-        fun intField(
-            initialValue: Int,
-            test: IntPredicate,
-            textFieldWidth: Double = Region.USE_COMPUTED_SIZE,
-            vararg submitOn: ObjectField.SubmitOn
-        ): SpatialField<IntegerProperty> {
-            return SpatialField(
-                NumberField.intField(initialValue, test, *submitOn),
-                NumberField.intField(initialValue, test, *submitOn),
-                NumberField.intField(initialValue, test, *submitOn),
-                textFieldWidth
-            )
-        }
+		@JvmStatic
+		fun intField(
+			initialValue: Int,
+			test: IntPredicate,
+			textFieldWidth: Double = Region.USE_COMPUTED_SIZE,
+			vararg submitOn: ObjectField.SubmitOn
+		): SpatialField<IntegerProperty> {
+			return SpatialField(
+				NumberField.intField(initialValue, test, *submitOn),
+				NumberField.intField(initialValue, test, *submitOn),
+				NumberField.intField(initialValue, test, *submitOn),
+				textFieldWidth
+			)
+		}
 
-        @JvmStatic
-        fun longField(
-            initialValue: Long,
-            test: LongPredicate,
-            textFieldWidth: Double = Region.USE_COMPUTED_SIZE,
-            vararg submitOn: ObjectField.SubmitOn
-        ): SpatialField<LongProperty> {
-            return SpatialField(
-                NumberField.longField(initialValue, test, *submitOn),
-                NumberField.longField(initialValue, test, *submitOn),
-                NumberField.longField(initialValue, test, *submitOn),
-                textFieldWidth
-            )
-        }
-    }
+		@JvmStatic
+		fun longField(
+			initialValue: Long,
+			test: LongPredicate,
+			textFieldWidth: Double = Region.USE_COMPUTED_SIZE,
+			vararg submitOn: ObjectField.SubmitOn
+		): SpatialField<LongProperty> {
+			return SpatialField(
+				NumberField.longField(initialValue, test, *submitOn),
+				NumberField.longField(initialValue, test, *submitOn),
+				NumberField.longField(initialValue, test, *submitOn),
+				textFieldWidth
+			)
+		}
+	}
 }

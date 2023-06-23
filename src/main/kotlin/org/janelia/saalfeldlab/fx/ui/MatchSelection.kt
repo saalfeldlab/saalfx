@@ -31,7 +31,6 @@ package org.janelia.saalfeldlab.fx.ui
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
-import javafx.event.EventHandler
 import javafx.scene.Node
 import javafx.scene.control.*
 import javafx.scene.control.skin.ListViewSkin
@@ -272,7 +271,7 @@ open class MatchSelectionMenuButton(private val candidates: List<String>, menuTe
 	init {
 		matcher.maxWidth = maxWidth ?: Region.USE_COMPUTED_SIZE
 		if (candidates is ObservableList<String>) {
-			disableProperty().bind(candidates.createObservableBinding { it.isEmpty()})
+			disableProperty().bind(candidates.createObservableBinding { it.isEmpty() })
 			candidates.addListener(ListChangeListener {
 				matcher
 			})
@@ -311,7 +310,7 @@ open class MatchSelectionMenu(private val candidates: List<String>, menuText: St
 		matcher.maxWidth = maxWidth ?: Region.USE_COMPUTED_SIZE
 
 		if (candidates is ObservableList<String>) {
-			disableProperty().bind(candidates.createObservableBinding { it.isEmpty()})
+			disableProperty().bind(candidates.createObservableBinding { it.isEmpty() })
 			candidates.addListener(ListChangeListener {
 				matcher
 			})

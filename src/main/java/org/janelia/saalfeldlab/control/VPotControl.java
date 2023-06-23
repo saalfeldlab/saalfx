@@ -61,6 +61,7 @@ public interface VPotControl extends AdjustableClippingIntControl {
 
 	/**
 	 * Set the LED display type to one of the above types.
+	 *
 	 * @param display the {@link DisplayType} to use
 	 */
 	void setDisplayType(final DisplayType display);

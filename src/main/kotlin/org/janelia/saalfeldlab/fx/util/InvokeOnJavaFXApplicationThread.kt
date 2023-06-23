@@ -34,46 +34,46 @@ import java.util.function.Consumer
 
 class InvokeOnJavaFXApplicationThread {
 
-    companion object {
+	companion object {
 
-        operator fun invoke(task: () -> Unit) = invoke(Runnable { task() })
+		operator fun invoke(task: () -> Unit) = invoke(Runnable { task() })
 
-        @JvmStatic
-        operator fun invoke(task: Runnable) {
-            if (Platform.isFxApplicationThread())
-                task.run()
-            else
-                Platform.runLater(task)
-        }
+		@JvmStatic
+		operator fun invoke(task: Runnable) {
+			if (Platform.isFxApplicationThread())
+				task.run()
+			else
+				Platform.runLater(task)
+		}
 
-        @Throws(InterruptedException::class)
-        fun invokeAndWait(task: () -> Unit) = invokeAndWait(Runnable { task() })
+		@Throws(InterruptedException::class)
+		fun invokeAndWait(task: () -> Unit) = invokeAndWait(Runnable { task() })
 
-        @JvmStatic
-        @Throws(InterruptedException::class)
-        fun invokeAndWait(task: Runnable) {
-            val latch = CountDownLatch(1)
-            val countDownTask = Runnable {
-                task.run()
-                latch.countDown()
-            }
-            invoke(countDownTask)
-            synchronized(latch) {
-                latch.await()
-            }
-        }
+		@JvmStatic
+		@Throws(InterruptedException::class)
+		fun invokeAndWait(task: Runnable) {
+			val latch = CountDownLatch(1)
+			val countDownTask = Runnable {
+				task.run()
+				latch.countDown()
+			}
+			invoke(countDownTask)
+			synchronized(latch) {
+				latch.await()
+			}
+		}
 
-        fun invokeAndWait(task: () -> Unit, exceptionHandler: (InterruptedException) -> Unit) = invokeAndWait(
-                Runnable { task() },
-                Consumer { exceptionHandler(it) })
+		fun invokeAndWait(task: () -> Unit, exceptionHandler: (InterruptedException) -> Unit) = invokeAndWait(
+			Runnable { task() },
+			Consumer { exceptionHandler(it) })
 
-        @JvmStatic
-        fun invokeAndWait(task: Runnable, exceptionHandler: Consumer<InterruptedException>) {
-            try {
-                invokeAndWait(task)
-            } catch (e: InterruptedException) {
-                exceptionHandler.accept(e)
-            }
-        }
-    }
+		@JvmStatic
+		fun invokeAndWait(task: Runnable, exceptionHandler: Consumer<InterruptedException>) {
+			try {
+				invokeAndWait(task)
+			} catch (e: InterruptedException) {
+				exceptionHandler.accept(e)
+			}
+		}
+	}
 }

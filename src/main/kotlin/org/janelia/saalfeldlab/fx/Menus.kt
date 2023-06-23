@@ -34,25 +34,26 @@ import javafx.scene.control.MenuItem
 
 class Menus {
 
-    companion object {
+	companion object {
 
-        fun menuItem(text: String, handler: (ActionEvent) -> Unit) = menuItem(text, EventHandler { handler(it) })
+		fun menuItem(text: String, handler: (ActionEvent) -> Unit) = menuItem(text, EventHandler { handler(it) })
 
-        @JvmStatic
-        fun menuItem(
-                text: String,
-                handler: EventHandler<ActionEvent>?): MenuItem {
-            val mi = MenuItem(text)
-            handler.let { mi.onAction = it }
-            return mi
-        }
+		@JvmStatic
+		fun menuItem(
+			text: String,
+			handler: EventHandler<ActionEvent>?
+		): MenuItem {
+			val mi = MenuItem(text)
+			handler.let { mi.onAction = it }
+			return mi
+		}
 
-        @JvmStatic
-        fun disabledItem(title: String): MenuItem {
-            val item = MenuItem(title)
-            item.isDisable = true
-            return item
-        }
-    }
+		@JvmStatic
+		fun disabledItem(title: String): MenuItem {
+			val item = MenuItem(title)
+			item.isDisable = true
+			return item
+		}
+	}
 
 }
