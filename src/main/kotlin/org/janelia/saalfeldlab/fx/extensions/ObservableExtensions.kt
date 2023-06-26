@@ -12,34 +12,34 @@ import javafx.scene.Node
 import kotlin.reflect.KProperty
 
 fun <Obj, Obs> Obs.createObservableBinding(vararg observables: Observable, obsToObj: (Obs) -> Obj): ObjectBinding<Obj> where Obs : Observable {
-    return Bindings.createObjectBinding({ obsToObj.invoke(this) }, this, *observables)
+	return Bindings.createObjectBinding({ obsToObj.invoke(this) }, this, *observables)
 }
 
 inline fun <reified T, Obj, Obs> Obs.createNullableValueBinding(vararg observables: Observable, crossinline obsValToObj: (T?) -> Obj): ObjectBinding<Obj> where Obs : ObservableValue<T> {
-    return Bindings.createObjectBinding({ obsValToObj(value) }, this, *observables)
+	return Bindings.createObjectBinding({ obsValToObj(value) }, this, *observables)
 }
 
 inline fun <reified T, Obj, Obs> Obs.createNonNullValueBinding(vararg observables: Observable, crossinline obsValToObj: (T) -> Obj): ObjectBinding<Obj> where Obs : ObservableValue<T> {
-    return Bindings.createObjectBinding({ obsValToObj(value) }, this, *observables)
+	return Bindings.createObjectBinding({ obsValToObj(value) }, this, *observables)
 }
 
 inline fun <reified T, Obj, Obs> Obs.createNonNullProperty(vararg observables: Observable, crossinline obsValToObj: (T) -> Obj): Property<Obj> where Obs : Property<T> {
-	val mappingBinding = createNonNullValueBinding(*observables) { obsValToObj(it)}
+	val mappingBinding = createNonNullValueBinding(*observables) { obsValToObj(it) }
 	val property = SimpleObjectProperty<Obj>()
 	property.bind(mappingBinding)
 	return property
 }
 
 inline fun <reified T, Obj, Obs> Obs.createNullableProperty(vararg observables: Observable, crossinline obsValToObj: (T?) -> Obj): Property<Obj?> where Obs : Property<T> {
-	val mappingBinding = createNonNullValueBinding(*observables) { obsValToObj(it)}
+	val mappingBinding = createNonNullValueBinding(*observables) { obsValToObj(it) }
 	val property = SimpleObjectProperty<Obj>()
 	property.bind(mappingBinding)
 	return property
 }
 
 inline operator fun <reified T : Node> T.invoke(apply: T.() -> Unit): T {
-    apply(this)
-    return this
+	apply(this)
+	return this
 }
 
 operator fun BooleanExpression.invoke() = get()
@@ -87,30 +87,30 @@ fun LongProperty.nonnull(): WritableSubclassDelegate<Number, Long> = WritableSub
 
 class ObservableDelegate<T>(private val obs: ObservableValue<T>, private inline val getter: () -> T) {
 
-    operator fun getValue(t: Any?, property: KProperty<*>): T {
-        return getter()
-    }
+	operator fun getValue(t: Any?, property: KProperty<*>): T {
+		return getter()
+	}
 }
 
 class ObservableSubclassDelegate<T, K : T>(private val obs: ObservableValue<T?>, private inline val getter: () -> K) {
 
-    operator fun getValue(t: Any?, property: KProperty<*>): K = getter()
+	operator fun getValue(t: Any?, property: KProperty<*>): K = getter()
 }
 
 class WritableDelegate<T>(private val obs: WritableValue<T>, private inline val getter: () -> T) {
 
-    operator fun getValue(t: Any?, property: KProperty<*>): T = getter()
+	operator fun getValue(t: Any?, property: KProperty<*>): T = getter()
 
-    operator fun setValue(t: Any?, property: KProperty<*>, newVal: T) {
-        obs.value = newVal
-    }
+	operator fun setValue(t: Any?, property: KProperty<*>, newVal: T) {
+		obs.value = newVal
+	}
 }
 
 class WritableSubclassDelegate<T, K : T>(private val obs: WritableValue<T?>, private inline val getter: () -> K) {
 
-    operator fun getValue(t: Any?, property: KProperty<*>): K = getter()
+	operator fun getValue(t: Any?, property: KProperty<*>): K = getter()
 
-    operator fun setValue(t: Any?, property: KProperty<*>, newVal: K) {
-        obs.value = newVal
-    }
+	operator fun setValue(t: Any?, property: KProperty<*>, newVal: K) {
+		obs.value = newVal
+	}
 }

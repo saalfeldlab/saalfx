@@ -37,38 +37,38 @@ import javafx.scene.layout.Priority
 import javafx.scene.layout.Region
 
 class NamedNode private constructor(
-        name: String,
-        nameWidth: Double,
-        growNodes: Boolean,
-        nodes: Array<Node>
+	name: String,
+	nameWidth: Double,
+	growNodes: Boolean,
+	nodes: Array<Node>
 ) {
 
-    private val name = Label(name).apply {
-        prefWidth = nameWidth
-        minWidth = nameWidth
-        maxWidth = nameWidth
-    }
+	private val name = Label(name).apply {
+		prefWidth = nameWidth
+		minWidth = nameWidth
+		maxWidth = nameWidth
+	}
 
-    private val contents = HBox(this.name).also { it.children.addAll(nodes) }
+	private val contents = HBox(this.name).also { it.children.addAll(nodes) }
 
-    init {
-        if (growNodes)
-            nodes.forEach { n -> HBox.setHgrow(n, Priority.ALWAYS) }
-    }
+	init {
+		if (growNodes)
+			nodes.forEach { n -> HBox.setHgrow(n, Priority.ALWAYS) }
+	}
 
-    fun addNameToolTip(tooltip: Tooltip) {
-        this.name.tooltip = tooltip
-    }
+	fun addNameToolTip(tooltip: Tooltip) {
+		this.name.tooltip = tooltip
+	}
 
-    companion object {
+	companion object {
 
-        @JvmStatic
-        fun nameIt(name: String, nameWidth: Double, growNodes: Boolean, vararg nodes: Node): Node {
-            return NamedNode(name, nameWidth, growNodes, arrayOf(*nodes)).contents
-        }
+		@JvmStatic
+		fun nameIt(name: String, nameWidth: Double, growNodes: Boolean, vararg nodes: Node): Node {
+			return NamedNode(name, nameWidth, growNodes, arrayOf(*nodes)).contents
+		}
 
-        @JvmStatic
-        @JvmOverloads
-        fun bufferNode(n: Node = Region().also { it.minWidth = 0.0 }) = n.also { HBox.setHgrow(it, Priority.ALWAYS) }
-    }
+		@JvmStatic
+		@JvmOverloads
+		fun bufferNode(n: Node = Region().also { it.minWidth = 0.0 }) = n.also { HBox.setHgrow(it, Priority.ALWAYS) }
+	}
 }

@@ -20,10 +20,10 @@ import kotlin.reflect.KProperty
  */
 class LazyForeignMap<K, V>(val foreignKeyProvider: () -> K, val valueGenerator: (K) -> V) : MutableMap<K, V> by HashMap() {
 
-    operator fun getValue(t: Any, property: KProperty<*>): V {
-        val foreignKey = foreignKeyProvider()
-        return getOrPut(foreignKey) { valueGenerator(foreignKey) }
-    }
+	operator fun getValue(t: Any, property: KProperty<*>): V {
+		val foreignKey = foreignKeyProvider()
+		return getOrPut(foreignKey) { valueGenerator(foreignKey) }
+	}
 }
 
 /**
@@ -43,17 +43,17 @@ class LazyForeignMap<K, V>(val foreignKeyProvider: () -> K, val valueGenerator: 
  */
 
 class LazyForeignValue<K, V>(val foreignKeyProvider: () -> K, val valueGenerator: (K) -> V) : MutableMap<K, V> by HashMap() {
-    //TODO Caleb: allow the valueGenerator to operate on (K, V?) -> V where V? is the previous value that was stored.
-    // Currently we throw it away, but it may require some cleanup, and there is currently no way to trigger that
-    //
-    //  ALTERNATIVE: an optional middle parameter for [cleanupCallback] which operates on (V?) -> Unit if there is an old value. Not sure which is better.
+	//TODO Caleb: allow the valueGenerator to operate on (K, V?) -> V where V? is the previous value that was stored.
+	// Currently we throw it away, but it may require some cleanup, and there is currently no way to trigger that
+	//
+	//  ALTERNATIVE: an optional middle parameter for [cleanupCallback] which operates on (V?) -> Unit if there is an old value. Not sure which is better.
 
-    operator fun getValue(t: Any, property: KProperty<*>): V {
-        val foreignKey = foreignKeyProvider()
-        return getOrPut(foreignKey) {
-            /* We only want a single value, so clear before we add this new one */
-            clear()
-            valueGenerator(foreignKey)
-        }
-    }
+	operator fun getValue(t: Any, property: KProperty<*>): V {
+		val foreignKey = foreignKeyProvider()
+		return getOrPut(foreignKey) {
+			/* We only want a single value, so clear before we add this new one */
+			clear()
+			valueGenerator(foreignKey)
+		}
+	}
 }

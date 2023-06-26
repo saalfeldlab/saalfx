@@ -1,7 +1,7 @@
 package org.janelia.saalfeldlab.fx.extensions
 
 import javafx.util.Pair
-import java.util.*
+import java.util.Optional
 
 val <T> Optional<T>.nullable: T?
 	get() = orElse(null)

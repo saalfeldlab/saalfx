@@ -32,5 +32,5 @@ import javafx.scene.Node
 import javafx.scene.layout.GridPane
 
 operator fun GridPane.set(col: Int, row: Int, node: Node) {
-    this.add(node, col, row)
+	this.add(node, col, row)
 }

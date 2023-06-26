@@ -44,7 +44,7 @@ class TextFields {
 			val initialValue = SimpleStringProperty()
 
 			val setEditable = { initialValue.value = field.text; field.isEditable = true }
-			val setText = { newText: String? -> field.isEditable = false; field.text = newText;}
+			val setText = { newText: String? -> field.isEditable = false; field.text = newText; }
 
 			field.addEventHandler(MouseEvent.MOUSE_PRESSED) {
 				if (it.clickCount == 2 && !field.isEditable) {
@@ -66,7 +66,7 @@ class TextFields {
 				}
 			}
 
-			field.focusedProperty().addListener { _,_, new -> if (!new && field.isEditable) setText(initialValue.value) }
+			field.focusedProperty().addListener { _, _, new -> if (!new && field.isEditable) setText(initialValue.value) }
 
 			return field
 

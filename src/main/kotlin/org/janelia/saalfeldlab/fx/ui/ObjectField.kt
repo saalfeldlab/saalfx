@@ -43,117 +43,120 @@ import java.io.File
 import java.util.function.Predicate
 
 open class ObjectField<T, P : Property<T>>(
-        value: P,
-        private val converter: StringConverter<T>,
-        vararg submitOn: SubmitOn) {
+	value: P,
+	private val converter: StringConverter<T>,
+	vararg submitOn: SubmitOn
+) {
 
-    enum class SubmitOn {
-        ENTER_PRESSED,
-        FOCUS_LOST
-    }
+	enum class SubmitOn {
+		ENTER_PRESSED,
+		FOCUS_LOST
+	}
 
-    private val _value = value
-    val textField = TextField()
-    private val enterPressedHandler = EnterPressedHandler()
-    private val focusLostHandler = FocusLostHandler()
+	private val _value = value
+	val textField = TextField()
+	private val enterPressedHandler = EnterPressedHandler()
+	private val focusLostHandler = FocusLostHandler()
 
-    var value: T
-        get() = _value.value
-        set(value) = _value.setValue(value)
+	var value: T
+		get() = _value.value
+		set(value) = _value.setValue(value)
 
-    class InvalidUserInput @JvmOverloads constructor(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
+	class InvalidUserInput @JvmOverloads constructor(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
-    init {
-        value.addListener { _, _, newv -> textField.text = this.converter.toString(newv) }
-        textField.text = this.converter.toString(this._value.value)
-        submitOn.forEach { this.enableSubmitOn(it) }
-    }
+	init {
+		value.addListener { _, _, newv -> textField.text = this.converter.toString(newv) }
+		textField.text = this.converter.toString(this._value.value)
+		submitOn.forEach { this.enableSubmitOn(it) }
+	}
 
-    fun valueProperty() = _value
+	fun valueProperty() = _value
 
-    private fun enableSubmitOn(submitOn: SubmitOn) {
-        when (submitOn) {
-            SubmitOn.ENTER_PRESSED -> textField.addEventHandler(KeyEvent.KEY_PRESSED, enterPressedHandler)
-            SubmitOn.FOCUS_LOST -> textField.focusedProperty().addListener(focusLostHandler)
-        }
-    }
+	private fun enableSubmitOn(submitOn: SubmitOn) {
+		when (submitOn) {
+			SubmitOn.ENTER_PRESSED -> textField.addEventHandler(KeyEvent.KEY_PRESSED, enterPressedHandler)
+			SubmitOn.FOCUS_LOST -> textField.focusedProperty().addListener(focusLostHandler)
+		}
+	}
 
-    fun disableSubmitOn(submitOn: SubmitOn) {
-        when (submitOn) {
-            SubmitOn.ENTER_PRESSED -> textField.removeEventHandler(KeyEvent.KEY_PRESSED, enterPressedHandler)
-            SubmitOn.FOCUS_LOST -> textField.focusedProperty().removeListener(focusLostHandler)
-        }
-    }
+	fun disableSubmitOn(submitOn: SubmitOn) {
+		when (submitOn) {
+			SubmitOn.ENTER_PRESSED -> textField.removeEventHandler(KeyEvent.KEY_PRESSED, enterPressedHandler)
+			SubmitOn.FOCUS_LOST -> textField.focusedProperty().removeListener(focusLostHandler)
+		}
+	}
 
-    fun submit() {
-        try {
-            value =converter.fromString(textField.text)
-        } catch (e: InvalidUserInput) {
-            textField.text = converter.toString(value)
-        }
+	fun submit() {
+		try {
+			value = converter.fromString(textField.text)
+		} catch (e: InvalidUserInput) {
+			textField.text = converter.toString(value)
+		}
 
-    }
+	}
 
-    private inner class EnterPressedHandler : EventHandler<KeyEvent> {
-        override fun handle(e: KeyEvent) {
-            if (e.code == KeyCode.ENTER) {
-                e.consume()
-                submit()
-            }
-        }
-    }
+	private inner class EnterPressedHandler : EventHandler<KeyEvent> {
+		override fun handle(e: KeyEvent) {
+			if (e.code == KeyCode.ENTER) {
+				e.consume()
+				submit()
+			}
+		}
+	}
 
-    private inner class FocusLostHandler : ChangeListener<Boolean> {
+	private inner class FocusLostHandler : ChangeListener<Boolean> {
 
-        override fun changed(observableValue: ObservableValue<out Boolean>, oldv: Boolean?, newv: Boolean?) = newv?.takeIf { !it }?.let { submit() } ?: Unit
+		override fun changed(observableValue: ObservableValue<out Boolean>, oldv: Boolean?, newv: Boolean?) = newv?.takeIf { !it }?.let { submit() } ?: Unit
 
-    }
+	}
 
-    companion object {
+	companion object {
 
-        @JvmStatic
-        fun fileField(
-                initialFile: File?,
-                test: (File?) -> Boolean,
-                vararg submitOn: SubmitOn) = fileField(initialFile, Predicate { test(it) }, *submitOn)
+		@JvmStatic
+		fun fileField(
+			initialFile: File?,
+			test: (File?) -> Boolean,
+			vararg submitOn: SubmitOn
+		) = fileField(initialFile, Predicate { test(it) }, *submitOn)
 
-        @JvmStatic
-        fun fileField(
-                initialFile: File?,
-                test: Predicate<File>,
-                vararg submitOn: SubmitOn): ObjectField<File?, Property<File?>> {
-            val converter = object : StringConverter<File?>() {
-                override fun toString(file: File?): String? {
-                    return file?.absolutePath
-                }
+		@JvmStatic
+		fun fileField(
+			initialFile: File?,
+			test: Predicate<File>,
+			vararg submitOn: SubmitOn
+		): ObjectField<File?, Property<File?>> {
+			val converter = object : StringConverter<File?>() {
+				override fun toString(file: File?): String? {
+					return file?.absolutePath
+				}
 
-                override fun fromString(s: String?): File? {
-                    return s?.let {
-                        val f = File(it)
-                        if (!test.test(f)) {
-                            throw InvalidUserInput("User input could not converted to file: $s", null)
-                        }
-                        f
-                    }
-                }
-            }
-            return ObjectField(SimpleObjectProperty(initialFile), converter, *submitOn)
-        }
+				override fun fromString(s: String?): File? {
+					return s?.let {
+						val f = File(it)
+						if (!test.test(f)) {
+							throw InvalidUserInput("User input could not converted to file: $s", null)
+						}
+						f
+					}
+				}
+			}
+			return ObjectField(SimpleObjectProperty(initialFile), converter, *submitOn)
+		}
 
-        @JvmStatic
-        fun stringField(initialValue: String?, vararg submitOn: SubmitOn): ObjectField<String?, StringProperty> {
+		@JvmStatic
+		fun stringField(initialValue: String?, vararg submitOn: SubmitOn): ObjectField<String?, StringProperty> {
 
-            val converter = object : StringConverter<String?>() {
-                override fun toString(s: String?): String? {
-                    return s
-                }
+			val converter = object : StringConverter<String?>() {
+				override fun toString(s: String?): String? {
+					return s
+				}
 
-                override fun fromString(s: String?): String? {
-                    return s
-                }
-            }
+				override fun fromString(s: String?): String? {
+					return s
+				}
+			}
 
-            return ObjectField(SimpleStringProperty(initialValue), converter, *submitOn)
-        }
-    }
+			return ObjectField(SimpleStringProperty(initialValue), converter, *submitOn)
+		}
+	}
 }

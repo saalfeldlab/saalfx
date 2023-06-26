@@ -6,14 +6,14 @@ import javafx.scene.control.ListView
 
 fun ListView<*>.bindHeightToItemSize() {
 
-    /* This is a magic number, representing the default max row number, so we don't
-    * expand larger than the current default */
-    val defaultMaxRows = 18
-    val cellHeightFallBack = 24.0
-    val prefHeightBinding : ObjectBinding<Double> = items.createObservableBinding {
-        val cellHeight = (lookup(".list-cell") as? ListCell<*>)?.height ?: cellHeightFallBack
-        val borderPadding = padding.top + padding.bottom
-        borderPadding + cellHeight * it.size.coerceAtMost(defaultMaxRows)
-    }
-    prefHeightProperty().bind(prefHeightBinding)
+	/* This is a magic number, representing the default max row number, so we don't
+	* expand larger than the current default */
+	val defaultMaxRows = 18
+	val cellHeightFallBack = 24.0
+	val prefHeightBinding: ObjectBinding<Double> = items.createObservableBinding {
+		val cellHeight = (lookup(".list-cell") as? ListCell<*>)?.height ?: cellHeightFallBack
+		val borderPadding = padding.top + padding.bottom
+		borderPadding + cellHeight * it.size.coerceAtMost(defaultMaxRows)
+	}
+	prefHeightProperty().bind(prefHeightBinding)
 }

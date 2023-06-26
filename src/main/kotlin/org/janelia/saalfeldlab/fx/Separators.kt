@@ -33,20 +33,20 @@ import javafx.scene.control.Separator
 
 class Separators {
 
-    companion object {
+	companion object {
 
-        @JvmStatic
-        fun vertical(): Separator = withOrientation(Orientation.VERTICAL)
+		@JvmStatic
+		fun vertical(): Separator = withOrientation(Orientation.VERTICAL)
 
-        @JvmStatic
-        fun horizontal(): Separator = withOrientation(Orientation.HORIZONTAL)
+		@JvmStatic
+		fun horizontal(): Separator = withOrientation(Orientation.HORIZONTAL)
 
-        @JvmStatic
-        fun withOrientation(orientation: Orientation): Separator {
-            val separator = Separator()
-            separator.orientation = orientation
-            return separator
-        }
-    }
+		@JvmStatic
+		fun withOrientation(orientation: Orientation): Separator {
+			val separator = Separator()
+			separator.orientation = orientation
+			return separator
+		}
+	}
 
 }
