@@ -48,7 +48,16 @@ class LazyForeignValue<K, V>(val foreignKeyProvider: () -> K, val valueGenerator
 	//
 	//  ALTERNATIVE: an optional middle parameter for [cleanupCallback] which operates on (V?) -> Unit if there is an old value. Not sure which is better.
 
-	operator fun getValue(t: Any, property: KProperty<*>): V {
+	operator fun getValue(t: Any?, property: KProperty<*>): V {
+		val foreignKey = foreignKeyProvider()
+		return getOrPut(foreignKey) {
+			/* We only want a single value, so clear before we add this new one */
+			clear()
+			valueGenerator(foreignKey)
+		}
+	}
+
+	operator fun getValue(t: Nothing?, property: KProperty<*>): V {
 		val foreignKey = foreignKeyProvider()
 		return getOrPut(foreignKey) {
 			/* We only want a single value, so clear before we add this new one */
