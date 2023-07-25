@@ -1,6 +1,6 @@
 package org.janelia.saalfeldlab.fx.ui.resize
 
-import com.sun.javafx.application.PlatformImpl
+import javafx.application.Platform
 import javafx.beans.binding.Bindings
 import javafx.beans.property.DoubleProperty
 import javafx.beans.property.ReadOnlyBooleanProperty
@@ -123,7 +123,7 @@ class ResizeHorizontally @JvmOverloads constructor(
 
 		@JvmStatic
 		fun main(args: Array<String>) {
-			PlatformImpl.startup {}
+			Platform.startup {}
 			InvokeOnJavaFXApplicationThread {
 				val left = VBox(Label("Left")).apply {
 					background = Background(BackgroundFill(Color.LIGHTCYAN, CornerRadii.EMPTY, Insets.EMPTY))

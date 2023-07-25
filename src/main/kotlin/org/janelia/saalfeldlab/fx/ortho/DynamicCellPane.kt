@@ -28,8 +28,6 @@
  */
 package org.janelia.saalfeldlab.fx.ortho
 
-import com.sun.javafx.application.PlatformImpl
-import com.sun.javafx.stage.WindowHelper
 import javafx.application.Platform
 import javafx.event.Event
 import javafx.event.EventHandler
@@ -455,23 +453,24 @@ class DynamicCellPane @JvmOverloads constructor(vararg nodes: List<Node> = array
 		* are already detached. In that case, we want to close the window, which
 		* will trigger the detached viewer to re-attach to the pain scene */
 		return (root.scene != null && root.scene != scene).also { nodeIsDetached ->
-			if (nodeIsDetached) closeWindow(root.scene.window)
+			if (nodeIsDetached) closeDetachedWindow(root.scene.window)
 		}
 	}
 
-	private fun closeWindow(window: Window) {
-		/* Something to note; I didn't think them manual unfocus would be necessary, but seemingly there is a difference in close behavior
-		*   when you close programatically (as below) compare to a system close (e.g. clicking X or Alt+F4), whereby the node doesn't unfocus.
-		*   To resolve, we do it manually first. */
-		WindowHelper.setFocused(window, false)
+	private fun closeDetachedWindow(window: Window) {
+		/* Note; There is a difference in close behavior when you close programatically
+		*	(as below) compare to a system close (e.g. clicking X or Alt+F4),
+		*	whereby the node doesn't unfocus. To resolve, manually request focus for the main scene first.
+		* */
+		scene.root.requestFocus()
 		window.hide()
 		Event.fireEvent(window, WindowEvent(window, WindowEvent.WINDOW_CLOSE_REQUEST))
 	}
 }
 
 fun main() {
-	PlatformImpl.startup { }
-	PlatformImpl.setImplicitExit(true)
+	Platform.startup { }
+	Platform.setImplicitExit(true)
 	Platform.runLater {
 		val cellPane = DynamicCellPane(
 			listOf(Label("Test"), Label("Test")),

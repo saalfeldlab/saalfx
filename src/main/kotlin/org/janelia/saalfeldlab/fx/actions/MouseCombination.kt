@@ -1,6 +1,5 @@
 package org.janelia.saalfeldlab.fx.actions
 
-import com.sun.javafx.application.PlatformImpl
 import javafx.application.Platform
 import javafx.beans.property.ObjectProperty
 import javafx.beans.property.SimpleObjectProperty
@@ -68,7 +67,7 @@ class MouseCombination private constructor(keyCombination: KeyCombination) {
 }
 
 internal fun main() {
-	PlatformImpl.startup { }
+	Platform.startup {  }
 	Platform.runLater {
 		val node = Button("DSLFKJSDLKFJSDLKGFJSDLGKDSJGSDG")
 

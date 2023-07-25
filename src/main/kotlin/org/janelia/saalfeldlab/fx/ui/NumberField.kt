@@ -28,7 +28,6 @@
  */
 package org.janelia.saalfeldlab.fx.ui
 
-import com.sun.javafx.application.PlatformImpl
 import javafx.application.Platform
 import javafx.beans.binding.Bindings
 import javafx.beans.property.*
@@ -153,7 +152,7 @@ class NumberField<P : Property<Number>>(
 
 		@JvmStatic
 		fun main(args: Array<String>) {
-			PlatformImpl.startup { }
+			Platform.startup { }
 
 			val df = doubleField(
 				5.0,

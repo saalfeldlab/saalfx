@@ -45,7 +45,7 @@ class DoubleField(initialValue: Double) {
 
 	init {
 
-		valueAsString.addListener { obs, oldv, newv -> this.field.text = newv }
+		valueAsString.addListener { _, _, newv -> this.field.text = newv }
 
 		valueAsString.bindBidirectional(value, object : StringConverter<Number>() {
 			override fun toString(value: Number): String {
@@ -53,12 +53,12 @@ class DoubleField(initialValue: Double) {
 			}
 
 			override fun fromString(string: String): Double? {
-				try {
-					return java.lang.Double.valueOf(string)
+				return try {
+					java.lang.Double.valueOf(string)
 				} catch (e: NumberFormatException) {
-					return value.get()
+					value.get()
 				} catch (e: NullPointerException) {
-					return value.get()
+					value.get()
 				}
 
 			}
@@ -66,8 +66,8 @@ class DoubleField(initialValue: Double) {
 
 		this.value.set(initialValue)
 
-		this.field.onAction = wrapAsEventHandler(Runnable { this.submitText() })
-		this.field.focusedProperty().addListener { obs, oldv, newv -> submitText(!newv) }
+		this.field.onAction = wrapAsEventHandler { this.submitText() }
+		this.field.focusedProperty().addListener { _, _, newv -> submitText(!newv) }
 
 	}
 

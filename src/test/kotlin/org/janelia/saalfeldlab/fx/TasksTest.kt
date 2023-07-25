@@ -40,7 +40,6 @@ class TasksTest : ApplicationTest() {
 		InvokeOnJavaFXApplicationThread.invokeAndWait {
 			list.items.clear()
 		}
-		WaitForAsyncUtils.waitForFxEvents()
 	}
 
 	@Test
