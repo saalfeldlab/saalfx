@@ -28,10 +28,22 @@
  */
 package org.janelia.saalfeldlab.fx.ui
 
+import javafx.application.Platform
+import javafx.beans.binding.Bindings
 import javafx.beans.property.*
+import javafx.geometry.Insets
+import javafx.geometry.Pos
 import javafx.scene.Node
+import javafx.scene.Scene
+import javafx.scene.control.Label
+import javafx.scene.control.TextField
 import javafx.scene.layout.HBox
+import javafx.scene.layout.Priority
 import javafx.scene.layout.Region
+import javafx.scene.layout.VBox
+import javafx.stage.Stage
+import org.janelia.saalfeldlab.fx.SaalFxStyle
+import org.janelia.saalfeldlab.fx.extensions.addTriggeredListener
 import org.janelia.saalfeldlab.fx.extensions.nonnull
 import java.util.function.DoublePredicate
 import java.util.function.IntPredicate
@@ -44,9 +56,14 @@ class SpatialField<P : Property<Number>> private constructor(
 	textFieldWidth: Double = Region.USE_COMPUTED_SIZE
 ) {
 
-	val node: Node
+	val node
+		get() = makeNode()
 	val editableProperty = SimpleBooleanProperty(true)
 	var editable: Boolean by editableProperty.nonnull()
+	private val showHeaderProperty = SimpleBooleanProperty(false)
+	var showHeader: Boolean by showHeaderProperty.nonnull()
+	val headerTextProperty = SimpleStringProperty("")
+	var headerText: String by headerTextProperty.nonnull()
 
 	init {
 		x.textField.promptText = "X"
@@ -57,7 +74,66 @@ class SpatialField<P : Property<Number>> private constructor(
 		z.textField.prefWidth = textFieldWidth
 
 		listOf(x, y, z).forEach { it.textField.editableProperty().bind(editableProperty) }
-		this.node = HBox(x.textField, y.textField, z.textField)
+	}
+
+	private fun makeNode(): Node {
+		val header = createHeader()
+		val fieldsHeader = createFieldsHeader()
+		val fields = HBox(x.textField, y.textField, z.textField)
+		VBox.setVgrow(header, Priority.ALWAYS)
+		VBox.setVgrow(fieldsHeader, Priority.ALWAYS)
+		VBox.setVgrow(fields, Priority.ALWAYS)
+		return VBox(header, fieldsHeader, fields)
+	}
+
+	private fun createHeader() = VBox().apply {
+		children += Label().apply {
+			showHeaderProperty.addTriggeredListener { _, _, show -> showHeader(show) }
+			alignment = Pos.BOTTOM_CENTER
+			isFillWidth = true
+			padding = Insets(0.0, 0.0, 3.0, 0.0)
+		}
+		isFillWidth = true
+		alignment = Pos.BOTTOM_CENTER
+	}
+
+	private fun Label.showHeader(show: Boolean) {
+		if (show && headerText.isNotEmpty()) {
+			visibleProperty().set(true)
+			managedProperty().set(true)
+			textProperty().bind(headerTextProperty)
+		} else {
+			textProperty().unbind()
+			textProperty().set("")
+			visibleProperty().set(false)
+			managedProperty().set(false)
+		}
+	}
+
+	private fun createFieldsHeader(): HBox {
+		val labels = arrayOf(
+			VBox(Label(x.textField.promptText)),
+			VBox(Label(y.textField.promptText)),
+			VBox(Label(z.textField.promptText))
+		)
+		val header = HBox(*labels)
+		header.alignment = Pos.BOTTOM_CENTER
+		header.padding = Insets(0.0, 0.0, 3.0, 0.0)
+		labels.forEach {
+			HBox.setHgrow(it, Priority.ALWAYS)
+			it.isFillWidth = true
+			it.alignment = Pos.BOTTOM_CENTER
+		}
+		header.visibleProperty().bind(showHeaderProperty)
+		header.managedProperty().bind(showHeaderProperty)
+		return header
+	}
+
+
+	fun setValues(x: Number = this.x.value, y: Number = this.y.value, z: Number = this.z.value) {
+		this.x.value = x
+		this.y.value = y
+		this.z.value = z
 	}
 
 	fun asLongArray() = LongArray(3).apply {
@@ -123,6 +199,90 @@ class SpatialField<P : Property<Number>> private constructor(
 				NumberField.longField(initialValue, test, *submitOn),
 				textFieldWidth
 			)
+		}
+
+
+		@JvmStatic
+		fun main(args: Array<String>) {
+			Platform.startup { }
+
+			val xyz = SpatialField.doubleField(1.0, { true})
+			xyz.showHeader = true
+
+			val abc = SpatialField.doubleField(1.0, { true})
+			abc.headerText = "abc"
+			abc.editable = false
+			abc.x.textField.promptText = "A"
+			abc.y.textField.promptText = "B"
+			abc.z.textField.promptText = "C"
+			abc.showHeader = true
+
+			val one23 = SpatialField.doubleField(1.0, { true})
+			one23.headerText = "one23"
+			one23.x.textField.editableProperty().let {
+				it.unbind()
+				it.value = false
+			}
+			one23.y.textField.editableProperty().let {
+				it.unbind()
+				it.value = true
+			}
+			one23.z.textField.editableProperty().let {
+				it.unbind()
+				it.value = false
+			}
+			one23.x.textField.promptText = "A"
+			one23.y.textField.promptText = "B"
+			one23.z.textField.promptText = "C"
+			one23.showHeader = true
+
+			val df = NumberField.doubleField(
+				5.0,
+				{ _ -> true },
+				ObjectField.SubmitOn.ENTER_PRESSED,
+				ObjectField.SubmitOn.FOCUS_LOST
+			)
+			val lbl1 = TextField()
+			val converted1 = Bindings.convert(df.valueProperty())
+			lbl1.textProperty().bind(converted1)
+			val hb1 = HBox(df.textField, lbl1)
+
+			val lf = NumberField.longField(
+				4,
+				{ _ -> true },
+				ObjectField.SubmitOn.ENTER_PRESSED,
+				ObjectField.SubmitOn.FOCUS_LOST
+			)
+			val lbl2 = TextField()
+			val converted2 = Bindings.convert(lf.valueProperty())
+			lbl2.textProperty().bind(converted2)
+			val hb2 = HBox(lf.textField, lbl2)
+
+			val ulf = NumberField.longField(
+				4,
+				{ d -> d >= 0 },
+				ObjectField.SubmitOn.ENTER_PRESSED,
+				ObjectField.SubmitOn.FOCUS_LOST
+			)
+			val lbl3 = TextField()
+			val converted3 = Bindings.convert(ulf.valueProperty())
+			lbl3.textProperty().bind(converted3)
+			val hb3 = HBox(ulf.textField, lbl3)
+
+			Platform.runLater {
+				val pane = VBox(
+					abc.node,
+					xyz.node,
+					one23.node,
+					hb1,
+					hb2,
+					hb3)
+				val scene = Scene(pane)
+				SaalFxStyle.registerStylesheets(scene)
+				val stage = Stage()
+				stage.scene = scene
+				stage.show()
+			}
 		}
 	}
 }
