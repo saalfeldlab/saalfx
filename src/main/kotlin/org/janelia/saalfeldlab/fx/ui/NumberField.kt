@@ -33,6 +33,7 @@ import javafx.application.Platform
 import javafx.beans.binding.Bindings
 import javafx.beans.property.*
 import javafx.geometry.Pos
+import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.scene.control.TextField
 import javafx.scene.layout.HBox
@@ -54,6 +55,18 @@ class NumberField<P : Property<Number>>(
 	}
 
 	companion object {
+
+		fun registStyleSheet(styleable : Scene) {
+			NumberField.javaClass.getResource("number_field.css")?.toExternalForm()?.let { css ->
+				styleable.stylesheets.add(css)
+			}
+		}
+
+		fun registStyleSheet(styleable : Parent) {
+			NumberField.javaClass.getResource("number_field.css")?.toExternalForm()?.let { css ->
+				styleable.stylesheets.add(css)
+			}
+		}
 
 		@JvmStatic
 		fun doubleField(
