@@ -49,6 +49,8 @@
 		<testfx.version>4.0.16-alpha</testfx.version>
 
 		<dokka.version>1.4.30</dokka.version>
+		<!-- Kotlin project, uuse dokka instead -->
+		<maven.javadoc.skip>true</maven.javadoc.skip>
 	</properties>
 
 	<developers>

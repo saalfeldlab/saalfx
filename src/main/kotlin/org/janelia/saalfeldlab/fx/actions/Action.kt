@@ -98,9 +98,9 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 	var keysExclusive = false
 
 	/**
-	 * Key tracker used to [verifyKeys]. If not provided, all calls to [verifyKeys] will return `false`, UNLESS [ignoreKeys] was called.
+	 * Key tracker provider used to [verifyKeys]. If not provided, all calls to [verifyKeys] will return `false`, UNLESS [ignoreKeys] was called.
 	 */
-	var keyTracker: KeyTracker? = null
+	var keyTracker: () -> KeyTracker? = { null }
 
 	/**
 	 * List of Keys required to be down for this action to be valid
@@ -174,11 +174,11 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 		 *  - If we strictly expect no keys to be down
 		 *  - If ONLY the keys we expect are down
 		 *  - If AT LEAST the keys we expect are down  */
-		return keyTracker?.run {
+		return keyTracker()?.run {
 			when {
 				keysDown!!.isEmpty() && !keysExclusive -> true
 				keysDown!!.isEmpty() -> noKeysActive().also { if (!it) logger.trace("expected no keys, but some were down") }
-				keysExclusive -> areOnlyTheseKeysDown(*keysDown!!.toTypedArray()).also { if (!it) logger.trace("expected only these keys: ${keysDown}, but others were also down") }
+				keysExclusive -> areOnlyTheseKeysDown(*keysDown!!.toTypedArray()).also { if (!it) logger.trace("expected only these keys: ${keysDown}, but but active keys were: (${getActiveKeyCodes(true)}") }
 				else -> areKeysDown(*keysDown!!.toTypedArray()).also { if (!it) logger.trace("expected keys: $keysDown, but some were not down") }
 			}
 		} ?: let {
