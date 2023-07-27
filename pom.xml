@@ -49,8 +49,6 @@
 		<testfx.version>4.0.16-alpha</testfx.version>
 
 		<dokka.version>1.4.30</dokka.version>
-		<!-- Kotlin project, uuse dokka instead -->
-		<maven.javadoc.skip>true</maven.javadoc.skip>
 	</properties>
 
 	<developers>
@@ -268,6 +266,14 @@
 
 	<build>
 		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>3.5.0</version>
+				<configuration>
+					<skip>true</skip>
+				</configuration>
+			</plugin>
 			<plugin>
 				<groupId>org.jetbrains.dokka</groupId>
 				<artifactId>dokka-maven-plugin</artifactId>

@@ -126,12 +126,6 @@ public class XTouchMiniMCUControlPanel extends MCUControlPanel {
 		return vpotIds.length;
 	}
 
-	/**
-	 * Reset all controls.
-	 *
-	 * @throws InterruptedException
-	 * @throws InvalidMidiDataException
-	 */
 	public void reset() throws InterruptedException, InvalidMidiDataException {
 
 		final ShortMessage msg = new ShortMessage(ShortMessage.SYSTEM_RESET);
