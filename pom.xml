@@ -3,9 +3,9 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
-		<version>34.1.0</version>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
+		<version>36.0.0</version>
 	</parent>
 
 	<groupId>org.janelia.saalfeldlab</groupId>
@@ -28,32 +28,26 @@
 	</licenses>
 
 	<properties>
-		<scijava.jvm.build.version>11</scijava.jvm.build.version>
-		<scijava.jvm.version>11</scijava.jvm.version>
 		<license.licenseName>bsd_2</license.licenseName>
 		<license.copyrightOwners>Philipp Hanslovsky, Stephan Saalfeld</license.copyrightOwners>
 
 		<!-- NB: Deploy releases to the SciJava Maven repository. -->
 		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
 
-		<kotlin.compiler.jvmTarget>11</kotlin.compiler.jvmTarget>
-		<kotlin.version>1.6.0</kotlin.version>
-		<package-name>org.janelia.saalfeldlab.fx</package-name>
+		<package-name>org.janelia.saalfeldlab.saalfx</package-name>
 
-		<!-- kotlin incremental compilation. -->
+		<!-- kotlin -->
+		<kotlin.version>1.9.0</kotlin.version>
+		<kotlin.compiler.jvmTarget>11</kotlin.compiler.jvmTarget>
 		<kotlin.compiler.incremental>true</kotlin.compiler.incremental>
 
-		<!-- fuzzywuzzy version -->
-		<fuzzywuzzy.version>1.2.0</fuzzywuzzy.version>
-
-		<!-- testfx -->
-		<testfx.version>4.0.16-alpha</testfx.version>
-
-		<!-- junit -->
-		<junit.version>4.13-beta-3</junit.version>
+		<scijava.jvm.build.version>11</scijava.jvm.build.version>
+		<scijava.jvm.version>11</scijava.jvm.version>
 
 		<!-- JavaFx-->
-		<javafx.version>16</javafx.version>
+		<javafx.version>18.0.1</javafx.version>
+		<testfx.version>4.0.16-alpha</testfx.version>
+
 		<dokka.version>1.4.30</dokka.version>
 	</properties>
 
@@ -199,7 +193,7 @@
 		<dependency>
 			<groupId>me.xdrop</groupId>
 			<artifactId>fuzzywuzzy</artifactId>
-			<version>${fuzzywuzzy.version}</version>
+			<version>1.2.0</version>
 		</dependency>
 
 		<!--		markdown rendering-->
@@ -265,7 +259,6 @@
 		<dependency>
 			<groupId>org.jetbrains.kotlinx</groupId>
 			<artifactId>kotlinx-coroutines-core</artifactId>
-			<version>${kotlin.version}</version>
 			<scope>compile</scope>
 		</dependency>
 

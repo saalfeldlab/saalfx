@@ -28,17 +28,18 @@
  */
 package org.janelia.saalfeldlab.fx.ui
 
-import com.sun.javafx.application.PlatformImpl
 import javafx.application.Platform
 import javafx.beans.binding.Bindings
 import javafx.beans.property.*
 import javafx.geometry.Pos
+import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.scene.control.TextField
 import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
 import javafx.util.StringConverter
+import org.janelia.saalfeldlab.fx.extensions.addTriggeredListener
 import java.util.function.DoublePredicate
 import java.util.function.IntPredicate
 import java.util.function.LongPredicate
@@ -51,9 +52,27 @@ class NumberField<P : Property<Number>>(
 
 	init {
 		textField.alignment = Pos.BOTTOM_RIGHT
+		textField.editableProperty().addTriggeredListener { _, _, editable ->
+			if (!editable)
+				textField.styleClass += "as-label"
+			else
+				textField.styleClass -= "as-label"
+		}
 	}
 
 	companion object {
+
+		fun registStyleSheet(styleable : Scene) {
+			NumberField.javaClass.getResource("number_field.css")?.toExternalForm()?.let { css ->
+				styleable.stylesheets.add(css)
+			}
+		}
+
+		fun registStyleSheet(styleable : Parent) {
+			NumberField.javaClass.getResource("number_field.css")?.toExternalForm()?.let { css ->
+				styleable.stylesheets.add(css)
+			}
+		}
 
 		@JvmStatic
 		fun doubleField(
@@ -140,7 +159,7 @@ class NumberField<P : Property<Number>>(
 
 		@JvmStatic
 		fun main(args: Array<String>) {
-			PlatformImpl.startup { }
+			Platform.startup { }
 
 			val df = doubleField(
 				5.0,

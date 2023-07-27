@@ -32,6 +32,8 @@ import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
 import javafx.scene.Node
+import javafx.scene.Parent
+import javafx.scene.Scene
 import javafx.scene.control.*
 import javafx.scene.control.skin.ListViewSkin
 import javafx.scene.input.KeyCode
@@ -97,7 +99,7 @@ class MatchSelection(
 
 		val labelList = ListView(currentOrder)
 		labelList.selectionModel.selectionMode = SelectionMode.SINGLE
-		labelList.stylesheets.add("matcher.css")
+		registStyleSheet(labelList)
 
 		labelList.maxWidthProperty().bind(maxWidthProperty())
 		labelList.prefWidthProperty().bind(maxWidthProperty())
@@ -182,6 +184,18 @@ class MatchSelection(
 	override fun getChildren(): ObservableList<Node?> = super.getChildrenUnmodifiable()
 
 	companion object {
+
+		fun registStyleSheet(styleable : Scene) {
+			MatchSelection.javaClass.getResource("matcher.css")?.toExternalForm()?.let { css ->
+				styleable.stylesheets.add(css)
+			}
+		}
+
+		fun registStyleSheet(styleable : Parent) {
+			MatchSelection.javaClass.getResource("matcher.css")?.toExternalForm()?.let { css ->
+				styleable.stylesheets.add(css)
+			}
+		}
 
 		private val LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
 

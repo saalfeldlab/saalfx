@@ -3,6 +3,7 @@ package org.janelia.saalfeldlab.fx.extensions
 import javafx.beans.Observable
 import javafx.beans.binding.*
 import javafx.beans.property.*
+import javafx.beans.value.ChangeListener
 import javafx.beans.value.ObservableValue
 import javafx.beans.value.WritableValue
 import javafx.collections.ObservableList
@@ -113,4 +114,10 @@ class WritableSubclassDelegate<T, K : T>(private val obs: WritableValue<T?>, pri
 	operator fun setValue(t: Any?, property: KProperty<*>, newVal: K) {
 		obs.value = newVal
 	}
+}
+
+fun <T> ObservableValue<T>.addTriggeredListener(triggerWith : T = value, listener : (ObservableValue<out T>?, T, T) -> Unit) {
+	val changeListener = ChangeListener<T> { observable, oldValue, newValue -> listener(observable, oldValue, newValue) }
+	addListener(changeListener)
+	listener(this, value, triggerWith)
 }
