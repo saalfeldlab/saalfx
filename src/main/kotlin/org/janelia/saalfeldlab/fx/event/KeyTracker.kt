@@ -42,7 +42,7 @@ class KeyTracker {
 	private val activeKeys = mutableSetOf<KeyCode>()
 
 	private val actions by lazy {
-		ActionSet("Key Tracker", this) {
+		ActionSet("Key Tracker", { this }) {
 			KEY_PRESSED {
 				ignoreKeys()
 				filter = true

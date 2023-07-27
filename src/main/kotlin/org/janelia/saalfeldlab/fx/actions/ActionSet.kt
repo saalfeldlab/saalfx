@@ -22,7 +22,8 @@ import java.util.function.Consumer
  * For example, you may want your application to change state based on a key press, and to revert on key relase:
  * ```kotlin
  * val node : Node = StackPane()
- * val changeStateActionSet = ActionSet("Change Application State", KeyTracker()) {
+ * val keyTracker : KeyTracker = KeyTracker()
+ * val changeStateActionSet = ActionSet("Change Application State", { keyTracker }) {
  *  KeyEvent.KEY_PRESSED(KeyCode.SPACE) {
  *      filter = true
  *      onAction { App.changeState() }
@@ -49,10 +50,10 @@ import java.util.function.Consumer
  *
  * @param apply configuration callback to configure this [ActionSet], and to create [Action]s
  */
-open class ActionSet(val name: String, var keyTracker: KeyTracker? = null, apply: (ActionSet.() -> Unit)? = null) {
+open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { null }, apply: (ActionSet.() -> Unit)? = null) {
 
 	@JvmOverloads
-	constructor(name: String, keyTracker: KeyTracker? = null, apply: Consumer<ActionSet>?) : this(name, keyTracker, { apply?.accept(this) })
+	constructor(name: String, keyTracker: () -> KeyTracker? = { null }, apply: Consumer<ActionSet>?) : this(name, keyTracker, { apply?.accept(this) })
 
 	val actions = mutableListOf<Action<out Event>>()
 	private val actionHandlerMap = mutableMapOf<EventType<Event>, MutableList<EventHandler<Event>>>()

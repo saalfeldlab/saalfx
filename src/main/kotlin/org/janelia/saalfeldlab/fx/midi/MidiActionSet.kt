@@ -10,7 +10,7 @@ import org.janelia.saalfeldlab.fx.actions.ActionSet
 import org.janelia.saalfeldlab.fx.event.KeyTracker
 import java.util.function.IntConsumer
 
-open class MidiActionSet(name: String, private val device: MCUControlPanel, private val target: EventTarget, keyTracker: KeyTracker? = null, callback: MidiActionSet.() -> Unit = {}) : ActionSet(name, keyTracker) {
+open class MidiActionSet(name: String, private val device: MCUControlPanel, private val target: EventTarget, keyTracker: () -> KeyTracker? = { null }, callback: MidiActionSet.() -> Unit = {}) : ActionSet(name, keyTracker) {
 	init {
 		callback()
 	}

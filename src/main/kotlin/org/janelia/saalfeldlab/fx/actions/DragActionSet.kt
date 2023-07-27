@@ -19,11 +19,11 @@ import java.util.function.Consumer
  * @constructor create the [DragActionSet], and initialize the contained [Action]s
  *
  * @param name of the [DragActionSet];
- * @param keyTracker to track the key state
+ * @param keyTracker to provide the key tracker to track the key state
  * @param filter to apply before triggering a drag event (Only [DRAG_DETECTED] and [MOUSE_DRAGGED] are drag events)
  * @param apply configuration callback for the created [DragActionSet]
  */
-open class DragActionSet @JvmOverloads constructor(name: String, keyTracker: KeyTracker? = null, filter: Boolean = true, apply: (DragActionSet.() -> Unit)? = null) : ActionSet(name, keyTracker) {
+open class DragActionSet @JvmOverloads constructor(name: String, keyTracker: () -> KeyTracker? = { null }, filter: Boolean = true, apply: (DragActionSet.() -> Unit)? = null) : ActionSet(name, keyTracker) {
 
 	/**
 	 * [DRAG_DETECTED] [Action]. Can be access for further configuration
