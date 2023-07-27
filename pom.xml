@@ -55,6 +55,8 @@
 		<!-- JavaFx-->
 		<javafx.version>16</javafx.version>
 		<dokka.version>1.4.30</dokka.version>
+		<!-- Kotlin project, uuse dokka instead -->
+		<maven.javadoc.skip>true</maven.javadoc.skip>
 	</properties>
 
 	<developers>
