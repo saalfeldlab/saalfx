@@ -230,6 +230,7 @@ class UtilityTask<V>(private val onCall: (UtilityTask<V>) -> V) : Task<V>() {
 	 * @param executorService to execute this task on.
 	 * @return this task
 	 */
+	@JvmOverloads
 	fun submit(executorService: ExecutorService = this.executorService) : UtilityTask<V> {
 		this.executorService = executorService;
 		this.executorService.submit(this)
