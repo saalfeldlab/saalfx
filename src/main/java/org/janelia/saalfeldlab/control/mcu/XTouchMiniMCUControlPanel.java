@@ -60,10 +60,9 @@ public class XTouchMiniMCUControlPanel extends MCUControlPanel {
 	}
 
 	private final MCUFaderControl fader = new MCUFaderControl();
+	public XTouchMiniMCUControlPanel(final MidiDevice device, final Transmitter trans, final Receiver rec) {
 
-	public XTouchMiniMCUControlPanel(final Transmitter trans, final Receiver rec) {
-
-		super(trans, rec);
+		super(device, trans, rec);
 
 		for (int i = 0; i < vpots.length; ++i)
 			vpots[i] = new MCUVPotControl(vpotLedIds[i], rec);
@@ -149,8 +148,9 @@ public class XTouchMiniMCUControlPanel extends MCUControlPanel {
 		MidiDevice recDev = null;
 		Receiver rec = null;
 
+		MidiDevice device = null;
 		for (final Info info : MidiSystem.getMidiDeviceInfo()) {
-			final MidiDevice device = MidiSystem.getMidiDevice(info);
+			device = MidiSystem.getMidiDevice(info);
 			final String lowerDeviceDescription = deviceDescription.toLowerCase();
 			if (info.getDescription().toLowerCase().contains(lowerDeviceDescription) || info.getName().toLowerCase().contains(lowerDeviceDescription)) {
 				if (device.getMaxTransmitters() != 0) {
@@ -164,10 +164,10 @@ public class XTouchMiniMCUControlPanel extends MCUControlPanel {
 			}
 		}
 
-		if (!(trans == null || rec == null)) {
+		if (!(device == null || trans == null || rec == null)) {
 			transDev.open();
 			recDev.open();
-			final XTouchMiniMCUControlPanel panel = new XTouchMiniMCUControlPanel(trans, rec);
+			final XTouchMiniMCUControlPanel panel = new XTouchMiniMCUControlPanel(device, trans, rec);
 			trans.setReceiver(panel);
 			panel.reset();
 			return panel;

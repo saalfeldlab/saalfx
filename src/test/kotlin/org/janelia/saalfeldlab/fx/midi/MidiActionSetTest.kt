@@ -12,6 +12,7 @@ import org.janelia.saalfeldlab.fx.midi.MidiPotentiometerEvent.Companion.POTENTIO
 import org.janelia.saalfeldlab.fx.midi.MidiPotentiometerEvent.Companion.POTENTIOMETER_RELATIVE
 import org.testfx.framework.junit.ApplicationTest
 import org.testfx.util.WaitForAsyncUtils
+import javax.sound.midi.MidiDevice
 import javax.sound.midi.MidiMessage
 import javax.sound.midi.Receiver
 import javax.sound.midi.Transmitter
@@ -23,18 +24,32 @@ class MidiActionSetTest : ApplicationTest() {
 
 	companion object XTouchMiniFxTest {
 
-		private val dummyTransmitter = object : Transmitter {
-			override fun close() {}
-			override fun setReceiver(receiver: Receiver?) {}
-			override fun getReceiver() = dummyReceiver
+		private val mockTransmitter = object : Transmitter {
+			override fun close() = Unit
+			override fun setReceiver(receiver: Receiver?) = Unit
+			override fun getReceiver() = mockReceiver
 		}
 
-		private val dummyReceiver = object : Receiver {
-			override fun close() {}
-			override fun send(message: MidiMessage?, timeStamp: Long) {}
+		private val mockReceiver = object : Receiver {
+			override fun close() = Unit
+			override fun send(message: MidiMessage?, timeStamp: Long) = Unit
 		}
 
-		private val dummyDevice = object : MCUControlPanel(dummyTransmitter, dummyReceiver) {
+		private val mockDevice = object : MidiDevice {
+			override fun close() = Unit
+			override fun getDeviceInfo(): MidiDevice.Info? = null
+			override fun open() = Unit
+			override fun isOpen(): Boolean = false
+			override fun getMicrosecondPosition(): Long = 0L
+			override fun getMaxReceivers(): Int = 0
+			override fun getMaxTransmitters(): Int = 0
+			override fun getReceiver(): Receiver? = null
+			override fun getReceivers(): MutableList<Receiver>? = null
+			override fun getTransmitter(): Transmitter? = null
+			override fun getTransmitters(): MutableList<Transmitter>? = null
+		}
+
+		private val mockMidiControlPanel = object : MCUControlPanel(mockDevice, mockTransmitter, mockReceiver) {
 			val vpotControls = mutableMapOf<Int, MCUVPotControl>()
 			val vpotControlsId = mutableMapOf<Int, MCUVPotControl>()
 
@@ -44,12 +59,12 @@ class MidiActionSetTest : ApplicationTest() {
 			val buttonControls = mutableMapOf<Int, MCUButtonControl>()
 			val buttonControlsId = mutableMapOf<Int, MCUButtonControl>()
 
-			override fun getVPotControl(i: Int) = vpotControls.putIfAbsent(i, MCUVPotControl(0, dummyReceiver)).let { vpotControls[i]!! }
-			override fun getVPotControlById(i: Int) = vpotControlsId.putIfAbsent(i, MCUVPotControl(0, dummyReceiver)).let { vpotControlsId[i]!! }
+			override fun getVPotControl(i: Int) = vpotControls.putIfAbsent(i, MCUVPotControl(0, mockReceiver)).let { vpotControls[i]!! }
+			override fun getVPotControlById(i: Int) = vpotControlsId.putIfAbsent(i, MCUVPotControl(0, mockReceiver)).let { vpotControlsId[i]!! }
 			override fun getFaderControl(i: Int) = faderControls.putIfAbsent(i, MCUFaderControl()).let { faderControls[i]!! }
 			override fun getFaderControlById(i: Int) = faderControlsId.putIfAbsent(i, MCUFaderControl()).let { faderControlsId[i]!! }
-			override fun getButtonControl(i: Int) = buttonControls.putIfAbsent(i, MCUButtonControl(0, dummyReceiver)).let { buttonControls[i]!! }
-			override fun getButtonControlById(i: Int) = buttonControlsId.putIfAbsent(i, MCUButtonControl(0, dummyReceiver)).let { buttonControlsId[i]!! }
+			override fun getButtonControl(i: Int) = buttonControls.putIfAbsent(i, MCUButtonControl(0, mockReceiver)).let { buttonControls[i]!! }
+			override fun getButtonControlById(i: Int) = buttonControlsId.putIfAbsent(i, MCUButtonControl(0, mockReceiver)).let { buttonControlsId[i]!! }
 			override fun getNumVPotControls() = 8
 			override fun getNumButtonControls() = 26
 			override fun getNumFaderControls() = 1
@@ -66,18 +81,18 @@ class MidiActionSetTest : ApplicationTest() {
 
 	@AfterTest
 	fun resetControl() {
-		dummyDevice.vpotControls.clear()
-		dummyDevice.vpotControlsId.clear()
-		dummyDevice.faderControls.clear()
-		dummyDevice.faderControlsId.clear()
-		dummyDevice.buttonControls.clear()
-		dummyDevice.buttonControlsId.clear()
+		mockMidiControlPanel.vpotControls.clear()
+		mockMidiControlPanel.vpotControlsId.clear()
+		mockMidiControlPanel.faderControls.clear()
+		mockMidiControlPanel.faderControlsId.clear()
+		mockMidiControlPanel.buttonControls.clear()
+		mockMidiControlPanel.buttonControlsId.clear()
 	}
 
 	@Test
 	fun `absolute potentiometer`() {
 		var prevValue = -1
-		MidiActionSet("Abs Pot", dummyDevice, root) {
+		MidiActionSet("Abs Pot", mockMidiControlPanel, root) {
 			POTENTIOMETER_ABSOLUTE(0) {
 				min = -223
 				max = 223
@@ -88,15 +103,15 @@ class MidiActionSetTest : ApplicationTest() {
 			root.installActionSet(this)
 		}
 
-		dummyDevice.getVPotControl(0).value = -1000
+		mockMidiControlPanel.getVPotControl(0).value = -1000
 		WaitForAsyncUtils.waitForFxEvents()
 		assert(prevValue == -223)
 
-		dummyDevice.getVPotControl(0).value = 1000
+		mockMidiControlPanel.getVPotControl(0).value = 1000
 		WaitForAsyncUtils.waitForFxEvents()
 		assert(prevValue == 223)
 
-		dummyDevice.getVPotControl(1).value = 30
+		mockMidiControlPanel.getVPotControl(1).value = 30
 		WaitForAsyncUtils.waitForFxEvents()
 		assert(prevValue == 30)
 
@@ -105,7 +120,7 @@ class MidiActionSetTest : ApplicationTest() {
 	@Test
 	fun `relative potentiometer`() {
 		var prevValue = -1
-		MidiActionSet("Rel Pot", dummyDevice, root) {
+		MidiActionSet("Rel Pot", mockMidiControlPanel, root) {
 			POTENTIOMETER_RELATIVE(0) {
 				min = -223
 				max = 223
@@ -116,15 +131,15 @@ class MidiActionSetTest : ApplicationTest() {
 			root.installActionSet(this)
 		}
 
-		dummyDevice.getVPotControl(0).value = -1000
+		mockMidiControlPanel.getVPotControl(0).value = -1000
 		WaitForAsyncUtils.waitForFxEvents()
 		assert(prevValue == -7)
 
-		dummyDevice.getVPotControl(0).value = 1000
+		mockMidiControlPanel.getVPotControl(0).value = 1000
 		WaitForAsyncUtils.waitForFxEvents()
 		assert(prevValue == 7)
 
-		dummyDevice.getVPotControl(1).value = 3
+		mockMidiControlPanel.getVPotControl(1).value = 3
 		WaitForAsyncUtils.waitForFxEvents()
 		assert(prevValue == 3)
 	}
@@ -132,7 +147,7 @@ class MidiActionSetTest : ApplicationTest() {
 	@Test
 	fun `midi button`() {
 		var prevValue = Int.MIN_VALUE
-		MidiActionSet("Button", dummyDevice, root) {
+		MidiActionSet("Button", mockMidiControlPanel, root) {
 			MidiButtonEvent.BUTTON(0) { onAction { prevValue = it!!.value } }
 
 			MidiButtonEvent.BUTTON_PRESED(1) { onAction { prevValue = it!!.value } }
@@ -144,32 +159,32 @@ class MidiActionSetTest : ApplicationTest() {
 			root.installActionSet(this)
 		}
 
-		dummyDevice.getButtonControl(0).value = 10
+		mockMidiControlPanel.getButtonControl(0).value = 10
 		WaitForAsyncUtils.waitForFxEvents()
 		assert(prevValue == 10)
-		dummyDevice.getButtonControl(0).value = 0
+		mockMidiControlPanel.getButtonControl(0).value = 0
 		WaitForAsyncUtils.waitForFxEvents()
 		assert(prevValue == 0)
 
-		dummyDevice.getButtonControl(1).value = 100
+		mockMidiControlPanel.getButtonControl(1).value = 100
 		WaitForAsyncUtils.waitForFxEvents()
 		assert(prevValue == 100)
-		dummyDevice.getButtonControl(1).value = 0
+		mockMidiControlPanel.getButtonControl(1).value = 0
 		WaitForAsyncUtils.waitForFxEvents()
 		assert(prevValue == 100)
 
-		dummyDevice.getButtonControl(2).value = 50
+		mockMidiControlPanel.getButtonControl(2).value = 50
 		WaitForAsyncUtils.waitForFxEvents()
 		assert(prevValue == 100)
-		dummyDevice.getButtonControl(2).value = 0
+		mockMidiControlPanel.getButtonControl(2).value = 0
 		WaitForAsyncUtils.waitForFxEvents()
 		assert(prevValue == 0)
 
 
-		dummyDevice.getButtonControl(0).value = 50
+		mockMidiControlPanel.getButtonControl(0).value = 50
 		WaitForAsyncUtils.waitForFxEvents()
 		assert(prevValue == 50)
-		dummyDevice.getButtonControl(0).value = 0
+		mockMidiControlPanel.getButtonControl(0).value = 0
 		WaitForAsyncUtils.waitForFxEvents()
 		assert(prevValue == 0)
 	}
@@ -178,18 +193,18 @@ class MidiActionSetTest : ApplicationTest() {
 	@Test
 	fun `toggle button`() {
 		var prevValue = false
-		MidiActionSet("Toggle Button", dummyDevice, root) {
+		MidiActionSet("Toggle Button", mockMidiControlPanel, root) {
 			MidiToggleEvent.BUTTON_TOGGLE(0) { onAction { prevValue = it!!.isOn } }
 			root.installActionSet(this)
 		}
 
-		dummyDevice.getButtonControl(0).value = 10
+		mockMidiControlPanel.getButtonControl(0).value = 10
 		WaitForAsyncUtils.waitForFxEvents()
 		assert(prevValue)
-		dummyDevice.getButtonControl(0).value = 0
+		mockMidiControlPanel.getButtonControl(0).value = 0
 		WaitForAsyncUtils.waitForFxEvents()
 		assert(!prevValue)
-		dummyDevice.getButtonControl(0).value = 8
+		mockMidiControlPanel.getButtonControl(0).value = 8
 		WaitForAsyncUtils.waitForFxEvents()
 		assert(prevValue)
 	}
@@ -197,7 +212,7 @@ class MidiActionSetTest : ApplicationTest() {
 	@Test
 	fun `midi fader`() {
 		var prevValue = Int.MIN_VALUE
-		MidiActionSet("Fader", dummyDevice, root) {
+		MidiActionSet("Fader", mockMidiControlPanel, root) {
 			MidiFaderEvent.FADER(0) { onAction { prevValue = it!!.value } }
 			MidiFaderEvent.FADER(1) {
 				min = -100
@@ -207,34 +222,34 @@ class MidiActionSetTest : ApplicationTest() {
 			root.installActionSet(this)
 		}
 
-		dummyDevice.getFaderControl(0).value = 10
+		mockMidiControlPanel.getFaderControl(0).value = 10
 		WaitForAsyncUtils.waitForFxEvents()
 		assert(prevValue == 10)
-		dummyDevice.getFaderControl(0).value = 0
+		mockMidiControlPanel.getFaderControl(0).value = 0
 		WaitForAsyncUtils.waitForFxEvents()
 		assert(prevValue == 0)
-		dummyDevice.getFaderControl(0).value = 8
+		mockMidiControlPanel.getFaderControl(0).value = 8
 		WaitForAsyncUtils.waitForFxEvents()
 		assert(prevValue == 8)
 
 
-		dummyDevice.getFaderControl(1).value = (.5 * 127).toInt()
+		mockMidiControlPanel.getFaderControl(1).value = (.5 * 127).toInt()
 		WaitForAsyncUtils.waitForFxEvents()
 		assertEquals(0, prevValue)
 
-		dummyDevice.getFaderControl(1).value = 127
+		mockMidiControlPanel.getFaderControl(1).value = 127
 		WaitForAsyncUtils.waitForFxEvents()
 		assertEquals(100, prevValue)
 
-		dummyDevice.getFaderControl(1).value = 0
+		mockMidiControlPanel.getFaderControl(1).value = 0
 		WaitForAsyncUtils.waitForFxEvents()
 		assertEquals(-100, prevValue)
 
-		dummyDevice.getFaderControl(1).value = 1270
+		mockMidiControlPanel.getFaderControl(1).value = 1270
 		WaitForAsyncUtils.waitForFxEvents()
 		assertEquals(100, prevValue)
 
-		dummyDevice.getFaderControl(1).value = -1
+		mockMidiControlPanel.getFaderControl(1).value = -1
 		WaitForAsyncUtils.waitForFxEvents()
 		assertEquals(-100, prevValue)
 	}
