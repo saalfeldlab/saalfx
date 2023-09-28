@@ -3,11 +3,7 @@
  */
 package org.janelia.saalfeldlab.control.mcu;
 
-import javax.sound.midi.InvalidMidiDataException;
-import javax.sound.midi.MidiMessage;
-import javax.sound.midi.Receiver;
-import javax.sound.midi.ShortMessage;
-import javax.sound.midi.Transmitter;
+import javax.sound.midi.*;
 
 /**
  * @author Stephan Saalfeld &lt;saalfelds@janelia.hhmi.org&gt;
@@ -18,11 +14,13 @@ public abstract class MCUControlPanel implements Receiver {
 	private static final int STATUS_KEY = 0x90;
 	private static final int STATUS_FADER = 0xe8;
 
+	private final MidiDevice device;
 	private final Transmitter trans;
 	private final Receiver rec;
 
-	public MCUControlPanel(final Transmitter trans, final Receiver rec) {
+	public MCUControlPanel(final MidiDevice device,  final Transmitter trans, final Receiver rec) {
 
+		this.device = device;
 		this.trans = trans;
 		this.rec = rec;
 		trans.setReceiver(this);
@@ -97,5 +95,6 @@ public abstract class MCUControlPanel implements Receiver {
 
 		trans.close();
 		rec.close();
+		device.close();
 	}
 }

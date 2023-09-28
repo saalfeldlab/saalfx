@@ -116,8 +116,27 @@ class WritableSubclassDelegate<T, K : T>(private val obs: WritableValue<T?>, pri
 	}
 }
 
-fun <T> ObservableValue<T>.addTriggeredListener(triggerWith : T = value, listener : (ObservableValue<out T>?, T, T) -> Unit) {
-	val changeListener = ChangeListener<T> { observable, oldValue, newValue -> listener(observable, oldValue, newValue) }
-	addListener(changeListener)
-	listener(this, value, triggerWith)
+fun interface SelfRefrentialListener<T> : ChangeListener<T> {
+
+	override fun changed(observable: ObservableValue<out T>?, oldValue: T, newValue: T) {
+		changedWithSelf(observable, oldValue, newValue)
+	}
+
+	fun ChangeListener<T>.changedWithSelf(observable: ObservableValue<out T>?, oldValue: T, newValue: T)
+}
+
+fun <T> ObservableValue<T>.addWithListener(triggerWith : T? = value, listener: SelfRefrentialListener<T>) {
+	this.addListener(listener)
+	triggerWith?.let {
+		listener.changed(this, value, value)
+	}
+}
+
+fun <T> ObservableValue<T>.addTriggeredWithListener(triggerWith : T = value, listener: SelfRefrentialListener<T>) {
+	addWithListener(triggerWith, listener)
+}
+
+fun <T> ObservableValue<T>.addTriggeredListener(triggerWith: T = value, listener: ChangeListener<T>) {
+	this.addListener(listener)
+	listener.changed(this, value, value)
 }
