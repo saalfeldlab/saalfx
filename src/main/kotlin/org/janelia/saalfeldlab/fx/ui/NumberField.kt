@@ -62,13 +62,13 @@ class NumberField<P : Property<Number>>(
 
 	companion object {
 
-		fun registStyleSheet(styleable : Scene) {
+		fun registerStyleSheet(styleable : Scene) {
 			NumberField.javaClass.getResource("number_field.css")?.toExternalForm()?.let { css ->
 				styleable.stylesheets.add(css)
 			}
 		}
 
-		fun registStyleSheet(styleable : Parent) {
+		fun registerStyleSheet(styleable : Parent) {
 			NumberField.javaClass.getResource("number_field.css")?.toExternalForm()?.let { css ->
 				styleable.stylesheets.add(css)
 			}

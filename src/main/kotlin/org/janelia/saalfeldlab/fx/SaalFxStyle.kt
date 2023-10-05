@@ -7,11 +7,11 @@ import org.janelia.saalfeldlab.fx.ui.NumberField
 
 object SaalFxStyle {
 	fun registerStylesheets(styleable : Scene) {
-		NumberField.registStyleSheet(styleable)
+		NumberField.registerStyleSheet(styleable)
 		MatchSelection.registStyleSheet(styleable)
 	}
 	fun registerStylesheets(styleable : Parent) {
-		NumberField.registStyleSheet(styleable)
+		NumberField.registerStyleSheet(styleable)
 		MatchSelection.registStyleSheet(styleable)
 	}
 }
