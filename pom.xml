@@ -10,7 +10,7 @@
 
 	<groupId>org.janelia.saalfeldlab</groupId>
 	<artifactId>saalfx</artifactId>
-	<version>0.8.1-SNAPSHOT</version>
+	<version>1.0.0-SNAPSHOT</version>
 
 	<name>Saal FX</name>
 	<description>Saalfeld lab JavaFX tools and extensions</description>

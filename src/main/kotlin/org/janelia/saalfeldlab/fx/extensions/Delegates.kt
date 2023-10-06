@@ -20,6 +20,20 @@ import kotlin.reflect.KProperty
  */
 class LazyForeignMap<K, V>(val foreignKeyProvider: () -> K, val valueGenerator: (K) -> V) : MutableMap<K, V> by HashMap() {
 
+	private var mapStateHandler: ((MutableMap<K, V>) -> Unit)? = null
+
+	/**
+	 * Callback to allow for modification of the current backing map just before the new value is generated and added to it.
+	 * Useful to clear the map if desireable, for example.
+	 *
+	 * @param handleMapState callback to run with the backing map just before a new key/value is added.
+	 * @return this, so you can use this builder-style and still assign as a delegate
+	 */
+	fun beforeMapChange(handleMapState : (MutableMap<K, V>) -> Unit) : LazyForeignMap<K, V> {
+		mapStateHandler = handleMapState
+		return this
+	}
+
 	operator fun getValue(t: Any, property: KProperty<*>): V {
 		val foreignKey = foreignKeyProvider()
 		return getOrPut(foreignKey) { valueGenerator(foreignKey) }
@@ -42,27 +56,45 @@ class LazyForeignMap<K, V>(val foreignKeyProvider: () -> K, val valueGenerator: 
  * @constructor This is intended to by constructed via delegation e.g `val test by LazyForeignValue( this::key) { it.getValue }`
  */
 
-class LazyForeignValue<K, V>(val foreignKeyProvider: () -> K, val valueGenerator: (K) -> V) : MutableMap<K, V> by HashMap() {
-	//TODO Caleb: allow the valueGenerator to operate on (K, V?) -> V where V? is the previous value that was stored.
-	// Currently we throw it away, but it may require some cleanup, and there is currently no way to trigger that
-	//
-	//  ALTERNATIVE: an optional middle parameter for [cleanupCallback] which operates on (V?) -> Unit if there is an old value. Not sure which is better.
+class LazyForeignValue<K, V>(val foreignKeyProvider: () -> K, val valueGenerator: (K) -> V) {
+
+	private var currentKey: K? = null
+	private var currentValue: V? = null
+
+	private var oldValueHandler : ((V?) -> Unit)? = null
+
+	/**
+	 * Callback to handle the old value just before the new value is generated.
+	 *
+	 * @param handleOldValue callback to run with the provided soon-to-be old value
+	 * @return this, so you can use this builder-style and still assign as a delegate
+	 */
+	fun beforeValueChange(handleOldValue : (V?) -> Unit): LazyForeignValue<K, V> {
+		oldValueHandler = handleOldValue
+		return this
+	}
 
 	operator fun getValue(t: Any?, property: KProperty<*>): V {
 		val foreignKey = foreignKeyProvider()
-		return getOrPut(foreignKey) {
-			/* We only want a single value, so clear before we add this new one */
-			clear()
-			valueGenerator(foreignKey)
+		return if (foreignKey == currentKey) currentValue!!
+		else {
+			currentKey = foreignKey
+			val oldValue = currentValue
+			currentValue = valueGenerator(currentKey!!)
+			oldValueHandler?.invoke(oldValue)
+			currentValue!!
 		}
 	}
 
 	operator fun getValue(t: Nothing?, property: KProperty<*>): V {
 		val foreignKey = foreignKeyProvider()
-		return getOrPut(foreignKey) {
-			/* We only want a single value, so clear before we add this new one */
-			clear()
-			valueGenerator(foreignKey)
+		return if (foreignKey == currentKey) currentValue!!
+		else {
+			currentKey = foreignKey
+			val oldValue = currentValue
+			currentValue = valueGenerator(currentKey!!)
+			oldValueHandler?.invoke(oldValue)
+			currentValue!!
 		}
 	}
 }
