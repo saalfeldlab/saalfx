@@ -64,7 +64,7 @@ class ResizeOnLeftSide @JvmOverloads constructor(
 	private val mouseDragged = DragActionSet("resize") {
 		verify { isCurrentlyWithinMarginOfBorder }
 
-		updateXY = false
+		relative = false
 
 		dragDetectedAction.filter = true
 		dragAction.filter = true
