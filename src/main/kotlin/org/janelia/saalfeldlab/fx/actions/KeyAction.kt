@@ -24,17 +24,21 @@ class KeyAction(eventType: EventType<KeyEvent>) : Action<KeyEvent>(eventType) {
 	 * @param keyBindings the map to query the key combinations for the given [keyName]
 	 * @param keyName key used to find the desired key combination in the [keyBindings]
 	 */
-	fun keyMatchesBinding(keyBindings: NamedKeyCombination.CombinationMap, keyName: String) {
+	@JvmOverloads
+	fun keyMatchesBinding(keyBindings: NamedKeyCombination.CombinationMap, keyName: String, keysExclusive: Boolean = true) {
 		if (name == null) name = keyName
 		ignoreKeys()
-		verify { event ->
-			/* always valid here if the event is null; it indicates we are triggering the action programatically, not via an Event */
-			event?.let {
-				keyBindings.matches(keyName, it).also { match ->
-					if (!match) logger.trace("key did not match bindings")
-				}
-			} ?: true
-		}
+		if (eventType == KeyEvent.KEY_RELEASED)
+			keysReleased(*keyBindings[keyName]!!.keyCodes.toTypedArray())
+		else
+			verify { event ->
+				/* always valid here if the event is null; it indicates we are triggering the action programatically, not via an Event */
+				event?.let {
+					keyBindings.matches(keyName, it, keysExclusive).also { match ->
+						if (!match) logger.trace("key did not match bindings")
+					}
+				} ?: true
+			}
 	}
 
 	/**
@@ -86,8 +90,8 @@ class KeyAction(eventType: EventType<KeyEvent>) : Action<KeyEvent>(eventType) {
 		 * @receiver the [EventType] to trigger the [KeyAction] on
 		 */
 		@JvmSynthetic
-		fun <T : EventType<KeyEvent>> T.action(keyBindings: NamedKeyCombination.CombinationMap, keys: String, action: Action<KeyEvent>.() -> Unit) = KeyAction(this).also {
-			it.keyMatchesBinding(keyBindings, keys)
+		fun <T : EventType<KeyEvent>> T.action(keyBindings: NamedKeyCombination.CombinationMap, keys: String, keysExclusive: Boolean = true, action: Action<KeyEvent>.() -> Unit) = KeyAction(this).also {
+			it.keyMatchesBinding(keyBindings, keys, keysExclusive)
 			it.action()
 		}
 
@@ -101,13 +105,14 @@ class KeyAction(eventType: EventType<KeyEvent>) : Action<KeyEvent>(eventType) {
 		 * @receiver the [EventType] to trigger the [KeyAction] on
 		 */
 		@JvmSynthetic
-		fun <T : EventType<KeyEvent>> T.onAction(keyBindings: NamedKeyCombination.CombinationMap, keys: String, onAction: (KeyEvent?) -> Unit) = KeyAction(this).also { action ->
-			action.keyMatchesBinding(keyBindings, keys)
+		fun <T : EventType<KeyEvent>> T.onAction(keyBindings: NamedKeyCombination.CombinationMap, keys: String, keysExclusive: Boolean = true, onAction: (KeyEvent?) -> Unit) = KeyAction(this).also { action ->
+			action.keyMatchesBinding(keyBindings, keys, keysExclusive)
 			action.onAction { onAction(it) }
 		}
 
 		@JvmStatic
-		fun <T : EventType<KeyEvent>> T.onAction(keyBindings: NamedKeyCombination.CombinationMap, keys: String, onAction: Consumer<KeyEvent?>) =
-			onAction(keyBindings, keys) { onAction.accept(it) }
+		@JvmOverloads
+		fun <T : EventType<KeyEvent>> T.onAction(keyBindings: NamedKeyCombination.CombinationMap, keys: String, keysExclusive: Boolean = true, onAction: Consumer<KeyEvent?>) =
+			onAction(keyBindings, keys, keysExclusive) { onAction.accept(it) }
 	}
 }
