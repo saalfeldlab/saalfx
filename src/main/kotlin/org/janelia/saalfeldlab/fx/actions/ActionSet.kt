@@ -108,10 +108,15 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 	 * @return the created and configured [Action]
 	 */
 	fun <E : Event> action(eventType: EventType<E>, withAction: Action<E>.() -> Unit = {}): Action<E> {
-		return Action(eventType)
-			.also { it.keyTracker = this.keyTracker }
-			.apply(withAction)
-			.also { addAction(it) }
+		return Action(eventType).apply {
+			keyTracker = this@ActionSet.keyTracker
+
+			/* set the default name */
+			name = this@ActionSet.name
+
+			withAction()
+
+		}.also { addAction(it) }
 	}
 
 	/**
@@ -160,10 +165,12 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 	 */
 	@JvmSynthetic
 	fun keyAction(eventType: EventType<KeyEvent>, withAction: KeyAction.() -> Unit = {}): KeyAction {
-		return KeyAction(eventType)
-			.also { it.keyTracker = this.keyTracker }
-			.apply(withAction)
-			.also { action -> addAction(action) }
+		return KeyAction(eventType).apply {
+			keyTracker = this@ActionSet.keyTracker
+			/* set the default name */
+			name = this@ActionSet.name
+			withAction()
+		}.also { addAction(it) }
 	}
 
 	/**
@@ -175,18 +182,19 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 	 */
 	operator fun EventType<KeyEvent>.invoke(withKeys: KeyCodeCombination, withAction: KeyAction.() -> Unit): KeyAction {
 		/* create the Action*/
-		val keyAction = KeyAction(this)
-			.also { it.keyTracker = this@ActionSet.keyTracker }
+		return KeyAction(this).apply {
+			keyTracker = this@ActionSet.keyTracker
 
-		/* configure based on the withKeys paramters*/
-		keyAction.ignoreKeys()
-		keyAction.verify { withKeys.match(it) }
+			/* set the default name */
+			name = this@ActionSet.name
 
-		/* configure via the callback*/
-		keyAction.apply(withAction)
-		addAction(keyAction)
+			/* configure based on the withKeys paramters*/
+			ignoreKeys()
+			verify { withKeys.match(it) }
 
-		return keyAction
+			/* configure via the callback*/
+			withAction()
+		}.also { addAction(it)}
 	}
 
 	/**
@@ -199,24 +207,23 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 	operator fun EventType<KeyEvent>.invoke(vararg withKeys: KeyCode, withAction: KeyAction.() -> Unit): KeyAction {
 
 		/* create the Action*/
-		val keyAction = KeyAction(this)
-			.also { it.keyTracker = this@ActionSet.keyTracker }
+		return KeyAction(this).apply {
+			keyTracker = this@ActionSet.keyTracker
 
-		/* configure based on the withKeys paramters*/
-		keyAction.apply {
-			if (this.eventType == KeyEvent.KEY_RELEASED) {
+			/* set the default name */
+			name = this@ActionSet.name
+
+			/* configure based on the withKeys paramters*/
+			if (eventType == KeyEvent.KEY_RELEASED) {
 				ignoreKeys()
 				keysReleased(*withKeys)
 			} else if (withKeys.isNotEmpty()) {
 				keysDown(*withKeys)
 			}
-		}
 
-		/* configure via the callback*/
-		keyAction.apply(withAction)
-		addAction(keyAction)
-
-		return keyAction
+			/* configure via the callback*/
+			withAction()
+		}.also { addAction(it) }
 	}
 
 	/**
@@ -227,20 +234,20 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 	 * @param withAction [KeyAction] configuration callback
 	 * @return the [KeyAction]
 	 */
-	operator fun EventType<KeyEvent>.invoke(keyBindings: NamedKeyCombination.CombinationMap, keyName: String, withAction: KeyAction.() -> Unit): KeyAction {
+	operator fun EventType<KeyEvent>.invoke(keyBindings: NamedKeyCombination.CombinationMap, keyName: String, keysExclusive: Boolean = false, withAction: KeyAction.() -> Unit): KeyAction {
+
 
 		/* create the Action*/
-		val keyAction = KeyAction(this)
-			.also { it.keyTracker = this@ActionSet.keyTracker }
+		return KeyAction(this).apply {
+			keyTracker = this@ActionSet.keyTracker
+			name = "${this@ActionSet.name}.$keyName"
 
-		/* configure based on the keyBinding paramters*/
-		keyAction.keyMatchesBinding(keyBindings, keyName)
+			/* configure based on the withKeys paramters*/
+			keyMatchesBinding(keyBindings, keyName, keysExclusive)
 
-		/* configure via the callback*/
-		keyAction.apply(withAction)
-		addAction(keyAction)
-
-		return keyAction
+			/* configure via the callback*/
+			withAction()
+		}.also { addAction(it) }
 	}
 
 	/**
@@ -264,11 +271,13 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 	): MouseAction {
 
 		/* create the Action*/
-		val mouseAction = MouseAction(this as EventType<MouseEvent>)
-			.also { it.keyTracker = this@ActionSet.keyTracker }
+		return MouseAction(this as EventType<MouseEvent>).apply {
+			keyTracker = this@ActionSet.keyTracker
 
-		/* copnfigure based on the parameters */
-		mouseAction.apply {
+			/* set the default name */
+			name = this@ActionSet.name
+
+			/* configure based on the parameters */
 			mouseButtonTrigger?.let {
 				/* default to exclusive if pressed, and NOT exclusive if released*/
 				verifyButtonTrigger(mouseButtonTrigger, released = onRelease, exclusive = !onRelease)
@@ -278,14 +287,9 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 				keysDown(*it, exclusive = keysExclusive)
 			} ?: ignoreKeys()
 
-		}
-
-		/* configure based on the callback, and add to ActionSet */
-		mouseAction
-			.apply(withAction)
-			.also { addAction(it) }
-
-		return mouseAction
+			/* configure based on the callback */
+			withAction()
+		}.also { addAction(it)}
 	}
 
 	/**
@@ -360,10 +364,14 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 	 */
 	@JvmSynthetic
 	fun mouseAction(eventType: EventType<MouseEvent>, withAction: MouseAction.() -> Unit = {}): MouseAction {
-		return MouseAction(eventType)
-			.also { it.keyTracker = this.keyTracker }
-			.apply(withAction)
-			.also { addAction(it) }
+		return MouseAction(eventType).apply {
+			keyTracker = this@ActionSet.keyTracker
+
+			/* set the default name */
+			name = this@ActionSet.name
+
+			withAction()
+		}.also { addAction(it) }
 	}
 
 
