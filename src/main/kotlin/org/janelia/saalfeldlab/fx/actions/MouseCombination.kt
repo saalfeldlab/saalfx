@@ -15,7 +15,7 @@ class MouseCombination private constructor(keyCombination: KeyCombination) {
 
 	constructor(keyCode: KeyCode, vararg modifier: KeyCombination.Modifier) : this(KeyCodeCombination(keyCode, *modifier))
 
-	constructor(vararg modifier: KeyCombination.Modifier) : this(OnlyModifierKeyCombination(*modifier))
+	constructor(vararg modifier: KeyCombination.Modifier) : this(NamedKeyCombination.OnlyModifierKeyCombination(*modifier))
 
 	private val _keyCombination: ObjectProperty<KeyCombination> = SimpleObjectProperty(keyCombination)
 
@@ -24,8 +24,8 @@ class MouseCombination private constructor(keyCombination: KeyCombination) {
 		set(keyCombination) = setKeyCombinationChecked(keyCombination)
 
 	private fun setKeyCombinationChecked(keyCombination: KeyCombination) {
-		require(keyCombination is KeyCodeCombination || keyCombination is OnlyModifierKeyCombination) {
-			"Currently only ${KeyCodeCombination::class} and ${OnlyModifierKeyCombination::class} are supported but got $keyCombination."
+		require(keyCombination is KeyCodeCombination || keyCombination is NamedKeyCombination.OnlyModifierKeyCombination) {
+			"Currently only ${KeyCodeCombination::class} and ${NamedKeyCombination.OnlyModifierKeyCombination::class} are supported but got $keyCombination."
 		}
 		_keyCombination.value = keyCombination
 	}
@@ -56,8 +56,6 @@ class MouseCombination private constructor(keyCombination: KeyCombination) {
 
 	val deepCopy: MouseCombination
 		get() = MouseCombination(keyCombination)
-
-	class OnlyModifierKeyCombination(vararg modifier: Modifier) : KeyCombination(*modifier)
 
 	companion object {
 		private val LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
