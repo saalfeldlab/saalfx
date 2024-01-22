@@ -73,7 +73,7 @@ class ResizeHorizontally @JvmOverloads constructor(
 	}
 
 	private val mouseDragged = DragActionSet("resize horizontally") {
-		updateXY = false
+		relative = false
 		verify { canResize }
 		onDrag {
 			val dx = it.x - currentPosition

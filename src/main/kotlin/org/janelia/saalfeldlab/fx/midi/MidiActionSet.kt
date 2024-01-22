@@ -46,33 +46,35 @@ open class MidiActionSet(name: String, private val device: MCUControlPanel, priv
 
 	@JvmSynthetic
 	fun potentiometerAction(eventType: EventType<MidiPotentiometerEvent>, handle: Int, withAction: PotentiometerAction.() -> Unit = {}): PotentiometerAction {
-		return PotentiometerAction(eventType, device, handle, withAction).also { addAction(it) }
+		return PotentiometerAction(eventType, device, handle, name, withAction).also { addAction(it) }
 	}
 
 	@JvmSynthetic
 	fun toggleAction(eventType: EventType<MidiToggleEvent>, handle: Int, withAction: ToggleAction.() -> Unit = {}): ToggleAction {
-		return ToggleAction(eventType, device, handle, withAction).also { addAction(it) }
+		return ToggleAction(eventType, device, handle, name, withAction).also { addAction(it) }
 	}
 
 	@JvmSynthetic
 	fun buttonAction(eventType: EventType<MidiButtonEvent>, handle: Int, withAction: ButtonAction.() -> Unit = {}): ButtonAction {
-		return ButtonAction(eventType, device, handle, withAction).also { addAction(it) }
+		return ButtonAction(eventType, device, handle, name, withAction).also { addAction(it) }
 	}
 
 	@JvmSynthetic
 	fun faderAction(eventType: EventType<MidiFaderEvent>, handle: Int, withAction: FaderAction.() -> Unit = {}): FaderAction {
-		return FaderAction(eventType, device, handle, withAction).also { addAction(it) }
+		return FaderAction(eventType, device, handle, name, withAction).also { addAction(it) }
 	}
 
 }
 
-abstract class MidiAction<E : FxMidiEvent>(eventType: EventType<E>, val device: MCUControlPanel, val handle: Int, withAction: MidiAction<E>.() -> Unit = {}) : Action<E>(eventType) {
+abstract class MidiAction<E : FxMidiEvent>(eventType: EventType<E>, val device: MCUControlPanel, val handle: Int, name : String? = null, withAction: MidiAction<E>.() -> Unit = {}) : Action<E>(eventType) {
 	abstract val control: MCUControl
 	protected abstract var eventFiringListener: IntConsumer?
 	var supressEvents = false
 
 	init {
 		ignoreKeys()
+		/* set the default name*/
+		name?.let { this.name = it }
 		apply(withAction)
 	}
 
@@ -98,7 +100,7 @@ abstract class MidiAction<E : FxMidiEvent>(eventType: EventType<E>, val device: 
 	}
 }
 
-class PotentiometerAction(eventType: EventType<MidiPotentiometerEvent>, device: MCUControlPanel, handle: Int, withAction: PotentiometerAction.() -> Unit = {}) : MidiAction<MidiPotentiometerEvent>(eventType, device, handle) {
+class PotentiometerAction(eventType: EventType<MidiPotentiometerEvent>, device: MCUControlPanel, handle: Int, name : String? = null,  withAction: PotentiometerAction.() -> Unit = {}) : MidiAction<MidiPotentiometerEvent>(eventType, device, handle, name) {
 
 	override val control: MCUVPotControl = device.getVPotControl(handle)
 	override var eventFiringListener: IntConsumer? = null
@@ -155,7 +157,7 @@ class PotentiometerAction(eventType: EventType<MidiPotentiometerEvent>, device: 
 	}
 }
 
-class ButtonAction(eventType: EventType<MidiButtonEvent>, device: MCUControlPanel, handle: Int, withAction: ButtonAction.() -> Unit = {}) : MidiAction<MidiButtonEvent>(eventType, device, handle) {
+class ButtonAction(eventType: EventType<MidiButtonEvent>, device: MCUControlPanel, handle: Int, name : String? = null,withAction: ButtonAction.() -> Unit = {}) : MidiAction<MidiButtonEvent>(eventType, device, handle, name) {
 
 	override val control: MCUButtonControl = device.getButtonControl(handle)
 	override var eventFiringListener: IntConsumer? = null
@@ -186,7 +188,7 @@ class ButtonAction(eventType: EventType<MidiButtonEvent>, device: MCUControlPane
 	}
 }
 
-class ToggleAction(eventType: EventType<MidiToggleEvent>, device: MCUControlPanel, handle: Int, withAction: ToggleAction.() -> Unit = {}) : MidiAction<MidiToggleEvent>(eventType, device, handle) {
+class ToggleAction(eventType: EventType<MidiToggleEvent>, device: MCUControlPanel, handle: Int, name : String? = null,  withAction: ToggleAction.() -> Unit = {}) : MidiAction<MidiToggleEvent>(eventType, device, handle, name) {
 
 	override val control: MCUButtonControl = device.getButtonControl(handle)
 	override var eventFiringListener: IntConsumer? = null
@@ -218,7 +220,7 @@ class ToggleAction(eventType: EventType<MidiToggleEvent>, device: MCUControlPane
 
 }
 
-class FaderAction(eventType: EventType<MidiFaderEvent>, device: MCUControlPanel, handle: Int, withAction: FaderAction.() -> Unit = {}) : MidiAction<MidiFaderEvent>(eventType, device, handle) {
+class FaderAction(eventType: EventType<MidiFaderEvent>, device: MCUControlPanel, handle: Int, name : String? = null, withAction: FaderAction.() -> Unit = {}) : MidiAction<MidiFaderEvent>(eventType, device, handle, name) {
 
 	override val control: MCUFaderControl = device.getFaderControl(handle)
 	override var eventFiringListener: IntConsumer? = null

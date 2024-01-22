@@ -20,16 +20,26 @@ import java.util.function.Consumer
  *
  * @param name of the [DragActionSet];
  * @param keyTracker to provide the key tracker to track the key state
- * @param filter to apply before triggering a drag event (Only [DRAG_DETECTED] and [MOUSE_DRAGGED] are drag events)
+ * @param filter to set drag actions as filters
+ * @param consumeMouseClicked event generated when releasing a drag.
+ *  If a drag begins and ends on the same node, it triggers a MOUSE_CLICKED event, regardless of how far the mouse
+ *  travelled in between MOUSE_PRESSED and MOUSE_RELEASED. If [consumeMouseClicked] is set to true, then a
+ *  MOUSE_CLICKED action listener with consume the resulting MOUSE_CLICKED as a filter prior.
  * @param apply configuration callback for the created [DragActionSet]
+ * 	var consumeMouseClicked = consumeMouseClicked
  */
-open class DragActionSet @JvmOverloads constructor(name: String, keyTracker: () -> KeyTracker? = { null }, filter: Boolean = true, apply: (DragActionSet.() -> Unit)? = null) : ActionSet(name, keyTracker) {
+open class DragActionSet @JvmOverloads constructor(
+	name: String,
+	keyTracker: () -> KeyTracker? = { null },
+	filter: Boolean = true,
+	consumeMouseClicked: Boolean = false,
+	apply: (DragActionSet.() -> Unit)? = null) : ActionSet(name, keyTracker) {
 
 	/**
 	 * [DRAG_DETECTED] [Action]. Can be access for further configuration
 	 */
 	val dragDetectedAction = DRAG_DETECTED {
-		this.name = "${this@DragActionSet.name} (drag detected)"
+		this.name = "${this@DragActionSet.name}.drag detected"
 		this.filter = filter
 		verifyEventNotNull()
 	}
@@ -38,7 +48,7 @@ open class DragActionSet @JvmOverloads constructor(name: String, keyTracker: () 
 	 * [MOUSE_DRAGGED] [Action]. Can be access for further configuration
 	 */
 	val dragAction = MOUSE_DRAGGED {
-		this.name = "${this@DragActionSet.name} (drag)"
+		this.name = "${this@DragActionSet.name}.drag"
 		this.filter = filter
 		verifyEventNotNull()
 		verify { isDragging }
@@ -48,7 +58,7 @@ open class DragActionSet @JvmOverloads constructor(name: String, keyTracker: () 
 	 * [MOUSE_RELEASED] [Action]. Can be access for further configuration
 	 */
 	val dragReleaseAction = MOUSE_RELEASED {
-		this.name = "${this@DragActionSet.name} (drag released)"
+		this.name = "${this@DragActionSet.name}.drag released"
 		this.filter = filter
 		verifyEventNotNull()
 		verify { isDragging }
@@ -65,9 +75,10 @@ open class DragActionSet @JvmOverloads constructor(name: String, keyTracker: () 
 	var startY = 0.0
 
 	/**
-	 * if true, [startX],[startY] will be updated when [MOUSE_DRAGGED]. false by default
+	 * if true, [startX],[startY] will be updated when [MOUSE_DRAGGED].
+	 * if fals, [startX],[startY] are always the position of the MOUSE_PRESSED event that triggered the drag event.
 	 */
-	var updateXY = false
+	var relative = false
 
 	private val readOnlyIsDraggingWrapper = ReadOnlyBooleanWrapper()
 
@@ -82,11 +93,35 @@ open class DragActionSet @JvmOverloads constructor(name: String, keyTracker: () 
 	 */
 	val isDragging: Boolean by readOnlyIsDraggingWrapper.readOnlyProperty.nonnullVal()
 
+	private var nextClickFromDragRelease = false
+
 	init {
+		MOUSE_PRESSED {
+			this.name = "${this@DragActionSet.name}.start position for drag threshold"
+			consume = false
+			verifyEventNotNull()
+			verify("start position updated only until the drag is detected") {!isDragging }
+			onAction {
+				if (!relative) {
+					startX = it!!.x
+					startY = it.y
+				}
+			}
+		}
 		/* Initialize with empty lambda, so only drag state updates occur */
 		onDragDetected { }
 		onDrag { }
 		onDragReleased { }
+		if (consumeMouseClicked) {
+			MOUSE_CLICKED {
+				this.name = "${this@DragActionSet.name}.DragActionSet Mouse Release Consumer"
+				this.filter = true
+				onAction {
+					consume = nextClickFromDragRelease
+					nextClickFromDragRelease = false
+				}
+			}
+		}
 		apply?.let { it() }
 	}
 
@@ -135,6 +170,7 @@ open class DragActionSet @JvmOverloads constructor(name: String, keyTracker: () 
 			onAction {
 				endDragState()
 				onDragReleased(it!!)
+				nextClickFromDragRelease = true
 			}
 		}
 	}
@@ -152,13 +188,12 @@ open class DragActionSet @JvmOverloads constructor(name: String, keyTracker: () 
 	}
 
 	private fun initDragState(it: MouseEvent) {
-		startX = it.x
-		startY = it.y
 		_isDragging = true
+		updateDragState(it)
 	}
 
 	private fun updateDragState(it: MouseEvent) {
-		if (updateXY) {
+		if (relative) {
 			startX = it.x
 			startY = it.y
 		}

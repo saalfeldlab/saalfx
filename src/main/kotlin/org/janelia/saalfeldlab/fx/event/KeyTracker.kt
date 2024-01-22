@@ -44,6 +44,7 @@ class KeyTracker {
 	private val actions by lazy {
 		ActionSet("Key Tracker", { this }) {
 			KEY_PRESSED {
+				name = "key-pressed"
 				ignoreKeys()
 				filter = true
 				consume = false
@@ -51,6 +52,7 @@ class KeyTracker {
 				onAction { addKey(it!!.code) }
 			}
 			KEY_RELEASED {
+				name = "key-released"
 				ignoreKeys()
 				filter = true
 				consume = false

@@ -74,7 +74,9 @@ import java.util.function.Consumer
 open class Action<E : Event>(val eventType: EventType<E>) {
 
 	val logger: Logger by lazy {
-		LoggerFactory.getLogger(name ?: this.toString())
+		val simpleName = this::class.simpleName?.let { ".$it" } ?: ""
+		val name = ".${name ?: "event-${eventType.name}"}"
+		LoggerFactory.getLogger("saalfx.action$simpleName$name")
 	}
 
 	/**
@@ -178,7 +180,7 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 			when {
 				keysDown!!.isEmpty() && !keysExclusive -> true
 				keysDown!!.isEmpty() -> noKeysActive().also { if (!it) logger.trace("expected no keys, but some were down") }
-				keysExclusive -> areOnlyTheseKeysDown(*keysDown!!.toTypedArray()).also { if (!it) logger.trace("expected only these keys: ${keysDown}, but but active keys were: (${getActiveKeyCodes(true)}") }
+				keysExclusive -> areOnlyTheseKeysDown(*keysDown!!.toTypedArray()).also { if (!it) logger.trace("expected only these keys: ${keysDown}, but active keys were: (${getActiveKeyCodes(true)}") }
 				else -> areKeysDown(*keysDown!!.toTypedArray()).also { if (!it) logger.trace("expected keys: $keysDown, but some were not down") }
 			}
 		} ?: let {
@@ -303,12 +305,13 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 				/* isValid(event) will only be true if event is E */
 				action(event)
 			} catch (e: Exception) {
+				logger.debug("Exception caught: ${e.message}")
 				exceptionHandler?.invoke(e) ?: throw e
 			}
 			if (consume) {
 				event?.consume()
 			}
-			logger.trace("$name completed successfully")
+			logger.debug("completed successfully")
 			true
 		} else {
 			if (!isConsumed) {
