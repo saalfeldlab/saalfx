@@ -45,7 +45,7 @@
 		<scijava.jvm.version>11</scijava.jvm.version>
 
 		<!-- JavaFx-->
-		<javafx.version>18.0.1</javafx.version>
+		<javafx.version>21.0.2</javafx.version>
 		<testfx.version>4.0.16-alpha</testfx.version>
 
 		<dokka.version>1.4.30</dokka.version>
