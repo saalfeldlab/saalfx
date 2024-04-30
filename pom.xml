@@ -10,7 +10,7 @@
 
 	<groupId>org.janelia.saalfeldlab</groupId>
 	<artifactId>saalfx</artifactId>
-	<version>1.2.0-SNAPSHOT</version>
+	<version>1.2.0</version>
 
 	<name>Saal FX</name>
 	<description>Saalfeld lab JavaFX tools and extensions</description>
@@ -110,7 +110,7 @@
 	<scm>
 		<connection>scm:git:git://github.com/saalfeldlab/saalfx</connection>
 		<developerConnection>scm:git:git@github.com:saalfeldlab/saalfx.git</developerConnection>
-		<tag>HEAD</tag>
+		<tag>saalfx-1.2.0</tag>
 		<url>https://github.com/saalfeldlab/saalfx</url>
 	</scm>
 
