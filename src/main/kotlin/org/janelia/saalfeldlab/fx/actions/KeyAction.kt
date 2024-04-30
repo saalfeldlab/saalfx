@@ -26,18 +26,33 @@ class KeyAction(eventType: EventType<KeyEvent>) : Action<KeyEvent>(eventType) {
 	 */
 	@JvmOverloads
 	fun keyMatchesBinding(keyBindings: NamedKeyCombination.CombinationMap, keyName: String, keysExclusive: Boolean = true) {
-		if (name == null) name = keyName
+		val namedKeyCombo = keyBindings[keyName]!!
+		keyMatchesBinding(namedKeyCombo, keysExclusive)
+	}
+
+	/**
+	 * Provide a [NamedKeyCombination.CombinationMap] and a [NamedKeyCombination] to use to verify the valid key combination.
+	 * NOTE: the [NamedKeyCombination.keyCodes] are not directly used. This is purely a convenience function to get the [NamedKeyCombination.keyBindingName]
+	 *
+	 * @param keyBindings the map to query the key combinations for the given [NamedKeyCombination.keyBindingName]
+	 * @param namedKeyCombination which provided the key name used to find the desired key combination in the [keyBindings].
+	 */
+	@JvmOverloads
+	fun keyMatchesBinding(namedKeyBinding: NamedKeyBinding, keysExclusive: Boolean = true) {
+
+
+		if (name == null) name = namedKeyBinding.keyBindingName
 		ignoreKeys()
 		if (eventType == KeyEvent.KEY_RELEASED)
-			keysReleased(*keyBindings[keyName]!!.keyCodes.toTypedArray())
+			keysReleased(*namedKeyBinding.keyCodes.toTypedArray())
 		else
 			verify { event ->
-				/* always valid here if the event is null; it indicates we are triggering the action programatically, not via an Event */
-				event?.let {
-					keyBindings.matches(keyName, it, keysExclusive).also { match ->
-						if (!match) logger.trace("key did not match bindings")
-					}
-				} ?: true
+				/* always valid here if the event is null; it indicates we are triggering the action programmatically, not via an Event */
+				event ?: return@verify true
+
+				namedKeyBinding.matches(event, keysExclusive).also { match ->
+					if (!match) logger.trace("key did not match bindings")
+				}
 			}
 	}
 
@@ -55,7 +70,7 @@ class KeyAction(eventType: EventType<KeyEvent>) : Action<KeyEvent>(eventType) {
 		verify {
 			val keyTracker = keyTracker()
 			val otherKeys = keyTracker?.getActiveKeyCodes(true)
-			val otherKeysAreDown = otherKeys?.let { keyTracker?.areKeysDown(*otherKeys.toTypedArray()) } ?: false
+			val otherKeysAreDown = otherKeys?.let { keyTracker.areKeysDown(*otherKeys.toTypedArray()) } ?: false
 			val onlyOtherKeys = keyTracker?.activeKeyCount() == otherKeys?.size && (otherKeys?.size ?: -1) > 0
 			if (keysExclusive && otherKeysAreDown && onlyOtherKeys) {
 				true
