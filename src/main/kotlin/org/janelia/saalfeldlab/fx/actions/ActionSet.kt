@@ -180,7 +180,7 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 	 * @param withAction [KeyAction] configuration callback
 	 * @return the [KeyAction]
 	 */
-	operator fun EventType<KeyEvent>.invoke(withKeys: KeyCodeCombination, withAction: KeyAction.() -> Unit): KeyAction {
+	operator fun EventType<KeyEvent>.invoke(withKeys: KeyCombination, withAction: KeyAction.() -> Unit): KeyAction {
 		/* create the Action*/
 		return KeyAction(this).apply {
 			keyTracker = this@ActionSet.keyTracker
@@ -213,7 +213,7 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 			/* set the default name */
 			name = this@ActionSet.name
 
-			/* configure based on the withKeys paramters*/
+			/* configure based on the withKeys parameters*/
 			if (eventType == KeyEvent.KEY_RELEASED) {
 				ignoreKeys()
 				keysReleased(*withKeys)
@@ -234,16 +234,27 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 	 * @param withAction [KeyAction] configuration callback
 	 * @return the [KeyAction]
 	 */
-	operator fun EventType<KeyEvent>.invoke(keyBindings: NamedKeyCombination.CombinationMap, keyName: String, keysExclusive: Boolean = false, withAction: KeyAction.() -> Unit): KeyAction {
+	operator fun EventType<KeyEvent>.invoke(keyBindings: NamedKeyCombination.CombinationMap, keyName: String, keysExclusive: Boolean = true, withAction: KeyAction.() -> Unit): KeyAction {
 
+		return this(keyBindings[keyName]!!, keysExclusive, withAction)
+	}
+
+	/**
+	 * Convenience operator to create a [KeyAction] from a [KeyEvent] [EventType] receiver, while specifying the required [NamedKeyBinding]
+	 *
+	 * @param keyBinding key combination to validate the action against
+	 * @param withAction [KeyAction] configuration callback
+	 * @return the [KeyAction]
+	 */
+	operator fun EventType<KeyEvent>.invoke(keyBinding: NamedKeyBinding, keysExclusive: Boolean = true, withAction: KeyAction.() -> Unit): KeyAction {
 
 		/* create the Action*/
 		return KeyAction(this).apply {
 			keyTracker = this@ActionSet.keyTracker
-			name = "${this@ActionSet.name}.$keyName"
+			name = keyBinding.keyBindingName
 
-			/* configure based on the withKeys paramters*/
-			keyMatchesBinding(keyBindings, keyName, keysExclusive)
+			/* configure based on the keyBinding */
+			keyMatchesBinding(keyBinding, keysExclusive)
 
 			/* configure via the callback*/
 			withAction()

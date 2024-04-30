@@ -76,7 +76,7 @@ open class DragActionSet @JvmOverloads constructor(
 
 	/**
 	 * if true, [startX],[startY] will be updated when [MOUSE_DRAGGED].
-	 * if fals, [startX],[startY] are always the position of the MOUSE_PRESSED event that triggered the drag event.
+	 * if false, [startX],[startY] are always the position of the MOUSE_PRESSED event that triggered the drag event.
 	 */
 	var relative = false
 

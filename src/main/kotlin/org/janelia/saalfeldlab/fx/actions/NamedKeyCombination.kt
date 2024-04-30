@@ -26,73 +26,79 @@ private val KeyEvent.modifierCodes: Set<KeyCode>
 		if (isShortcutDown) Toolkit.getToolkit().platformShortcutKey else null
 	)
 
-class NamedKeyCombination(val name: String, primaryCombination: KeyCombination) {
-
-	private val primaryCombinationProperty = SimpleObjectProperty(primaryCombination)
-	var primaryCombination: KeyCombination by primaryCombinationProperty.nonnull()
-
-	fun primaryCombinationProperty() = primaryCombinationProperty
-
-	fun matches(event: KeyEvent) = primaryCombination.match(event)
+interface NamedKeyBinding {
+	val keyBindingName : String
+	val primaryCombinationProperty: SimpleObjectProperty<KeyCombination>
+	var primaryCombination : KeyCombination
 
 	val keyCodes: Set<KeyCode>
 		get() {
 			val codes = mutableSetOf<KeyCode>()
-			(primaryCombination as? KeyCodeCombination)?.code?.also { codes += it }
-			codes += primaryCombination.modifierCodes
+			(primaryCombinationProperty.get() as? KeyCodeCombination)?.code?.also { codes += it }
+			codes += primaryCombinationProperty.get().modifierCodes
 			return codes.toSet()
 		}
 
-	val deepCopy: NamedKeyCombination
-		get() = NamedKeyCombination(name, primaryCombination)
+	fun matches(event : KeyEvent, keysExclusive: Boolean = true) : Boolean {
+		return if (keysExclusive) {
+			primaryCombinationProperty.get().match(event)
+		} else {
+			val codesMatchIfCodeCombo = (primaryCombinationProperty.get() as? KeyCodeCombination)?.code?.let { it == event.code } ?: true
+			codesMatchIfCodeCombo && event.modifierCodes.containsAll(primaryCombinationProperty.get().modifierCodes)
+		}
+	}
+
+	val deepCopy: NamedKeyBinding
+}
+
+open class NamedKeyCombination(override val keyBindingName: String, primaryCombination: KeyCombination) : NamedKeyBinding {
+
+	override val primaryCombinationProperty = SimpleObjectProperty(primaryCombination)
+	override var primaryCombination: KeyCombination by primaryCombinationProperty.nonnull()
+
+	override val deepCopy: NamedKeyCombination
+		get() = NamedKeyCombination(keyBindingName, primaryCombination)
 
 	override fun equals(other: Any?): Boolean {
 		if (other is NamedKeyCombination)
-			return other.name === name
+			return other.keyBindingName === keyBindingName
 		return false
 	}
 
 	override fun toString() = ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE)
-		.append("name", name)
+		.append("name", keyBindingName)
 		.append("primaryCombination", primaryCombination)
 		.toString()
 
-	override fun hashCode() = name.hashCode()
+	override fun hashCode() = keyBindingName.hashCode()
 
-	class CombinationMap(vararg combinations: NamedKeyCombination) : MutableMap<String, NamedKeyCombination> by mutableMapOf() {
+	class CombinationMap(vararg combinations: NamedKeyBinding) : MutableMap<String, NamedKeyBinding> by mutableMapOf() {
 
 		init {
 			combinations.forEach { this += it }
 		}
 
-		class KeyCombinationAlreadyInserted(val keyCombination: NamedKeyCombination) :
-			RuntimeException("Action with name ${keyCombination.name} already present but tried to insert: $keyCombination")
+		class KeyCombinationAlreadyInserted(val keyCombination: NamedKeyBinding) :
+			RuntimeException("Action with name ${keyCombination.keyBindingName} already present but tried to insert: $keyCombination")
 
 		@Throws(KeyCombinationAlreadyInserted::class)
-		fun addCombination(keyCombination: NamedKeyCombination) {
-			if (containsKey(keyCombination.name))
+		fun addCombination(keyCombination: NamedKeyBinding) {
+			if (containsKey(keyCombination.keyBindingName))
 				throw KeyCombinationAlreadyInserted(keyCombination)
-			this[keyCombination.name] = keyCombination
+			this[keyCombination.keyBindingName] = keyCombination
 		}
 
 		fun matches(name: String, event: KeyEvent, keysExclusive : Boolean = true) : Boolean {
-			val namedCombo = get(name)!!
-			return if (keysExclusive) {
-				namedCombo.matches(event)
-			} else {
-				val combo = namedCombo.primaryCombination
-				val codesMatchIfCodeCombo = (combo as? KeyCodeCombination)?.code?.let { it == event.code } ?: true
-				codesMatchIfCodeCombo && event.modifierCodes.containsAll(combo.modifierCodes)
-			}
+			return get(name)!!.matches(event, keysExclusive)
 		}
 
-		operator fun plusAssign(keyCombination: NamedKeyCombination) = addCombination(keyCombination)
+		operator fun plusAssign(keyCombination: NamedKeyBinding) = addCombination(keyCombination)
 
-		operator fun plus(keyCombination: NamedKeyCombination) = this.also { it.plusAssign(keyCombination) }
+		operator fun plus(keyCombination: NamedKeyBinding) = this.also { it.plusAssign(keyCombination) }
 
 		operator fun contains(actionIdentifier: String) = this.containsKey(actionIdentifier)
 
-		operator fun contains(keyCombination: NamedKeyCombination) = contains(keyCombination.name)
+		operator fun contains(keyCombination: NamedKeyBinding) = contains(keyCombination.keyBindingName)
 
 		val deepCopy: CombinationMap
 			get() = values.map { it.deepCopy }.toTypedArray().let { CombinationMap(*it) }

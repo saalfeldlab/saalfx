@@ -35,8 +35,10 @@ class LazyForeignMap<K, V>(val foreignKeyProvider: () -> K, val valueGenerator: 
 	}
 
 	operator fun getValue(t: Any, property: KProperty<*>): V {
-		val foreignKey = foreignKeyProvider()
-		return getOrPut(foreignKey) { valueGenerator(foreignKey) }
+		return synchronized(this) {
+			val foreignKey = foreignKeyProvider()
+			getOrPut(foreignKey) { valueGenerator(foreignKey) }
+		}
 	}
 }
 
@@ -75,26 +77,26 @@ class LazyForeignValue<K, V>(val foreignKeyProvider: () -> K, val valueGenerator
 	}
 
 	operator fun getValue(t: Any?, property: KProperty<*>): V {
+		return synchronized(this) {
+			updateKeyAndValue()
+		}
+	}
+
+	private fun updateKeyAndValue(): V {
 		val foreignKey = foreignKeyProvider()
-		return if (foreignKey == currentKey) currentValue!!
+		return if (foreignKey == currentKey) currentValue as V
 		else {
 			currentKey = foreignKey
 			val oldValue = currentValue
 			currentValue = valueGenerator(currentKey!!)
 			oldValueHandler?.invoke(oldValue)
-			currentValue!!
+			currentValue as V
 		}
 	}
 
 	operator fun getValue(t: Nothing?, property: KProperty<*>): V {
-		val foreignKey = foreignKeyProvider()
-		return if (foreignKey == currentKey) currentValue!!
-		else {
-			currentKey = foreignKey
-			val oldValue = currentValue
-			currentValue = valueGenerator(currentKey!!)
-			oldValueHandler?.invoke(oldValue)
-			currentValue!!
+		return synchronized(this) {
+			updateKeyAndValue()
 		}
 	}
 }

@@ -36,6 +36,7 @@ import javafx.stage.Window
 import org.janelia.saalfeldlab.fx.actions.ActionSet
 import org.janelia.saalfeldlab.fx.actions.ActionSet.Companion.installActionSet
 import org.janelia.saalfeldlab.fx.actions.ActionSet.Companion.removeActionSet
+import org.janelia.saalfeldlab.fx.actions.NamedKeyBinding
 
 class KeyTracker {
 
@@ -79,6 +80,8 @@ class KeyTracker {
 	}
 
 	fun areOnlyTheseKeysDown(vararg codes: KeyCode) = activeKeys.synchronized { mutableSetOf(*codes) == this }
+
+	fun areKeysDown(namedKeyBinding: NamedKeyBinding) = activeKeys.synchronized { containsAll(listOf(*namedKeyBinding.keyCodes.toTypedArray())) }
 
 	fun areKeysDown(vararg codes: KeyCode) = activeKeys.synchronized { containsAll(listOf(*codes)) }
 
