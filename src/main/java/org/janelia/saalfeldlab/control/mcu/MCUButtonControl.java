@@ -3,6 +3,8 @@
  */
 package org.janelia.saalfeldlab.control.mcu;
 
+import io.github.oshai.kotlinlogging.KLogger;
+import io.github.oshai.kotlinlogging.KotlinLogging;
 import org.janelia.saalfeldlab.control.ButtonControl;
 
 import javax.sound.midi.InvalidMidiDataException;
@@ -14,6 +16,8 @@ import java.util.function.IntConsumer;
  * @author Stephan Saalfeld &lt;saalfelds@janelia.hhmi.org&gt;
  */
 public class MCUButtonControl extends MCUControl implements ButtonControl {
+
+	private static final KLogger LOG = KotlinLogging.INSTANCE.logger(() -> null);
 
 	public static final int TOGGLE_ON = 127;
 
@@ -28,6 +32,7 @@ public class MCUButtonControl extends MCUControl implements ButtonControl {
 	private final Receiver rec;
 
 	private final ShortMessage ledMsg = new ShortMessage();
+
 
 	public MCUButtonControl(final int led, final Receiver rec) {
 
@@ -47,7 +52,7 @@ public class MCUButtonControl extends MCUControl implements ButtonControl {
 				ledMsg.setMessage(STATUS, led, value);
 				send(ledMsg);
 			} catch (final InvalidMidiDataException e) {
-				e.printStackTrace();
+				LOG.error(e, () -> null);
 			}
 		}
 	}

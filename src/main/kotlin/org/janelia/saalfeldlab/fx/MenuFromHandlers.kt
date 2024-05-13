@@ -66,10 +66,10 @@ class MenuFromHandlers @JvmOverloads constructor(entries: Collection<Pair<String
 		for (entry in entries) {
 			val elementPath = MenuPath(*entry.key.split(MENU_SPLIT.toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray())
 			val parentPath = elementPath.parent()
-			LOG.debug("Adding element {} with parents {} ({})", elementPath, parentPath, entry.key)
+			LOG.debug { "Adding element $elementPath with parents $parentPath (${entry.key})" }
 			val mi = MenuItem(elementPath.elementsCopy[elementPath.elementsCopy.size - 1])
 				.also { it.setOnAction { e -> entry.value.accept(e) } }
-			LOG.debug("Menu item is mnemonic enabled: {}", mi.isMnemonicParsing)
+			LOG.debug { "Menu item is mnemonic enabled: ${mi.isMnemonicParsing}" }
 			if (parentPath.elementsCopy.isEmpty()) {
 				menu.items += mi
 			} else {
@@ -111,10 +111,11 @@ class MenuFromHandlers @JvmOverloads constructor(entries: Collection<Pair<String
 		for (entry in entries) {
 			val elementPath = MenuPath(*entry.key.split(MENU_SPLIT_REGEX).dropLastWhile { it.isEmpty() }.toTypedArray())
 			val parentPath = elementPath.parent()
-			LOG.debug("Adding element {} with parents {} ({})", elementPath, parentPath, entry.key)
+
+			LOG.debug { "Adding element $elementPath with parents $parentPath (${entry.key})" }
 			val mi = MenuItem(elementPath.elementsCopy[elementPath.elementsCopy.size - 1])
 				.also { it.setOnAction { e -> entry.value.accept(e) } }
-			LOG.debug("Menu item is mnemonic enabled: {}", mi.isMnemonicParsing)
+			LOG.debug { "Menu item is mnemonic enabled: ${mi.isMnemonicParsing}" }
 			if (parentPath.elementsCopy.isEmpty()) {
 				menu.items += mi
 			} else {

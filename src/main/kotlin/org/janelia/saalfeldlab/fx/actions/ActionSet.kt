@@ -397,7 +397,7 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 				throw e
 			}
 		} else {
-			action.logger.trace("preInvokeCheck failed")
+			action.logger.trace { "preInvokeCheck failed" }
 		}
 	}
 
