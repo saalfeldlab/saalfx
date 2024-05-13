@@ -3,6 +3,8 @@
  */
 package org.janelia.saalfeldlab.control.mcu;
 
+import io.github.oshai.kotlinlogging.KLogger;
+import io.github.oshai.kotlinlogging.KotlinLogging;
 import org.janelia.saalfeldlab.control.VPotControl;
 
 import javax.sound.midi.InvalidMidiDataException;
@@ -25,6 +27,8 @@ import static org.janelia.saalfeldlab.control.VPotControl.DisplayType.FAN;
  * @author Stephan Saalfeld &lt;saalfelds@janelia.hhmi.org&gt;
  */
 public class MCUVPotControl extends MCUControl implements VPotControl {
+
+	private	static KLogger LOG = KotlinLogging.INSTANCE.logger(() -> null);
 
 	public static final int MAX_STEP = 7;
 	private static final int STATUS = 0xb0;
@@ -84,7 +88,7 @@ public class MCUVPotControl extends MCUControl implements VPotControl {
 				ledMsg.setMessage(STATUS, led, ledCode | j);
 				send(ledMsg);
 			} catch (final InvalidMidiDataException e) {
-				e.printStackTrace();
+				LOG.error(e, () -> null);
 			}
 		} else {
 			final int k;
@@ -124,12 +128,12 @@ public class MCUVPotControl extends MCUControl implements VPotControl {
 					}
 				}, 200, TimeUnit.MILLISECONDS);
 			} catch (final InvalidMidiDataException e) {
-				e.printStackTrace();
+				LOG.error(e, () -> null);
 			}
 		}
 	}
 
-	void setValueSilently(final int value) {
+	public void setValueSilently(final int value) {
 
 		this.value = Math.min(max, Math.max(min, value));
 	}

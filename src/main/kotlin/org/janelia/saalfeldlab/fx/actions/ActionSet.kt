@@ -1,5 +1,7 @@
 package org.janelia.saalfeldlab.fx.actions
 
+import io.github.oshai.kotlinlogging.KLogger
+import io.github.oshai.kotlinlogging.KotlinLogging
 import javafx.event.Event
 import javafx.event.EventHandler
 import javafx.event.EventType
@@ -7,8 +9,6 @@ import javafx.scene.Node
 import javafx.scene.input.*
 import javafx.stage.Window
 import org.janelia.saalfeldlab.fx.event.KeyTracker
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import java.lang.invoke.MethodHandles
 import java.util.function.Consumer
 
@@ -69,7 +69,7 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 			var pass = true
 			for ((reason, check) in checks) {
 				if (!check(event)) {
-					ACTION_SET_LOGGER.debug("Verify All Failed: $reason")
+					ACTION_SET_LOGGER.debug { "Verify All Failed: $reason" }
 					pass = false
 					break
 				}
@@ -393,11 +393,11 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 			} catch (e: Exception) {
 				val logger = if (action.filter) FILTER_LOGGER else ACTION_LOGGER
 				val nameText = action.name?.let { "$name: $it" } ?: name
-				logger.error("$nameText (${event.eventType} was valid, but failed (${e.localizedMessage})")
+				logger.error(e) { "$nameText (${event.eventType} was valid, but failed" }
 				throw e
 			}
 		} else {
-			action.logger.trace("preInvokeCheck failed")
+			action.logger.trace { "preInvokeCheck failed" }
 		}
 	}
 
@@ -441,9 +441,9 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 
 	companion object {
 
-		private val ACTION_SET_LOGGER: Logger = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass().name)
-		private val ACTION_LOGGER: Logger = LoggerFactory.getLogger("${MethodHandles.lookup().lookupClass().name}-Action")
-		private val FILTER_LOGGER: Logger = LoggerFactory.getLogger("${MethodHandles.lookup().lookupClass().name}-Filter")
+		private val ACTION_SET_LOGGER: KLogger = KotlinLogging.logger {}
+		private val ACTION_LOGGER: KLogger = KotlinLogging.logger("${MethodHandles.lookup().lookupClass().name}-Action")
+		private val FILTER_LOGGER: KLogger = KotlinLogging.logger("${MethodHandles.lookup().lookupClass().name}-Filter")
 
 		/**
 		 * Install [actionSet] in the receiver [Node]

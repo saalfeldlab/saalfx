@@ -28,14 +28,13 @@
  */
 package org.janelia.saalfeldlab.fx
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import javafx.event.ActionEvent
 import javafx.scene.control.ContextMenu
 import javafx.scene.control.Menu
 import javafx.scene.control.MenuItem
 import javafx.scene.control.SeparatorMenuItem
 import javafx.util.Pair
-import org.slf4j.LoggerFactory
-import java.lang.invoke.MethodHandles
 import java.util.Arrays
 import java.util.Stack
 import java.util.function.Consumer
@@ -67,10 +66,10 @@ class MenuFromHandlers @JvmOverloads constructor(entries: Collection<Pair<String
 		for (entry in entries) {
 			val elementPath = MenuPath(*entry.key.split(MENU_SPLIT.toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray())
 			val parentPath = elementPath.parent()
-			LOG.debug("Adding element {} with parents {} ({})", elementPath, parentPath, entry.key)
+			LOG.debug { "Adding element $elementPath with parents $parentPath (${entry.key})" }
 			val mi = MenuItem(elementPath.elementsCopy[elementPath.elementsCopy.size - 1])
 				.also { it.setOnAction { e -> entry.value.accept(e) } }
-			LOG.debug("Menu item is mnemonic enabled: {}", mi.isMnemonicParsing)
+			LOG.debug { "Menu item is mnemonic enabled: ${mi.isMnemonicParsing}" }
 			if (parentPath.elementsCopy.isEmpty()) {
 				menu.items += mi
 			} else {
@@ -112,10 +111,11 @@ class MenuFromHandlers @JvmOverloads constructor(entries: Collection<Pair<String
 		for (entry in entries) {
 			val elementPath = MenuPath(*entry.key.split(MENU_SPLIT_REGEX).dropLastWhile { it.isEmpty() }.toTypedArray())
 			val parentPath = elementPath.parent()
-			LOG.debug("Adding element {} with parents {} ({})", elementPath, parentPath, entry.key)
+
+			LOG.debug { "Adding element $elementPath with parents $parentPath (${entry.key})" }
 			val mi = MenuItem(elementPath.elementsCopy[elementPath.elementsCopy.size - 1])
 				.also { it.setOnAction { e -> entry.value.accept(e) } }
-			LOG.debug("Menu item is mnemonic enabled: {}", mi.isMnemonicParsing)
+			LOG.debug { "Menu item is mnemonic enabled: ${mi.isMnemonicParsing}" }
 			if (parentPath.elementsCopy.isEmpty()) {
 				menu.items += mi
 			} else {
@@ -175,7 +175,7 @@ class MenuFromHandlers @JvmOverloads constructor(entries: Collection<Pair<String
 		// mnemonics might not work without alt modifier...
 		// https://bugs.openjdk.java.net/browse/JDK-8090026
 
-		private val LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
+		private val LOG = KotlinLogging.logger {  }
 
 		private const val MENU_SPLIT = ">"
 

@@ -1,5 +1,7 @@
 package org.janelia.saalfeldlab.fx.actions
 
+import io.github.oshai.kotlinlogging.KLogger
+import io.github.oshai.kotlinlogging.KotlinLogging
 import javafx.event.Event
 import javafx.event.EventHandler
 import javafx.event.EventType
@@ -12,8 +14,6 @@ import org.janelia.saalfeldlab.fx.actions.Action.Companion.installAction
 import org.janelia.saalfeldlab.fx.actions.Action.Companion.onAction
 import org.janelia.saalfeldlab.fx.actions.Action.Companion.removeAction
 import org.janelia.saalfeldlab.fx.event.KeyTracker
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import java.util.function.Consumer
 
 /**
@@ -73,10 +73,10 @@ import java.util.function.Consumer
  */
 open class Action<E : Event>(val eventType: EventType<E>) {
 
-	val logger: Logger by lazy {
+	open val logger: KLogger by lazy {
 		val simpleName = this::class.simpleName?.let { ".$it" } ?: ""
 		val name = ".${name ?: "event-${eventType.name}"}"
-		LoggerFactory.getLogger("saalfx.action$simpleName$name")
+		KotlinLogging.logger("saalfx.action$simpleName$name")
 	}
 
 	/**
@@ -179,12 +179,12 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 		return keyTracker()?.run {
 			when {
 				keysDown!!.isEmpty() && !keysExclusive -> true
-				keysDown!!.isEmpty() -> noKeysActive().also { if (!it) logger.trace("expected no keys, but some were down") }
-				keysExclusive -> areOnlyTheseKeysDown(*keysDown!!.toTypedArray()).also { if (!it) logger.trace("expected only these keys: ${keysDown}, but active keys were: (${getActiveKeyCodes(true)}") }
-				else -> areKeysDown(*keysDown!!.toTypedArray()).also { if (!it) logger.trace("expected keys: $keysDown, but some were not down") }
+				keysDown!!.isEmpty() -> noKeysActive().also { if (!it) logger.trace { "expected no keys, but some were down" } }
+				keysExclusive -> areOnlyTheseKeysDown(*keysDown!!.toTypedArray()).also { if (!it) logger.trace { ("expected only these keys: ${keysDown}, but active keys were: (${getActiveKeyCodes(true)}") } }
+				else -> areKeysDown(*keysDown!!.toTypedArray()).also { if (!it) logger.trace { "expected keys: $keysDown, but some were not down" } }
 			}
 		} ?: let {
-			logger.trace("keyTracker is null")
+			logger.trace { "keyTracker is null" }
 			false
 		}
 
@@ -199,7 +199,7 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 					val msg = description?.let {
 						"$it (${check::class.java})"
 					} ?: "(${check::class.java})"
-					logger.trace("Check: $msg did not pass ")
+					logger.trace { "Check: $msg did not pass" }
 					break
 				}
 			}
@@ -290,7 +290,7 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 	fun verifyEventNotNull() {
 		verify("Event Isn't Null") {
 			if (it != null) true else {
-				logger.trace("$name not valid when event is null")
+				logger.trace { "$name not valid when event is null" }
 				false
 			}
 		}
@@ -305,17 +305,17 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 				/* isValid(event) will only be true if event is E */
 				action(event)
 			} catch (e: Exception) {
-				logger.debug("Exception caught: ${e.message}")
+				logger.debug { "Exception caught: ${e.message}" }
 				exceptionHandler?.invoke(e) ?: throw e
 			}
 			if (consume) {
 				event?.consume()
 			}
-			logger.debug("completed successfully")
+			logger.debug { "completed successfully" }
 			true
 		} else {
 			if (!isConsumed) {
-				logger.trace("Event ($event) was invalid for this action")
+				logger.trace { ("Event ($event) was invalid for this action") }
 			}
 			false
 		}

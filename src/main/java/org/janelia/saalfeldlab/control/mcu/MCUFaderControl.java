@@ -40,6 +40,6 @@ public class MCUFaderControl extends MCUControl implements ClippingIntControl {
 	@Override
 	void update(final int data) {
 
-		setValue((0x40 & data) == 0 ? data + 0x40 : data - 0x40);
+		setValue(data);
 	}
 }

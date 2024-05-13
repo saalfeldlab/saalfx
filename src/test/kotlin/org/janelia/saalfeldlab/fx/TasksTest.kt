@@ -1,5 +1,6 @@
 package org.janelia.saalfeldlab.fx
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import javafx.application.Platform
 import javafx.event.Event
 import javafx.scene.Scene
@@ -9,12 +10,9 @@ import javafx.scene.layout.Pane
 import javafx.stage.Stage
 import org.janelia.saalfeldlab.fx.util.InvokeOnJavaFXApplicationThread
 import org.junit.Assert
-import org.slf4j.LoggerFactory
 import org.testfx.framework.junit.ApplicationTest
 import org.testfx.util.WaitForAsyncUtils
-import java.io.File
 import java.io.PrintStream
-import java.lang.invoke.MethodHandles
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import kotlin.coroutines.cancellation.CancellationException
@@ -31,8 +29,8 @@ class TasksTest : ApplicationTest() {
 		list = ListView()
 		val pane = Pane(list)
 		stage.scene = Scene(pane, SCENE_WIDTH, SCENE_HEIGHT).apply {
-			addEventFilter(Event.ANY) { LOG.trace("Filtering event in scene: {}", it) }
-			addEventFilter(MouseEvent.ANY) { LOG.trace("Filtering mouse event in scene: {}", it) }
+			addEventFilter(Event.ANY) { LOG.trace { "Filtering event in scene: $it" } }
+			addEventFilter(MouseEvent.ANY) { LOG.trace { "Filtering mouse event in scene: $it" } }
 		}
 		stage.show()
 		// This is necessary to make sure that the stage grabs focus from OS and events are registered
@@ -158,7 +156,7 @@ class TasksTest : ApplicationTest() {
 		Assert.assertArrayEquals(arrayOf(textWithFailure), items.toTypedArray())
 
 		InvokeOnJavaFXApplicationThread.invokeAndWait {
-			assertIs<ExceptionTestException>(task.exception)
+			assert(task.exception.cause is ExceptionTestException)
 		}
 	}
 
@@ -181,7 +179,7 @@ class TasksTest : ApplicationTest() {
 		Assert.assertArrayEquals(arrayOf(textWithEnd, textWithFailure), items.toTypedArray())
 
 		InvokeOnJavaFXApplicationThread.invokeAndWait {
-			assertIs<ExceptionTestException>(task.exception)
+			assert(task.exception.cause is ExceptionTestException)
 		}
 	}
 
@@ -265,7 +263,7 @@ class TasksTest : ApplicationTest() {
 	}
 
 	companion object {
-		private val LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
+		private val LOG = KotlinLogging.logger {  }
 
 		const val SCENE_WIDTH = 800.0
 

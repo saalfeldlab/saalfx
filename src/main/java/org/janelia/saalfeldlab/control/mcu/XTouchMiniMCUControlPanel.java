@@ -187,6 +187,14 @@ public class XTouchMiniMCUControlPanel extends MCUControlPanel {
 
 	public static void main(final String... args) throws InvalidMidiDataException, MidiUnavailableException, InterruptedException {
 
-		build();
+		var panel = build();
+		new Thread(() -> {
+			panel.getFaderControl(0).addListener(i -> System.out.println(i));
+			panel.getButtonControl(0).addListener(i -> System.out.println(i));
+			panel.getVPotControl(0).addListener(i -> System.out.println(i));
+		}).start();
+		while(true) {
+			Thread.sleep(20);
+		}
 	}
 }

@@ -28,6 +28,7 @@
  */
 package org.janelia.saalfeldlab.fx.ui
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
@@ -44,15 +45,13 @@ import javafx.scene.layout.VBox
 import me.xdrop.fuzzywuzzy.FuzzySearch
 import me.xdrop.fuzzywuzzy.model.ExtractedResult
 import org.apache.commons.lang.builder.HashCodeBuilder
-import org.janelia.saalfeldlab.fx.Separators
 import org.janelia.saalfeldlab.fx.extensions.LazyForeignValue
 import org.janelia.saalfeldlab.fx.extensions.bindHeightToItemSize
 import org.janelia.saalfeldlab.fx.extensions.createObservableBinding
+import org.janelia.saalfeldlab.fx.extensions.nullable
 import org.janelia.saalfeldlab.fx.ui.MatchSelection.Companion.fuzzySorted
 import org.janelia.saalfeldlab.fx.ui.MatchSelection.Companion.fuzzyTop
 import org.janelia.saalfeldlab.fx.util.InvokeOnJavaFXApplicationThread
-import org.slf4j.LoggerFactory
-import java.lang.invoke.MethodHandles
 import java.util.function.BiFunction
 import java.util.function.Consumer
 
@@ -63,14 +62,20 @@ import java.util.function.Consumer
  * https://bugs.openjdk.java.net/browse/JDK-8219620
  */
 class MatchSelection(
-	candidates: List<String>,
+	private val candidates: List<String>,
 	private val matcher: BiFunction<String, List<String>, List<String>>,
 	private val onConfirm: (String?) -> Unit
 ) : Region() {
 
-	private val candidates = candidates.map { it }
+	enum class EmptyBehavior {
+		MATCH_ALL,
+		MATCH_NONE
+	}
+
+	var emptyBehavior: EmptyBehavior = EmptyBehavior.MATCH_ALL
 
 	private val fuzzySearchField = TextField(null)
+	var promptText by fuzzySearchField.promptTextProperty().nullable()
 
 	private class FuzzyMatcher(private val matcher: BiFunction<String, List<String>, List<ExtractedResult>>) :
 		BiFunction<String, List<String>, List<String>> {
@@ -83,23 +88,29 @@ class MatchSelection(
 	init {
 		super.getChildren().setAll(makeNode())
 		this.fuzzySearchField.maxWidthProperty().bind(maxWidthProperty())
+		promptText = "Type to filter"
 		this.focusedProperty().addListener { _, _, newv -> if (newv != null && newv) this.fuzzySearchField.requestFocus() }
 	}
 
 	private fun makeNode(): Node {
 		fuzzySearchField.tooltip = Tooltip("Type to filter (fuzzy matching)")
-		fuzzySearchField.promptText = "Type to filter"
 
 		fuzzySearchField.addEventFilter(MouseEvent.MOUSE_MOVED) {
 			fuzzySearchField.requestFocus()
 			fuzzySearchField.selectEnd()
 		}
 		val currentOrder = FXCollections.observableArrayList<String>()
-		fuzzySearchField.textProperty().addListener { _, _, newv -> currentOrder.setAll(if (newv == null || newv.isEmpty()) candidates else matcher.apply(newv, candidates)) }
+		fuzzySearchField.textProperty().addListener { _, _, fuzzyFilter ->
+			val matches = when (emptyBehavior) {
+				EmptyBehavior.MATCH_ALL -> if (fuzzyFilter == null || fuzzyFilter.isEmpty()) candidates else matcher.apply(fuzzyFilter, candidates)
+				EmptyBehavior.MATCH_NONE -> matcher.apply(fuzzyFilter ?: "", candidates)
+			}
+			currentOrder.setAll(matches)
+		}
 
 		val labelList = ListView(currentOrder)
 		labelList.selectionModel.selectionMode = SelectionMode.SINGLE
-		registStyleSheet(labelList)
+		registerStyleSheet(labelList)
 
 		labelList.maxWidthProperty().bind(maxWidthProperty())
 		labelList.prefWidthProperty().bind(maxWidthProperty())
@@ -115,9 +126,14 @@ class MatchSelection(
 		labelList.skin = listViewSkin
 		labelList.focusModel.focusedIndexProperty().addListener { _, _, new ->
 			(new?.toInt())?.let { idx ->
-				listViewSkin.flow.scrollTo(idx)
+				try {
+					listViewSkin.flow.scrollTo(idx)
+				} catch (e: Throwable) {
+					LOG.warn(e) { "Error scrolling in MatchSelection" }
+				}
 			}
 		}
+
 
 		labelList.cellFactoryProperty().set {
 			object : ListCell<String>() {
@@ -129,7 +145,10 @@ class MatchSelection(
 
 				override fun updateItem(item: String?, empty: Boolean) {
 					super.updateItem(item, empty)
-					item?.let { text = it }
+					item ?: return
+
+					text = item
+					(tooltip ?: Tooltip().also { tooltip = it }).text = item
 				}
 			}
 		}
@@ -156,9 +175,10 @@ class MatchSelection(
 			e.isConsumed
 		}
 
-		val contents = VBox(fuzzySearchField, Separators.horizontal(), labelList)
+		val contents = VBox(fuzzySearchField, labelList)
+		contents.prefWidthProperty().bind(maxWidthProperty())
 		contents.setOnKeyPressed { e ->
-			LOG.debug("Key pressed in contents with code {}", e.code)
+			LOG.debug { "Key pressed in contents with code ${e.code}" }
 			if (!handleNavigationKeys(e)) {
 				if (e.code == KeyCode.ESCAPE && fuzzySearchField.text?.isNotEmpty() == true) {
 					fuzzySearchField.text = ""
@@ -170,7 +190,7 @@ class MatchSelection(
 			}
 		}
 		fuzzySearchField.setOnKeyPressed { e ->
-			LOG.debug("Key pressed in fuzzy search field with code {}", e.code)
+			LOG.debug { "Key pressed in fuzzy search field with code ${e.code}" }
 			handleNavigationKeys(e)
 		}
 		contents.focusedProperty().addListener { _, _, newv -> if (newv != null && newv) fuzzySearchField.requestFocus() }
@@ -185,19 +205,19 @@ class MatchSelection(
 
 	companion object {
 
-		fun registStyleSheet(styleable : Scene) {
+		fun registerStyleSheet(styleable : Scene) {
 			MatchSelection.javaClass.getResource("matcher.css")?.toExternalForm()?.let { css ->
 				styleable.stylesheets.add(css)
 			}
 		}
 
-		fun registStyleSheet(styleable : Parent) {
+		fun registerStyleSheet(styleable : Parent) {
 			MatchSelection.javaClass.getResource("matcher.css")?.toExternalForm()?.let { css ->
 				styleable.stylesheets.add(css)
 			}
 		}
 
-		private val LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
+		private val LOG = KotlinLogging.logger {  }
 
 
 		fun fuzzySorted(candidates: List<String>, onConfirm: (String?) -> Unit, cutoff: Int? = null): MatchSelection {

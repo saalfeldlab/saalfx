@@ -1,5 +1,6 @@
 package org.janelia.saalfeldlab.fx.actions
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import javafx.application.Platform
 import javafx.beans.property.ObjectProperty
 import javafx.beans.property.SimpleObjectProperty
@@ -8,8 +9,6 @@ import javafx.scene.control.Button
 import javafx.scene.input.*
 import javafx.stage.Stage
 import org.janelia.saalfeldlab.fx.event.KeyTracker
-import org.slf4j.LoggerFactory
-import java.lang.invoke.MethodHandles
 
 class MouseCombination private constructor(keyCombination: KeyCombination) {
 
@@ -32,19 +31,18 @@ class MouseCombination private constructor(keyCombination: KeyCombination) {
 
 	fun match(event: MouseEvent, tracker: KeyTracker): Boolean {
 
-		val keyCodes = tracker.getActiveKeyCodes(false);
+		val keyCodes = tracker.getActiveKeyCodes(false)
 
 		return if (keyCodes.size > 1) {
-			false.also { LOG.trace("Mouse combinations with more than one non-modifier key are not supported.") }
+			false.also { LOG.trace { "Mouse combinations with more than one non-modifier key are not supported." } }
 		} else {
-			val keyCode = if (keyCodes.size == 0) null else keyCodes[0]
 			val keyEvent = KeyEvent(
 				null,
 				null,
 				null,
 				null,
 				null,
-				keyCode,
+				keyCodes.getOrNull(0),
 				event.isShiftDown,
 				event.isControlDown,
 				event.isAltDown,
@@ -58,7 +56,7 @@ class MouseCombination private constructor(keyCombination: KeyCombination) {
 		get() = MouseCombination(keyCombination)
 
 	companion object {
-		private val LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
+		private val LOG = KotlinLogging.logger {  }
 	}
 
 

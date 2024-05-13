@@ -28,12 +28,11 @@
  */
 package org.janelia.saalfeldlab.fx.event
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import javafx.beans.property.SimpleDoubleProperty
 import javafx.event.EventHandler
 import javafx.scene.input.MouseEvent
 import org.janelia.saalfeldlab.fx.extensions.nonnull
-import org.slf4j.LoggerFactory
-import java.lang.invoke.MethodHandles
 
 class MouseTracker : EventHandler<MouseEvent> {
 
@@ -53,13 +52,13 @@ class MouseTracker : EventHandler<MouseEvent> {
 			this.isDragging = false
 		else if (event.eventType == MouseEvent.DRAG_DETECTED)
 			this.isDragging = true
-		LOG.trace("Updated x {}->{} and y {}->{}", x, event.x, y, event.y)
+		LOG.trace { "Updated x $x -> ${event.x} and y $y -> ${event.y}" }
 		x = event.x
 		y = event.y
 	}
 
 	companion object {
-		private val LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
+		private val LOG = KotlinLogging.logger {  }
 	}
 
 }

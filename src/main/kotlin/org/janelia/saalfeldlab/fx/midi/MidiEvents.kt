@@ -3,7 +3,7 @@ package org.janelia.saalfeldlab.fx.midi
 import javafx.event.EventType
 import javafx.scene.input.InputEvent
 
-abstract class FxMidiEvent(val handle: Int, val value: Int, eventType: EventType<out FxMidiEvent>) : InputEvent(eventType) {
+abstract class FxMidiEvent(val handle: Int, val value: Number, eventType: EventType<out FxMidiEvent>) : InputEvent(eventType) {
 
 	companion object {
 		val ANY = EventType<FxMidiEvent>(InputEvent.ANY, "MIDI")
@@ -11,7 +11,7 @@ abstract class FxMidiEvent(val handle: Int, val value: Int, eventType: EventType
 
 }
 
-class MidiPotentiometerEvent(handle: Int, value: Int, eventType: EventType<out MidiPotentiometerEvent>) : FxMidiEvent(handle, value, eventType) {
+class MidiPotentiometerEvent(handle: Int, value: Number, eventType: EventType<out MidiPotentiometerEvent>) : FxMidiEvent(handle, value, eventType) {
 
 	companion object {
 		private val POTENTIOMETER: EventType<MidiPotentiometerEvent> = EventType(ANY, "POTENTIOMETER")
@@ -24,7 +24,7 @@ open class MidiButtonEvent(handle: Int, value: Int, eventType: EventType<out Mid
 
 	companion object {
 		val BUTTON: EventType<MidiButtonEvent> = EventType(ANY, "BUTTON")
-		val BUTTON_PRESED: EventType<MidiButtonEvent> = EventType(BUTTON, "BUTTON_PRESED")
+		val BUTTON_PRESSED: EventType<MidiButtonEvent> = EventType(BUTTON, "BUTTON_PRESSED")
 		val BUTTON_RELEASED: EventType<MidiButtonEvent> = EventType(BUTTON, "BUTTON_RELEASED")
 	}
 }
@@ -38,7 +38,7 @@ class MidiToggleEvent(handle: Int, value: Int, eventType: EventType<out MidiTogg
 	}
 }
 
-class MidiFaderEvent(handle: Int, value: Int, eventType: EventType<out MidiFaderEvent>) : FxMidiEvent(handle, value, eventType) {
+class MidiFaderEvent(handle: Int, value: Number, eventType: EventType<out MidiFaderEvent>) : FxMidiEvent(handle, value, eventType) {
 
 	companion object {
 		val FADER: EventType<MidiFaderEvent> = EventType(ANY, "FADER")
