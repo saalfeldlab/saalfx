@@ -156,7 +156,7 @@ class TasksTest : ApplicationTest() {
 		Assert.assertArrayEquals(arrayOf(textWithFailure), items.toTypedArray())
 
 		InvokeOnJavaFXApplicationThread.invokeAndWait {
-			assertIs<ExceptionTestException>(task.exception)
+			assert(task.exception.cause is ExceptionTestException)
 		}
 	}
 
@@ -179,7 +179,7 @@ class TasksTest : ApplicationTest() {
 		Assert.assertArrayEquals(arrayOf(textWithEnd, textWithFailure), items.toTypedArray())
 
 		InvokeOnJavaFXApplicationThread.invokeAndWait {
-			assertIs<ExceptionTestException>(task.exception)
+			assert(task.exception.cause is ExceptionTestException)
 		}
 	}
 
