@@ -129,7 +129,7 @@ public class MCUVPotControl extends MCUControl implements VPotControl {
 		}
 	}
 
-	void setValueSilently(final int value) {
+	public void setValueSilently(final int value) {
 
 		this.value = Math.min(max, Math.max(min, value));
 	}

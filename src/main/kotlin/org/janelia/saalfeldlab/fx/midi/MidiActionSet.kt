@@ -1,14 +1,20 @@
 package org.janelia.saalfeldlab.fx.midi
 
+import io.github.oshai.kotlinlogging.KLogger
+import io.github.oshai.kotlinlogging.KotlinLogging
+import javafx.beans.property.SimpleBooleanProperty
 import javafx.event.Event
 import javafx.event.EventTarget
 import javafx.event.EventType
-import org.janelia.saalfeldlab.control.VPotControl
+import org.janelia.saalfeldlab.control.VPotControl.DisplayType
 import org.janelia.saalfeldlab.control.mcu.*
+import org.janelia.saalfeldlab.control.mcu.MCUButtonControl.TOGGLE_OFF
+import org.janelia.saalfeldlab.control.mcu.MCUButtonControl.TOGGLE_ON
 import org.janelia.saalfeldlab.fx.actions.Action
 import org.janelia.saalfeldlab.fx.actions.ActionSet
 import org.janelia.saalfeldlab.fx.event.KeyTracker
 import java.util.function.IntConsumer
+import kotlin.math.absoluteValue
 
 open class MidiActionSet(name: String, private val device: MCUControlPanel, private val target: EventTarget, keyTracker: () -> KeyTracker? = { null }, callback: MidiActionSet.() -> Unit = {}) : ActionSet(name, keyTracker) {
 	init {
@@ -66,10 +72,16 @@ open class MidiActionSet(name: String, private val device: MCUControlPanel, priv
 
 }
 
-abstract class MidiAction<E : FxMidiEvent>(eventType: EventType<E>, val device: MCUControlPanel, val handle: Int, name : String? = null, withAction: MidiAction<E>.() -> Unit = {}) : Action<E>(eventType) {
+abstract class MidiAction<E : FxMidiEvent>(eventType: EventType<E>, val device: MCUControlPanel, val handle: Int, name: String? = null, withAction: MidiAction<E>.() -> Unit = {}) : Action<E>(eventType) {
 	abstract val control: MCUControl
 	protected abstract var eventFiringListener: IntConsumer?
 	var supressEvents = false
+
+	override val logger: KLogger by lazy {
+		val simpleName = this::class.simpleName?.let { ".$it" } ?: ""
+		val name = ".${this.name ?: "event-${eventType.name}"}"
+		KotlinLogging.logger("saalfx.action.midi$simpleName$name.$handle")
+	}
 
 	init {
 		ignoreKeys()
@@ -88,6 +100,8 @@ abstract class MidiAction<E : FxMidiEvent>(eventType: EventType<E>, val device: 
 		supressEvents = prevSuppressFlag
 	}
 
+	abstract protected fun initializeControlState()
+
 	abstract fun registerEvent(target: EventTarget?)
 	open fun removeEvent() {
 		eventFiringListener?.let {
@@ -100,21 +114,17 @@ abstract class MidiAction<E : FxMidiEvent>(eventType: EventType<E>, val device: 
 	}
 }
 
-class PotentiometerAction(eventType: EventType<MidiPotentiometerEvent>, device: MCUControlPanel, handle: Int, name : String? = null,  withAction: PotentiometerAction.() -> Unit = {}) : MidiAction<MidiPotentiometerEvent>(eventType, device, handle, name) {
+class PotentiometerAction(eventType: EventType<MidiPotentiometerEvent>, device: MCUControlPanel, handle: Int, name: String? = null, withAction: PotentiometerAction.() -> Unit = {}) : MidiAction<MidiPotentiometerEvent>(eventType, device, handle, name) {
 
 	override val control: MCUVPotControl = device.getVPotControl(handle)
 	override var eventFiringListener: IntConsumer? = null
 
-	var absolute: Boolean = control.isAbsolute
-		set(value) {
-			control.isAbsolute = value
-			field = control.isAbsolute
-		}
+	private var absolute: Boolean = (eventType == MidiPotentiometerEvent.POTENTIOMETER_ABSOLUTE).also { control.isAbsolute = it }
 
 	/**
 	 * Desired minimum value for the potentiometer event. Note, when the control is relative, it may override the specified min.
 	 */
-	var min: Int = control.min
+	var min: Int = (if (absolute) 0 else -MCUVPotControl.MAX_STEP).also { control.min = it }
 		set(value) {
 			control.min = value
 			field = control.min
@@ -123,11 +133,42 @@ class PotentiometerAction(eventType: EventType<MidiPotentiometerEvent>, device: 
 	/**
 	 * Desired maximum value for the potentiometer event. Note, when the control is relative, it may override the specified max.
 	 */
-	var max: Int = control.max
+	var max: Int = (if (absolute) 127 else MCUVPotControl.MAX_STEP).also { control.max = it }
 		set(value) {
 			control.max = value
 			field = control.max
 		}
+
+	var displayType : DisplayType = (if (absolute) DisplayType.PAN else DisplayType.TRIM).also { control.setDisplayType(it) }
+
+	var converter: (Int) -> Number = { it }
+
+	var asPercent = false
+		set(value) {
+			field = value
+			updateConverter()
+		}
+
+	private fun updateConverter() {
+		when {
+			absolute && asPercent -> converter = { (control.value.toDouble() - min) / (max - min) }
+			asPercent -> converter = {
+				when {
+					control.value < 0 -> -(control.value.toDouble() / min)
+					control.value > 0 -> control.value.toDouble() / max.absoluteValue
+					else -> 0.0
+				}
+			}
+
+			else -> converter = { it }
+		}
+	}
+
+	private var controlValue : Int = let {
+		control.setValueSilently(0)
+		control.display()
+		control.value
+	}
 
 	init {
 		when (eventType) {
@@ -135,7 +176,6 @@ class PotentiometerAction(eventType: EventType<MidiPotentiometerEvent>, device: 
 			MidiPotentiometerEvent.POTENTIOMETER_ABSOLUTE -> absolute = true
 		}
 		verify("Correct Handle") { it?.handle == handle }
-		verify("Control State Has Not Changed") { control.min == min && control.max == max && control.isAbsolute == absolute }
 		apply(withAction)
 		if (!absolute) {
 			min = min.coerceIn(-MCUVPotControl.MAX_STEP, MCUVPotControl.MAX_STEP)
@@ -144,20 +184,27 @@ class PotentiometerAction(eventType: EventType<MidiPotentiometerEvent>, device: 
 	}
 
 	override fun registerEvent(target: EventTarget?) {
+		/* initialize control, since we can't guarantee it's current state otherwise */
+		initializeControlState()
 		eventFiringListener = IntConsumer {
 			if (supressEvents) return@IntConsumer
-			Event.fireEvent(target, MidiPotentiometerEvent(handle, it, eventType))
+			Event.fireEvent(target, MidiPotentiometerEvent(handle, converter(it), eventType))
 		}
 		control.addListener(eventFiringListener)
 		afterRegisterEvent()
 	}
 
-	fun setDisplayType(displayType: VPotControl.DisplayType) {
+	override fun initializeControlState() {
+		control.isAbsolute = absolute
 		control.setDisplayType(displayType)
+		control.min = min
+		control.max = max
+		control.setValueSilently(controlValue)
+		control.display()
 	}
 }
 
-class ButtonAction(eventType: EventType<MidiButtonEvent>, device: MCUControlPanel, handle: Int, name : String? = null,withAction: ButtonAction.() -> Unit = {}) : MidiAction<MidiButtonEvent>(eventType, device, handle, name) {
+class ButtonAction(eventType: EventType<MidiButtonEvent>, device: MCUControlPanel, handle: Int, name: String? = null, withAction: ButtonAction.() -> Unit = {}) : MidiAction<MidiButtonEvent>(eventType, device, handle, name) {
 
 	override val control: MCUButtonControl = device.getButtonControl(handle)
 	override var eventFiringListener: IntConsumer? = null
@@ -168,8 +215,13 @@ class ButtonAction(eventType: EventType<MidiButtonEvent>, device: MCUControlPane
 		apply(withAction)
 	}
 
-	override fun registerEvent(target: EventTarget?) {
+	override fun initializeControlState() {
+		control.isToggle = false
+		control.setValueSilently(0)
+	}
 
+	override fun registerEvent(target: EventTarget?) {
+		initializeControlState()
 		eventFiringListener = listener(target)
 		control.addListener(eventFiringListener)
 		afterRegisterEvent()
@@ -178,7 +230,7 @@ class ButtonAction(eventType: EventType<MidiButtonEvent>, device: MCUControlPane
 	private fun listener(target: EventTarget?): IntConsumer = IntConsumer {
 		if (supressEvents) return@IntConsumer
 
-		if (eventType == MidiButtonEvent.BUTTON_PRESED && it != 0) {
+		if (eventType == MidiButtonEvent.BUTTON_PRESSED && it != 0) {
 			Event.fireEvent(target, MidiButtonEvent(handle, it, eventType))
 		} else if (eventType == MidiButtonEvent.BUTTON_RELEASED && it == 0) {
 			Event.fireEvent(target, MidiButtonEvent(handle, it, eventType))
@@ -188,21 +240,33 @@ class ButtonAction(eventType: EventType<MidiButtonEvent>, device: MCUControlPane
 	}
 }
 
-class ToggleAction(eventType: EventType<MidiToggleEvent>, device: MCUControlPanel, handle: Int, name : String? = null,  withAction: ToggleAction.() -> Unit = {}) : MidiAction<MidiToggleEvent>(eventType, device, handle, name) {
+class ToggleAction(eventType: EventType<MidiToggleEvent>, device: MCUControlPanel, handle: Int, name: String? = null, withAction: ToggleAction.() -> Unit = {}) : MidiAction<MidiToggleEvent>(eventType, device, handle, name) {
 
 	override val control: MCUButtonControl = device.getButtonControl(handle)
 	override var eventFiringListener: IntConsumer? = null
+
+	val toggleDisplayProperty = SimpleBooleanProperty(control.value != TOGGLE_OFF)
 
 	init {
 		control.isToggle = true
 		verify("Correct Handle") { it?.handle == handle }
 		verify("Control is toggle") { control.isToggle }
+		toggleDisplayProperty.addListener { _, _, toggle ->
+			control.setValueSilently(if (toggle) TOGGLE_ON else TOGGLE_OFF)
+			control.display()
+		}
 		apply(withAction)
-
 	}
 
+	override fun initializeControlState() {
+		control.isToggle = true
+		toggleDisplayProperty.unbind()
+		toggleDisplayProperty.set(false)
+		control.setValueSilently(TOGGLE_OFF)
+	}
 
 	override fun registerEvent(target: EventTarget?) {
+		initializeControlState()
 		eventFiringListener = IntConsumer {
 			if (supressEvents) return@IntConsumer
 			Event.fireEvent(target, MidiToggleEvent(handle, it, eventType))
@@ -214,13 +278,14 @@ class ToggleAction(eventType: EventType<MidiToggleEvent>, device: MCUControlPane
 	override fun removeEvent() {
 		super.removeEvent()
 		/* Just to clean up the device, so it doesn't treat the button as a toggle anymore */
-		control.value = MCUButtonControl.TOGGLE_OFF
+		toggleDisplayProperty.unbind()
+		control.value = TOGGLE_OFF
 		control.isToggle = false
 	}
 
 }
 
-class FaderAction(eventType: EventType<MidiFaderEvent>, device: MCUControlPanel, handle: Int, name : String? = null, withAction: FaderAction.() -> Unit = {}) : MidiAction<MidiFaderEvent>(eventType, device, handle, name) {
+class FaderAction(eventType: EventType<MidiFaderEvent>, device: MCUControlPanel, handle: Int, name: String? = null, withAction: FaderAction.() -> Unit = {}) : MidiAction<MidiFaderEvent>(eventType, device, handle, name) {
 
 	override val control: MCUFaderControl = device.getFaderControl(handle)
 	override var eventFiringListener: IntConsumer? = null
@@ -228,34 +293,45 @@ class FaderAction(eventType: EventType<MidiFaderEvent>, device: MCUControlPanel,
 	/**
 	 * Desired minimum value for the fader event.
 	 */
-	var min: Int = control.min
+	var min: Number = control.min
 
 	/**
 	 * Desired maximum value for the fader event.
 	 */
-	var max: Int = control.max
+	var max: Number = control.max
 
+	val convertToPerecent = { it : Int ->
+		(it.toDouble() - control.min) / (control.max - control.min)
+	}
 
-	val value: Int = control.value
-	val step: Int
-		get() = control.value
+	val convertToNumber = { it : Int ->
+		(min.toDouble() + (max.toDouble() - min.toDouble()) * convertToPerecent(it))
+	}
 
 	/**
 	 * Mapping from the fader's internal steps [0-127] to the target step.
 	 */
-	var stepToValueConverter: ((Int) -> Int) = {
-		((it.toDouble() / (FADER_MAX - FADER_MIN)) * (max - min) + min).toInt()
-	}
+	var converter: ((Int) -> Number) = convertToNumber
+
+	var asPercent: Boolean = false
+		set(value) {
+			converter = if (value) convertToPerecent else convertToNumber
+			field = value
+		}
 
 	init {
 		verify("Correct Handle") { it?.handle == handle }
 		apply(withAction)
 	}
 
+	override fun initializeControlState() {
+		/* no control state*/
+	}
+
 	override fun registerEvent(target: EventTarget?) {
+		initializeControlState()
 		eventFiringListener = IntConsumer {
 			if (supressEvents) return@IntConsumer
-			val converter = stepToValueConverter
 			Event.fireEvent(target, MidiFaderEvent(handle, converter(it), eventType))
 		}
 		control.addListener(eventFiringListener)

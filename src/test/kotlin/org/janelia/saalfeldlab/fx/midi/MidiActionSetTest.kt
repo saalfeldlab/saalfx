@@ -16,6 +16,7 @@ import javax.sound.midi.MidiDevice
 import javax.sound.midi.MidiMessage
 import javax.sound.midi.Receiver
 import javax.sound.midi.Transmitter
+import kotlin.random.Random
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -91,7 +92,7 @@ class MidiActionSetTest : ApplicationTest() {
 
 	@Test
 	fun `absolute potentiometer`() {
-		var prevValue = -1
+		var prevValue: Number = -1
 		MidiActionSet("Abs Pot", mockMidiControlPanel, root) {
 			POTENTIOMETER_ABSOLUTE(0) {
 				min = -223
@@ -100,26 +101,50 @@ class MidiActionSetTest : ApplicationTest() {
 			}
 
 			POTENTIOMETER_ABSOLUTE(1) { onAction { prevValue = it!!.value } }
+
+			POTENTIOMETER_ABSOLUTE(2) {
+				asPercent = true
+				onAction { prevValue = it!!.value.toDouble() }
+			}
+
 			root.installActionSet(this)
 		}
 
 		mockMidiControlPanel.getVPotControl(0).value = -1000
 		WaitForAsyncUtils.waitForFxEvents()
-		assert(prevValue == -223)
+		assertEquals(-223, prevValue)
 
 		mockMidiControlPanel.getVPotControl(0).value = 1000
 		WaitForAsyncUtils.waitForFxEvents()
-		assert(prevValue == 223)
+		assertEquals(223, prevValue)
 
 		mockMidiControlPanel.getVPotControl(1).value = 30
 		WaitForAsyncUtils.waitForFxEvents()
-		assert(prevValue == 30)
+		assertEquals(30, prevValue)
+
+		mockMidiControlPanel.getVPotControl(2).value = -1000
+		WaitForAsyncUtils.waitForFxEvents()
+		assertEquals(0.0, prevValue)
+
+		mockMidiControlPanel.getVPotControl(2).value = 1000
+		WaitForAsyncUtils.waitForFxEvents()
+		assertEquals(1.0, prevValue)
+
+		val expected: Double
+		mockMidiControlPanel.getVPotControl(2).apply {
+			val intValue = Random.nextInt(min, max + 1)
+			expected = intValue.toDouble() / (max + min)
+			value = intValue
+		}
+		WaitForAsyncUtils.waitForFxEvents()
+		assertEquals(expected, prevValue)
+
 
 	}
 
 	@Test
 	fun `relative potentiometer`() {
-		var prevValue = -1
+		var prevValue: Number = -1
 		MidiActionSet("Rel Pot", mockMidiControlPanel, root) {
 			POTENTIOMETER_RELATIVE(0) {
 				min = -223
@@ -128,32 +153,63 @@ class MidiActionSetTest : ApplicationTest() {
 			}
 
 			POTENTIOMETER_RELATIVE(1) { onAction { prevValue = it!!.value } }
+
+			POTENTIOMETER_RELATIVE(2) {
+				asPercent = true
+				onAction { prevValue = it!!.value }
+			}
 			root.installActionSet(this)
 		}
 
 		mockMidiControlPanel.getVPotControl(0).value = -1000
 		WaitForAsyncUtils.waitForFxEvents()
-		assert(prevValue == -7)
+		assertEquals(-7, prevValue)
 
 		mockMidiControlPanel.getVPotControl(0).value = 1000
 		WaitForAsyncUtils.waitForFxEvents()
-		assert(prevValue == 7)
+		assertEquals(7, prevValue)
 
 		mockMidiControlPanel.getVPotControl(1).value = 3
 		WaitForAsyncUtils.waitForFxEvents()
-		assert(prevValue == 3)
+		assertEquals(3, prevValue)
+
+
+		mockMidiControlPanel.getVPotControl(2).value = -1000
+		WaitForAsyncUtils.waitForFxEvents()
+		assertEquals(-1.0, prevValue)
+
+		mockMidiControlPanel.getVPotControl(2).value = 1000
+		WaitForAsyncUtils.waitForFxEvents()
+		assertEquals(1.0, prevValue)
+
+		var expected: Double
+		mockMidiControlPanel.getVPotControl(2).apply {
+			val intValue = Random.nextInt(min, 0)
+			expected = -(intValue.toDouble() / min)
+			value = intValue
+		}
+		WaitForAsyncUtils.waitForFxEvents()
+		assertEquals(expected, prevValue)
+
+		mockMidiControlPanel.getVPotControl(2).apply {
+			val intValue = Random.nextInt(0, max + 1)
+			expected = intValue.toDouble() / max
+			value = intValue
+		}
+		WaitForAsyncUtils.waitForFxEvents()
+		assertEquals(expected, prevValue)
 	}
 
 	@Test
 	fun `midi button`() {
-		var prevValue = Int.MIN_VALUE
+		var prevValue: Number = Int.MIN_VALUE
 		MidiActionSet("Button", mockMidiControlPanel, root) {
 			MidiButtonEvent.BUTTON(0) { onAction { prevValue = it!!.value } }
 
-			MidiButtonEvent.BUTTON_PRESED(1) { onAction { prevValue = it!!.value } }
+			MidiButtonEvent.BUTTON_PRESSED(1) { onAction { prevValue = it!!.value } }
 			MidiButtonEvent.BUTTON_RELEASED(2) { onAction { prevValue = it!!.value } }
 
-			MidiButtonEvent.BUTTON_PRESED(3) { onAction { prevValue = it!!.value } }
+			MidiButtonEvent.BUTTON_PRESSED(3) { onAction { prevValue = it!!.value } }
 			MidiButtonEvent.BUTTON_RELEASED(3) { onAction { prevValue = it!!.value } }
 
 			root.installActionSet(this)
@@ -161,32 +217,32 @@ class MidiActionSetTest : ApplicationTest() {
 
 		mockMidiControlPanel.getButtonControl(0).value = 10
 		WaitForAsyncUtils.waitForFxEvents()
-		assert(prevValue == 10)
+		assertEquals(10, prevValue)
 		mockMidiControlPanel.getButtonControl(0).value = 0
 		WaitForAsyncUtils.waitForFxEvents()
-		assert(prevValue == 0)
+		assertEquals(0, prevValue)
 
 		mockMidiControlPanel.getButtonControl(1).value = 100
 		WaitForAsyncUtils.waitForFxEvents()
-		assert(prevValue == 100)
+		assertEquals(100, prevValue)
 		mockMidiControlPanel.getButtonControl(1).value = 0
 		WaitForAsyncUtils.waitForFxEvents()
-		assert(prevValue == 100)
+		assertEquals(100, prevValue)
 
 		mockMidiControlPanel.getButtonControl(2).value = 50
 		WaitForAsyncUtils.waitForFxEvents()
-		assert(prevValue == 100)
+		assertEquals(100, prevValue)
 		mockMidiControlPanel.getButtonControl(2).value = 0
 		WaitForAsyncUtils.waitForFxEvents()
-		assert(prevValue == 0)
+		assertEquals(0, prevValue)
 
 
 		mockMidiControlPanel.getButtonControl(0).value = 50
 		WaitForAsyncUtils.waitForFxEvents()
-		assert(prevValue == 50)
+		assertEquals(50, prevValue)
 		mockMidiControlPanel.getButtonControl(0).value = 0
 		WaitForAsyncUtils.waitForFxEvents()
-		assert(prevValue == 0)
+		assertEquals(0, prevValue)
 	}
 
 
@@ -211,7 +267,7 @@ class MidiActionSetTest : ApplicationTest() {
 
 	@Test
 	fun `midi fader`() {
-		var prevValue = Int.MIN_VALUE
+		var prevValue: Number = Int.MIN_VALUE
 		MidiActionSet("Fader", mockMidiControlPanel, root) {
 			MidiFaderEvent.FADER(0) { onAction { prevValue = it!!.value } }
 			MidiFaderEvent.FADER(1) {
@@ -219,39 +275,66 @@ class MidiActionSetTest : ApplicationTest() {
 				max = 100
 				onAction { prevValue = it!!.value }
 			}
+			MidiFaderEvent.FADER(2) {
+				asPercent = true
+				onAction { prevValue = it!!.value }
+			}
 			root.installActionSet(this)
 		}
 
+		mockMidiControlPanel.getFaderControl(0).value = -1
+		WaitForAsyncUtils.waitForFxEvents()
+		assertEquals(0.0, prevValue)
+
+		mockMidiControlPanel.getFaderControl(0).value = 128
+		WaitForAsyncUtils.waitForFxEvents()
+		assertEquals(127.0, prevValue)
+
 		mockMidiControlPanel.getFaderControl(0).value = 10
 		WaitForAsyncUtils.waitForFxEvents()
-		assert(prevValue == 10)
+		assertEquals(10.0, prevValue)
+
 		mockMidiControlPanel.getFaderControl(0).value = 0
 		WaitForAsyncUtils.waitForFxEvents()
-		assert(prevValue == 0)
-		mockMidiControlPanel.getFaderControl(0).value = 8
-		WaitForAsyncUtils.waitForFxEvents()
-		assert(prevValue == 8)
-
-
-		mockMidiControlPanel.getFaderControl(1).value = (.5 * 127).toInt()
-		WaitForAsyncUtils.waitForFxEvents()
-		assertEquals(0, prevValue)
+		assertEquals(0.0, prevValue)
 
 		mockMidiControlPanel.getFaderControl(1).value = 127
 		WaitForAsyncUtils.waitForFxEvents()
-		assertEquals(100, prevValue)
+		assertEquals(100.0, prevValue)
 
 		mockMidiControlPanel.getFaderControl(1).value = 0
 		WaitForAsyncUtils.waitForFxEvents()
-		assertEquals(-100, prevValue)
+		assertEquals(-100.0, prevValue)
+
+		mockMidiControlPanel.getFaderControl(1).value = 127 / 2
+		WaitForAsyncUtils.waitForFxEvents()
+		assertEquals(-100 + (100 - -100) * ((127 / 2) / 127.toDouble()), prevValue)
 
 		mockMidiControlPanel.getFaderControl(1).value = 1270
 		WaitForAsyncUtils.waitForFxEvents()
-		assertEquals(100, prevValue)
+		assertEquals(100.0, prevValue)
 
 		mockMidiControlPanel.getFaderControl(1).value = -1
 		WaitForAsyncUtils.waitForFxEvents()
-		assertEquals(-100, prevValue)
+		assertEquals(-100.0, prevValue)
+
+		mockMidiControlPanel.getFaderControl(2).value = -1000
+		WaitForAsyncUtils.waitForFxEvents()
+		assertEquals(0.0, prevValue)
+
+		mockMidiControlPanel.getFaderControl(2).value = 1000
+		WaitForAsyncUtils.waitForFxEvents()
+		assertEquals(1.0, prevValue)
+
+		val expected: Double
+		mockMidiControlPanel.getFaderControl(2).apply {
+			val intValue = Random.nextInt(0, 128)
+			expected = intValue.toDouble() / 127
+			value = intValue
+		}
+		WaitForAsyncUtils.waitForFxEvents()
+		assertEquals(expected, prevValue)
+
 	}
 
 
