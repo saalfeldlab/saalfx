@@ -98,7 +98,7 @@ class MatchSelection(
 
 		val labelList = ListView(currentOrder)
 		labelList.selectionModel.selectionMode = SelectionMode.SINGLE
-		registStyleSheet(labelList)
+		registerStyleSheet(labelList)
 
 		labelList.maxWidthProperty().bind(maxWidthProperty())
 		labelList.prefWidthProperty().bind(maxWidthProperty())
@@ -184,13 +184,13 @@ class MatchSelection(
 
 	companion object {
 
-		fun registStyleSheet(styleable : Scene) {
+		fun registerStyleSheet(styleable : Scene) {
 			MatchSelection.javaClass.getResource("matcher.css")?.toExternalForm()?.let { css ->
 				styleable.stylesheets.add(css)
 			}
 		}
 
-		fun registStyleSheet(styleable : Parent) {
+		fun registerStyleSheet(styleable : Parent) {
 			MatchSelection.javaClass.getResource("matcher.css")?.toExternalForm()?.let { css ->
 				styleable.stylesheets.add(css)
 			}
