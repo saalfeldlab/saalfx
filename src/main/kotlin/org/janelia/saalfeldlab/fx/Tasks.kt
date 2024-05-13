@@ -1,6 +1,7 @@
 package org.janelia.saalfeldlab.fx
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder
+import io.github.oshai.kotlinlogging.KotlinLogging
 import javafx.beans.value.ChangeListener
 import javafx.concurrent.Task
 import javafx.concurrent.Worker
@@ -8,7 +9,6 @@ import javafx.concurrent.Worker.State.*
 import javafx.concurrent.WorkerStateEvent
 import javafx.event.EventHandler
 import org.janelia.saalfeldlab.fx.util.InvokeOnJavaFXApplicationThread
-import org.slf4j.LoggerFactory
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.ThreadFactory
@@ -59,7 +59,7 @@ class UtilityTask<V>(private val onCall: (UtilityTask<V>) -> V) : Task<V>() {
 	private var onFailedSet = false
 
 	companion object {
-		private val LOG = LoggerFactory.getLogger(UtilityTask::class.java)
+		private val LOG = KotlinLogging.logger {  }
 	}
 
 	override fun call(): V? {
@@ -68,11 +68,11 @@ class UtilityTask<V>(private val onCall: (UtilityTask<V>) -> V) : Task<V>() {
 			if (!onFailedSet) setDefaultOnFailed()
 			return onCall(this)
 		} catch (e: Exception) {
-			LOG.trace("Task Exception (cancelled=$isCancelled): ", e)
 			if (isCancelled) {
+				LOG.trace(e) { "Task Cancelled (cancelled=$isCancelled)" }
 				return null
 			}
-			throw e
+			throw RuntimeException(e)
 		}
 	}
 
@@ -82,7 +82,7 @@ class UtilityTask<V>(private val onCall: (UtilityTask<V>) -> V) : Task<V>() {
 
 	private fun setDefaultOnFailed() {
 		InvokeOnJavaFXApplicationThread {
-			this.onFailed { _, task -> LOG.error(task.exception.stackTraceToString()) }
+			this.onFailed { _, task -> LOG.error(task.exception) {"Task Failed"} }
 		}
 	}
 
@@ -232,7 +232,7 @@ class UtilityTask<V>(private val onCall: (UtilityTask<V>) -> V) : Task<V>() {
 	 */
 	@JvmOverloads
 	fun submit(executorService: ExecutorService = this.executorService) : UtilityTask<V> {
-		this.executorService = executorService;
+		this.executorService = executorService
 		this.executorService.submit(this)
 		return this
 	}

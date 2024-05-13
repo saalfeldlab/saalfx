@@ -26,8 +26,6 @@ import org.janelia.saalfeldlab.fx.extensions.createNonNullValueBinding
 import org.janelia.saalfeldlab.fx.extensions.nonnull
 import org.janelia.saalfeldlab.fx.extensions.nonnullVal
 import org.janelia.saalfeldlab.fx.util.InvokeOnJavaFXApplicationThread
-import org.slf4j.LoggerFactory
-import java.lang.invoke.MethodHandles
 import java.util.function.DoublePredicate
 import kotlin.math.abs
 import kotlin.math.max
@@ -107,8 +105,6 @@ class ResizeHorizontally @JvmOverloads constructor(
 	}
 
 	companion object {
-
-		private val LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
 
 		private val Event.scene: Scene?
 			get() = this.target?.scene

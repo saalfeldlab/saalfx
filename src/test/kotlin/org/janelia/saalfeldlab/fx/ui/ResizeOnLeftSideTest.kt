@@ -1,5 +1,6 @@
 package org.janelia.saalfeldlab.fx.ui
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import javafx.application.Platform
 import javafx.event.Event
 import javafx.geometry.Point2D
@@ -12,9 +13,7 @@ import javafx.stage.Stage
 import org.junit.Assert
 import org.junit.Ignore
 import org.junit.Test
-import org.slf4j.LoggerFactory
 import org.testfx.framework.junit.ApplicationTest
-import java.lang.invoke.MethodHandles
 import java.util.function.DoublePredicate
 import kotlin.math.abs
 
@@ -28,7 +27,7 @@ class ResizeOnLeftSideTest : ApplicationTest() {
 
 		node = TextArea("Node!")
 			.also { it.prefWidth = START_WIDTH }
-			.also { it.addEventFilter(Event.ANY) { LOG.trace("Filtering event in node: {}", it) } }
+			.also { it.addEventFilter(Event.ANY) { LOG.trace { "Filtering event in node: $it" } } }
 
 		resizer = ResizeOnLeftSide(
 			node,
@@ -37,13 +36,13 @@ class ResizeOnLeftSideTest : ApplicationTest() {
 		)
 
 		val center = TextArea("Center!")
-			.also { it.addEventFilter(Event.ANY) { LOG.trace("Filtering event in center: {}", it) } }
+			.also { it.addEventFilter(Event.ANY) { LOG.trace { "Filtering event in center: $it" } } }
 		val pane = BorderPane(center)
 			.also { it.right = node }
 		resizer.install()
 		stage.scene = Scene(pane, SCENE_WIDTH, SCENE_HEIGHT)
-			.also { it.addEventFilter(Event.ANY) { LOG.trace("Filtering event in scene: {}", it) } }
-			.also { it.addEventFilter(MouseEvent.ANY) { LOG.trace("Filtering mouse event in scene: {}", it) } }
+			.also { it.addEventFilter(Event.ANY) { LOG.trace { "Filtering event in scene: $it" } } }
+			.also { it.addEventFilter(MouseEvent.ANY) { LOG.trace { "Filtering mouse event in scene: $it" } } }
 		stage.show()
 		// This is necessary to make sure that the stage grabs focus from OS and events are registered
 		// https://stackoverflow.com/a/47685356/1725687
@@ -69,15 +68,15 @@ class ResizeOnLeftSideTest : ApplicationTest() {
 			Pair(RESIZABLE_DISTANE + 1, false)
 		)
 		offsetsAndResizable.forEach { (offset, resizable) ->
-			LOG.debug("Moving mouse to offset=$offset relative to left border of right node")
+			LOG.debug { "Moving mouse to offset=$offset relative to left border of right node" }
 			moveTo(node, Point2D(-node.width / 2.0 + offset, 0.0))
-			LOG.debug("{} {} {} {}", offset, resizable, resizer.isCurrentlyWithinMarginOfBorder)
+			LOG.debug { "$offset $resizable ${resizer.isCurrentlyWithinMarginOfBorder}" }
 			Assert.assertEquals(resizable, resizer.isCurrentlyWithinMarginOfBorder)
 		}
 	}
 
 	companion object {
-		private val LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
+		private val LOG = KotlinLogging.logger {  }
 
 		const val START_WIDTH = 100.0
 

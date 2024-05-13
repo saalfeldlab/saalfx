@@ -28,6 +28,7 @@
  */
 package org.janelia.saalfeldlab.fx.undo
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import javafx.beans.InvalidationListener
 import javafx.beans.property.BooleanProperty
 import javafx.beans.property.SimpleIntegerProperty
@@ -42,8 +43,6 @@ import javafx.scene.layout.Region
 import javafx.scene.layout.VBox
 import javafx.util.Pair
 import org.janelia.saalfeldlab.fx.util.InvokeOnJavaFXApplicationThread
-import org.slf4j.LoggerFactory
-import java.lang.invoke.MethodHandles
 import java.util.function.Function
 
 class UndoFromEvents<T>(
@@ -87,7 +86,7 @@ class UndoFromEvents<T>(
 		currentEventIndex.addListener { _, oldv, newv ->
 			val oldIndex = oldv.toInt()
 			val newIndex = newv.toInt()
-			LOG.debug("Updating current event index {} {}", oldIndex, newIndex)
+			LOG.debug { "Updating current event index $oldIndex $newIndex" }
 			if (oldIndex >= 0 && oldIndex < currentEventLabel.size)
 				InvokeOnJavaFXApplicationThread.invoke { currentEventLabel[oldIndex].text = "" }
 			if (newIndex >= 0 && newIndex < currentEventLabel.size)
@@ -121,7 +120,7 @@ class UndoFromEvents<T>(
 	}
 
 	private fun updateEventBox(events: List<Pair<T, out BooleanProperty>>) {
-		LOG.debug("Updating event box for events {}", events)
+		LOG.debug { "Updating event box for events $events" }
 		val nodes = ArrayList<Node>()
 		this.currentEventLabel.clear()
 		this.currentEventIndex.set(-1)
@@ -155,7 +154,7 @@ class UndoFromEvents<T>(
 		// https://www.fileformat.info/info/unicode/char/25c0/index.htm
 		private val CURRENT_EVENT_INDICATOR = "◀"
 
-		private val LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
+		private val LOG = KotlinLogging.logger {  }
 
 		fun <T> withUndoRedoButtons(
 			events: ObservableList<Pair<T, BooleanProperty>>,

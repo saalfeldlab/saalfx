@@ -28,6 +28,7 @@
  */
 package org.janelia.saalfeldlab.fx.ui
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
@@ -51,8 +52,6 @@ import org.janelia.saalfeldlab.fx.extensions.createObservableBinding
 import org.janelia.saalfeldlab.fx.ui.MatchSelection.Companion.fuzzySorted
 import org.janelia.saalfeldlab.fx.ui.MatchSelection.Companion.fuzzyTop
 import org.janelia.saalfeldlab.fx.util.InvokeOnJavaFXApplicationThread
-import org.slf4j.LoggerFactory
-import java.lang.invoke.MethodHandles
 import java.util.function.BiFunction
 import java.util.function.Consumer
 
@@ -158,7 +157,7 @@ class MatchSelection(
 
 		val contents = VBox(fuzzySearchField, Separators.horizontal(), labelList)
 		contents.setOnKeyPressed { e ->
-			LOG.debug("Key pressed in contents with code {}", e.code)
+			LOG.debug { "Key pressed in contents with code ${e.code}" }
 			if (!handleNavigationKeys(e)) {
 				if (e.code == KeyCode.ESCAPE && fuzzySearchField.text?.isNotEmpty() == true) {
 					fuzzySearchField.text = ""
@@ -170,7 +169,7 @@ class MatchSelection(
 			}
 		}
 		fuzzySearchField.setOnKeyPressed { e ->
-			LOG.debug("Key pressed in fuzzy search field with code {}", e.code)
+			LOG.debug { "Key pressed in fuzzy search field with code ${e.code}" }
 			handleNavigationKeys(e)
 		}
 		contents.focusedProperty().addListener { _, _, newv -> if (newv != null && newv) fuzzySearchField.requestFocus() }
@@ -197,7 +196,7 @@ class MatchSelection(
 			}
 		}
 
-		private val LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
+		private val LOG = KotlinLogging.logger {  }
 
 
 		fun fuzzySorted(candidates: List<String>, onConfirm: (String?) -> Unit, cutoff: Int? = null): MatchSelection {

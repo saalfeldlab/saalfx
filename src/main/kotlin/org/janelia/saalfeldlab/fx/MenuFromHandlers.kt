@@ -28,14 +28,13 @@
  */
 package org.janelia.saalfeldlab.fx
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import javafx.event.ActionEvent
 import javafx.scene.control.ContextMenu
 import javafx.scene.control.Menu
 import javafx.scene.control.MenuItem
 import javafx.scene.control.SeparatorMenuItem
 import javafx.util.Pair
-import org.slf4j.LoggerFactory
-import java.lang.invoke.MethodHandles
 import java.util.Arrays
 import java.util.Stack
 import java.util.function.Consumer
@@ -175,7 +174,7 @@ class MenuFromHandlers @JvmOverloads constructor(entries: Collection<Pair<String
 		// mnemonics might not work without alt modifier...
 		// https://bugs.openjdk.java.net/browse/JDK-8090026
 
-		private val LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
+		private val LOG = KotlinLogging.logger {  }
 
 		private const val MENU_SPLIT = ">"
 
