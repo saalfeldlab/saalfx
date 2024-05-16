@@ -10,7 +10,7 @@
 
 	<groupId>org.janelia.saalfeldlab</groupId>
 	<artifactId>saalfx</artifactId>
-	<version>1.4.0-SNAPSHOT</version>
+	<version>1.4.1-SNAPSHOT</version>
 
 	<name>Saal FX</name>
 	<description>Saalfeld lab JavaFX tools and extensions</description>
@@ -57,7 +57,7 @@
 			<id>hanslovsky</id>
 			<name>Philipp Hanslovsky</name>
 			<email>hanslovskyp@janelia.hhmi.org</email>
-			<url/>
+			<url />
 			<organization>HHMI Janelia</organization>
 			<organizationUrl>http://janelia.org/</organizationUrl>
 			<roles>
@@ -72,7 +72,7 @@
 			<id>cmhulbert</id>
 			<name>Caleb Hulbert</name>
 			<email>hulbertc@hhmi.org</email>
-			<url/>
+			<url />
 			<organization>HHMI Janelia</organization>
 			<organizationUrl>http://janelia.org/</organizationUrl>
 			<roles>
