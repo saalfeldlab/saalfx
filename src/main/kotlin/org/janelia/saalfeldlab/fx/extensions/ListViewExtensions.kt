@@ -11,7 +11,7 @@ fun ListView<*>.bindHeightToItemSize() {
 	val defaultMaxRows = 18
 	val cellHeightFallBack = 24.0
 	val prefHeightBinding: ObjectBinding<Double> = items.createObservableBinding {
-		val cellHeight = (lookup(".list-cell") as? ListCell<*>)?.height ?: cellHeightFallBack
+		val cellHeight = (lookup(".list-cell") as? ListCell<*>)?.height?.let { h -> if (h == 0.0) cellHeightFallBack else h } ?: cellHeightFallBack
 		val borderPadding = padding.top + padding.bottom
 		borderPadding + cellHeight * it.size.coerceAtMost(defaultMaxRows)
 	}

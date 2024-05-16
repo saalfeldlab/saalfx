@@ -99,22 +99,22 @@ class MatchSelection(
 			fuzzySearchField.requestFocus()
 			fuzzySearchField.selectEnd()
 		}
-		val currentOrder = FXCollections.observableArrayList<String>()
-		fuzzySearchField.textProperty().addListener { _, _, fuzzyFilter ->
-			val matches = when (emptyBehavior) {
-				EmptyBehavior.MATCH_ALL -> if (fuzzyFilter == null || fuzzyFilter.isEmpty()) candidates else matcher.apply(fuzzyFilter, candidates)
-				EmptyBehavior.MATCH_NONE -> matcher.apply(fuzzyFilter ?: "", candidates)
-			}
-			currentOrder.setAll(matches)
-		}
 
-		val labelList = ListView(currentOrder)
+		val labelList = ListView<String>()
 		labelList.selectionModel.selectionMode = SelectionMode.SINGLE
 		registerStyleSheet(labelList)
 
 		labelList.maxWidthProperty().bind(maxWidthProperty())
 		labelList.prefWidthProperty().bind(maxWidthProperty())
 		labelList.bindHeightToItemSize()
+
+		fuzzySearchField.textProperty().addListener { _, _, fuzzyFilter ->
+			val matches = when (emptyBehavior) {
+				EmptyBehavior.MATCH_ALL -> if (fuzzyFilter == null || fuzzyFilter.isEmpty()) candidates else matcher.apply(fuzzyFilter, candidates)
+				EmptyBehavior.MATCH_NONE -> matcher.apply(fuzzyFilter ?: "", candidates)
+			}
+			labelList.items.setAll(matches)
+		}
 
 
 		/* NOTE: I would have prefered that `labelList.scrollTo(idx)` would have worked here,
