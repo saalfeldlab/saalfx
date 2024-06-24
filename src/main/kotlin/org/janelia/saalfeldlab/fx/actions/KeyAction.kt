@@ -50,8 +50,8 @@ class KeyAction(eventType: EventType<KeyEvent>) : Action<KeyEvent>(eventType) {
 				/* always valid here if the event is null; it indicates we are triggering the action programmatically, not via an Event */
 				event ?: return@verify true
 
-				namedKeyBinding.matches(event, keysExclusive).also { match ->
-					if (!match) logger.trace("key did not match bindings")
+				namedKeyBinding.matches(event, keyTracker(), keysExclusive).also { match ->
+					if (!match) logger.trace { "key did not match bindings" }
 				}
 			}
 	}
