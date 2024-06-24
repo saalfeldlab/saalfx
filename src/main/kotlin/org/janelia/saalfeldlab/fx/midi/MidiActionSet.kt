@@ -13,6 +13,7 @@ import org.janelia.saalfeldlab.control.mcu.MCUButtonControl.TOGGLE_ON
 import org.janelia.saalfeldlab.fx.actions.Action
 import org.janelia.saalfeldlab.fx.actions.ActionSet
 import org.janelia.saalfeldlab.fx.event.KeyTracker
+import org.janelia.saalfeldlab.fx.util.InvokeOnJavaFXApplicationThread
 import java.util.function.IntConsumer
 import kotlin.math.absoluteValue
 
@@ -139,7 +140,7 @@ class PotentiometerAction(eventType: EventType<MidiPotentiometerEvent>, device: 
 			field = control.max
 		}
 
-	var displayType : DisplayType = (if (absolute) DisplayType.PAN else DisplayType.TRIM).also { control.setDisplayType(it) }
+	var displayType: DisplayType = (if (absolute) DisplayType.PAN else DisplayType.TRIM).also { control.setDisplayType(it) }
 
 	var converter: (Int) -> Number = { it }
 
@@ -164,7 +165,7 @@ class PotentiometerAction(eventType: EventType<MidiPotentiometerEvent>, device: 
 		}
 	}
 
-	private var controlValue : Int = let {
+	private var controlValue: Int = let {
 		control.setValueSilently(0)
 		control.display()
 		control.value
@@ -188,7 +189,10 @@ class PotentiometerAction(eventType: EventType<MidiPotentiometerEvent>, device: 
 		initializeControlState()
 		eventFiringListener = IntConsumer {
 			if (supressEvents) return@IntConsumer
-			Event.fireEvent(target, MidiPotentiometerEvent(handle, converter(it), eventType))
+			val value = converter(it)
+			InvokeOnJavaFXApplicationThread {
+				Event.fireEvent(target, MidiPotentiometerEvent(handle, value, eventType))
+			}
 		}
 		control.addListener(eventFiringListener)
 		afterRegisterEvent()
@@ -231,11 +235,17 @@ class ButtonAction(eventType: EventType<MidiButtonEvent>, device: MCUControlPane
 		if (supressEvents) return@IntConsumer
 
 		if (eventType == MidiButtonEvent.BUTTON_PRESSED && it != 0) {
-			Event.fireEvent(target, MidiButtonEvent(handle, it, eventType))
+			InvokeOnJavaFXApplicationThread {
+				Event.fireEvent(target, MidiButtonEvent(handle, it, eventType))
+			}
 		} else if (eventType == MidiButtonEvent.BUTTON_RELEASED && it == 0) {
-			Event.fireEvent(target, MidiButtonEvent(handle, it, eventType))
+			InvokeOnJavaFXApplicationThread {
+				Event.fireEvent(target, MidiButtonEvent(handle, it, eventType))
+			}
 		} else if (eventType == MidiButtonEvent.BUTTON) {
-			Event.fireEvent(target, MidiButtonEvent(handle, it, eventType))
+			InvokeOnJavaFXApplicationThread {
+				Event.fireEvent(target, MidiButtonEvent(handle, it, eventType))
+			}
 		}
 	}
 }
@@ -269,7 +279,9 @@ class ToggleAction(eventType: EventType<MidiToggleEvent>, device: MCUControlPane
 		initializeControlState()
 		eventFiringListener = IntConsumer {
 			if (supressEvents) return@IntConsumer
-			Event.fireEvent(target, MidiToggleEvent(handle, it, eventType))
+			InvokeOnJavaFXApplicationThread {
+				Event.fireEvent(target, MidiToggleEvent(handle, it, eventType))
+			}
 		}
 		control.addListener(eventFiringListener)
 		afterRegisterEvent()
@@ -300,11 +312,11 @@ class FaderAction(eventType: EventType<MidiFaderEvent>, device: MCUControlPanel,
 	 */
 	var max: Number = control.max
 
-	val convertToPerecent = { it : Int ->
+	val convertToPerecent = { it: Int ->
 		(it.toDouble() - control.min) / (control.max - control.min)
 	}
 
-	val convertToNumber = { it : Int ->
+	val convertToNumber = { it: Int ->
 		(min.toDouble() + (max.toDouble() - min.toDouble()) * convertToPerecent(it))
 	}
 
@@ -332,7 +344,10 @@ class FaderAction(eventType: EventType<MidiFaderEvent>, device: MCUControlPanel,
 		initializeControlState()
 		eventFiringListener = IntConsumer {
 			if (supressEvents) return@IntConsumer
-			Event.fireEvent(target, MidiFaderEvent(handle, converter(it), eventType))
+			val value = converter(it)
+			InvokeOnJavaFXApplicationThread {
+				Event.fireEvent(target, MidiFaderEvent(handle, value, eventType))
+			}
 		}
 		control.addListener(eventFiringListener)
 		afterRegisterEvent()

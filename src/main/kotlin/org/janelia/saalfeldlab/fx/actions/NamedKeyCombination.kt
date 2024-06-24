@@ -5,6 +5,7 @@ import javafx.beans.property.SimpleObjectProperty
 import javafx.scene.input.*
 import org.apache.commons.lang.builder.ToStringBuilder
 import org.apache.commons.lang.builder.ToStringStyle
+import org.janelia.saalfeldlab.fx.event.KeyTracker
 import org.janelia.saalfeldlab.fx.extensions.nonnull
 import kotlin.collections.set
 
@@ -39,9 +40,9 @@ interface NamedKeyBinding {
 			return codes.toSet()
 		}
 
-	fun matches(event : KeyEvent, keysExclusive: Boolean = true) : Boolean {
+	fun matches(event : KeyEvent, keyTracker : KeyTracker?, keysExclusive: Boolean = true) : Boolean {
 		return if (keysExclusive) {
-			primaryCombinationProperty.get().match(event)
+			keyTracker?.areOnlyTheseKeysDown(*keyCodes.toTypedArray()) ?: primaryCombination.match(event)
 		} else {
 			val codesMatchIfCodeCombo = (primaryCombinationProperty.get() as? KeyCodeCombination)?.code?.let { it == event.code } ?: true
 			codesMatchIfCodeCombo && event.modifierCodes.containsAll(primaryCombinationProperty.get().modifierCodes)
@@ -86,10 +87,6 @@ open class NamedKeyCombination(override val keyBindingName: String, primaryCombi
 			if (containsKey(keyCombination.keyBindingName))
 				throw KeyCombinationAlreadyInserted(keyCombination)
 			this[keyCombination.keyBindingName] = keyCombination
-		}
-
-		fun matches(name: String, event: KeyEvent, keysExclusive : Boolean = true) : Boolean {
-			return get(name)!!.matches(event, keysExclusive)
 		}
 
 		operator fun plusAssign(keyCombination: NamedKeyBinding) = addCombination(keyCombination)
