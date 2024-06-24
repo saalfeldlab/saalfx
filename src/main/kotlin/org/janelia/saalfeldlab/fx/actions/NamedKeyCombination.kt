@@ -42,7 +42,7 @@ interface NamedKeyBinding {
 
 	fun matches(event : KeyEvent, keyTracker : KeyTracker?, keysExclusive: Boolean = true) : Boolean {
 		return if (keysExclusive) {
-			keyTracker?.areKeysDown(this) ?: primaryCombination.match(event)
+			keyTracker?.areOnlyTheseKeysDown(*keyCodes.toTypedArray()) ?: primaryCombination.match(event)
 		} else {
 			val codesMatchIfCodeCombo = (primaryCombinationProperty.get() as? KeyCodeCombination)?.code?.let { it == event.code } ?: true
 			codesMatchIfCodeCombo && event.modifierCodes.containsAll(primaryCombinationProperty.get().modifierCodes)
