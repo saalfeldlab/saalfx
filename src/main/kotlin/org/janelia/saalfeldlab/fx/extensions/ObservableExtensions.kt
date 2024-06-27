@@ -116,7 +116,7 @@ class WritableSubclassDelegate<T, K : T>(private val obs: WritableValue<T?>, pri
 	}
 }
 
-fun interface SelfRefrentialListener<T> : ChangeListener<T> {
+fun interface SelfReferentialListener<T> : ChangeListener<T> {
 
 	override fun changed(observable: ObservableValue<out T>?, oldValue: T, newValue: T) {
 		changedWithSelf(observable, oldValue, newValue)
@@ -125,14 +125,14 @@ fun interface SelfRefrentialListener<T> : ChangeListener<T> {
 	fun ChangeListener<T>.changedWithSelf(observable: ObservableValue<out T>?, oldValue: T, newValue: T)
 }
 
-fun <T> ObservableValue<T>.addWithListener(triggerWith : T? = value, listener: SelfRefrentialListener<T>) {
+fun <T> ObservableValue<T>.addWithListener(triggerWith : T? = value, listener: SelfReferentialListener<T>) {
 	this.addListener(listener)
 	triggerWith?.let {
 		listener.changed(this, value, value)
 	}
 }
 
-fun <T> ObservableValue<T>.addTriggeredWithListener(triggerWith : T = value, listener: SelfRefrentialListener<T>) {
+fun <T> ObservableValue<T>.addTriggeredWithListener(triggerWith : T = value, listener: SelfReferentialListener<T>) {
 	addWithListener(triggerWith, listener)
 }
 
