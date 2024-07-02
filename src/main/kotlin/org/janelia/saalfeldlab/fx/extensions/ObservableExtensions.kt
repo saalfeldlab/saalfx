@@ -3,13 +3,13 @@ package org.janelia.saalfeldlab.fx.extensions
 import javafx.beans.Observable
 import javafx.beans.binding.*
 import javafx.beans.property.*
-import javafx.beans.value.ChangeListener
 import javafx.beans.value.ObservableValue
 import javafx.beans.value.WritableValue
 import javafx.collections.ObservableList
 import javafx.collections.ObservableMap
 import javafx.collections.ObservableSet
 import javafx.scene.Node
+import javafx.util.Subscription
 import kotlin.reflect.KProperty
 
 fun <Obj, Obs> Obs.createObservableBinding(vararg observables: Observable, obsToObj: (Obs) -> Obj): ObjectBinding<Obj> where Obs : Observable {
@@ -116,27 +116,57 @@ class WritableSubclassDelegate<T, K : T>(private val obs: WritableValue<T?>, pri
 	}
 }
 
-fun interface SelfReferentialListener<T> : ChangeListener<T> {
+/**
+ * A wrapper method for [ObservableValue.when] to make it more ergonomic to write in Kotlin
+ * @see ObservableValue.when
+ */
+fun <T> ObservableValue<T>.onlyWhen(condition : ObservableValue<Boolean>): ObservableValue<T> = this.`when`(condition)
 
-	override fun changed(observable: ObservableValue<out T>?, oldValue: T, newValue: T) {
-		changedWithSelf(observable, oldValue, newValue)
+/**
+ * Returns an [ObservableValue] that only changes when [condition] is satisfied, and only the first time.
+ * After the first time, the this [ObservableValue] will never change.
+ *
+ * @param condition to determine when to trigger an update
+ * @return An [ObservableValue] that emits the value of the source [ObservableValue] only the first time
+ * the [condition] is true.
+ */
+fun <T> ObservableValue<T>.onceWhen(condition : ObservableValue<Boolean>): ObservableValue<T> {
+	var first = true
+	return this.`when`(condition.map { it && first }).also {
+		it.subscribe { _, _ ->
+			/* I think this is a bug, but need to investigate more */
+			if (condition.value)
+				first = false
+		}
 	}
-
-	fun ChangeListener<T>.changedWithSelf(observable: ObservableValue<out T>?, oldValue: T, newValue: T)
 }
 
-fun <T> ObservableValue<T>.addWithListener(triggerWith : T? = value, listener: SelfReferentialListener<T>) {
-	this.addListener(listener)
-	triggerWith?.let {
-		listener.changed(this, value, value)
+/**
+ * Returns an [ObservableValue] that emits values from the receiver [ObservableValue] only until the [condition] is false.
+ *
+ * @param condition determines when to stop emitting values.
+ * @return An [ObservableValue] that emits values from the source until the condition is false.
+ */
+fun <T> ObservableValue<T>.untilWhen(condition : ObservableValue<Boolean>): ObservableValue<T> {
+	var untilFalse = true
+	return this.`when`(condition.map {
+		untilFalse = untilFalse && it
+		untilFalse
+	})
+}
+
+fun <T> ObservableValue<T>.subscribeWithSubscription(withSubscription: Subscription.(T, T) -> Unit) {
+	lateinit var subscription: Subscription
+	subscription = subscribe { old, new ->
+		subscription.withSubscription(old, new)
 	}
 }
 
-fun <T> ObservableValue<T>.addTriggeredWithListener(triggerWith : T = value, listener: SelfReferentialListener<T>) {
-	addWithListener(triggerWith, listener)
+
+fun <T> ObservableValue<T>.subscribeUntil(subscribeUntil: (T, T) -> Boolean?) {
+	val until = SimpleBooleanProperty(true)
+	this.`when`(until).subscribe { old, new ->
+		subscribeUntil(old, new)?.let { until.set(it) }
+	}
 }
 
-fun <T> ObservableValue<T>.addTriggeredListener(triggerWith: T = value, listener: ChangeListener<T>) {
-	this.addListener(listener)
-	listener.changed(this, value, value)
-}
