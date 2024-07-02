@@ -43,7 +43,6 @@ import javafx.scene.layout.Region
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
 import org.janelia.saalfeldlab.fx.SaalFxStyle
-import org.janelia.saalfeldlab.fx.extensions.addTriggeredListener
 import org.janelia.saalfeldlab.fx.extensions.nonnull
 import java.util.function.DoublePredicate
 import java.util.function.IntPredicate
@@ -88,7 +87,7 @@ class SpatialField<P : Property<Number>> private constructor(
 
 	private fun createHeader() = VBox().apply {
 		children += Label().apply {
-			showHeaderProperty.addTriggeredListener { _, _, show -> showHeader(show) }
+			showHeaderProperty.subscribe { show -> showHeader(show) }
 			alignment = Pos.BOTTOM_CENTER
 			isFillWidth = true
 			padding = Insets(0.0, 0.0, 3.0, 0.0)
