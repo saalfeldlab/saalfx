@@ -29,51 +29,34 @@
 package org.janelia.saalfeldlab.fx.util
 
 import javafx.application.Platform
-import java.util.concurrent.CountDownLatch
-import java.util.function.Consumer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 class InvokeOnJavaFXApplicationThread {
 
 	companion object {
 
-		operator fun invoke(task: () -> Unit) = invoke(Runnable { task() })
+		private val sharedMainScope = MainScope()
+
+		@JvmStatic
+		operator fun invoke(task: suspend CoroutineScope.() -> Unit) = sharedMainScope.launch(block = task)
 
 		@JvmStatic
 		operator fun invoke(task: Runnable) {
-			if (Platform.isFxApplicationThread())
-				task.run()
-			else
-				Platform.runLater(task)
+			if (Platform.isFxApplicationThread()) task.run()
+			else invoke { task.run() }
 		}
 
 		@Throws(InterruptedException::class)
-		fun invokeAndWait(task: () -> Unit) = invokeAndWait(Runnable { task() })
+		fun invokeAndWait(task: suspend CoroutineScope.() -> Unit) = runBlocking {
+			sharedMainScope.launch { task() }.join()
+		}
 
 		@JvmStatic
 		@Throws(InterruptedException::class)
-		fun invokeAndWait(task: Runnable) {
-			val latch = CountDownLatch(1)
-			val countDownTask = Runnable {
-				task.run()
-				latch.countDown()
-			}
-			invoke(countDownTask)
-			synchronized(latch) {
-				latch.await()
-			}
-		}
+		fun invokeAndWait(task: Runnable) = invokeAndWait { task.run() }
 
-		fun invokeAndWait(task: () -> Unit, exceptionHandler: (InterruptedException) -> Unit) = invokeAndWait(
-			Runnable { task() },
-			Consumer { exceptionHandler(it) })
-
-		@JvmStatic
-		fun invokeAndWait(task: Runnable, exceptionHandler: Consumer<InterruptedException>) {
-			try {
-				invokeAndWait(task)
-			} catch (e: InterruptedException) {
-				exceptionHandler.accept(e)
-			}
-		}
 	}
 }
