@@ -80,8 +80,8 @@ abstract class MidiAction<E : FxMidiEvent>(eventType: EventType<E>, val device: 
 
 	override val logger: KLogger by lazy {
 		val simpleName = this::class.simpleName?.let { ".$it" } ?: ""
-		val name = ".${this.name ?: "event-${eventType.name}"}"
-		KotlinLogging.logger("saalfx.action.midi$simpleName$name.$handle")
+		val finalName = ".${this.name ?: "event-${eventType.name}"}"
+		KotlinLogging.logger("saalfx.action.midi$simpleName$finalName.$handle")
 	}
 
 	init {

@@ -206,13 +206,13 @@ class MatchSelection(
 	companion object {
 
 		fun registerStyleSheet(styleable : Scene) {
-			MatchSelection.javaClass.getResource("matcher.css")?.toExternalForm()?.let { css ->
+			MatchSelection::class.java.getResource("matcher.css")?.toExternalForm()?.let { css ->
 				styleable.stylesheets.add(css)
 			}
 		}
 
 		fun registerStyleSheet(styleable : Parent) {
-			MatchSelection.javaClass.getResource("matcher.css")?.toExternalForm()?.let { css ->
+			MatchSelection::class.java.getResource("matcher.css")?.toExternalForm()?.let { css ->
 				styleable.stylesheets.add(css)
 			}
 		}

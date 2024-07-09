@@ -8,13 +8,13 @@ import javafx.scene.control.ListView
 import javafx.scene.input.MouseEvent
 import javafx.scene.layout.Pane
 import javafx.stage.Stage
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import org.janelia.saalfeldlab.fx.util.InvokeOnJavaFXApplicationThread
 import org.junit.Assert
 import org.testfx.framework.junit.ApplicationTest
 import org.testfx.util.WaitForAsyncUtils
 import java.io.PrintStream
-import java.time.LocalDateTime
-import java.time.temporal.ChronoUnit
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -49,8 +49,7 @@ class TasksTest : ApplicationTest() {
 	fun `onSuccess runs when successful`() {
 		val testText = "Single onSuccess Test"
 		Tasks.createTask { testText }
-			.onSuccess { _, t -> list.items.add(t.value) }
-			.submit()
+			.onSuccess { list.items.add(it) }
 
 		WaitForAsyncUtils.waitForFxEvents()
 
@@ -63,15 +62,16 @@ class TasksTest : ApplicationTest() {
 	fun `onEnd and OnSuccess run when successful`() {
 		val endOnSuccessText = "Single onEnd Test, expecting success"
 		val task = Tasks.createTask { endOnSuccessText }
-			.onSuccess { _, t -> list.items.add(t.value) }
-			.onEnd { t -> list.items.add(t.value) }
-			.submit()
+			.onSuccess { list.items.add(it) }
+			.onEnd { result, _ -> list.items.add(result!!) }
 
-		WaitForAsyncUtils.waitForFxEvents()
+		val result = runBlocking {
+			task.await()
+		}
 
 		val items = list.items
-		Assert.assertTrue(task.isDone)
-		Assert.assertEquals(endOnSuccessText, task.get())
+		Assert.assertTrue(task.isCompleted)
+		Assert.assertEquals(endOnSuccessText, result)
 		Assert.assertArrayEquals(arrayOf(endOnSuccessText, endOnSuccessText), items.toTypedArray())
 	}
 
@@ -79,11 +79,9 @@ class TasksTest : ApplicationTest() {
 	fun `onEnd and onSuccess run after blocking when successful`() {
 		val endOnSuccessText = "Single onEnd Test, expecting success"
 		val result = Tasks.createTask { endOnSuccessText }
-			.onSuccess { _, t -> list.items.add(t.value) }
-			.onEnd { t -> list.items.add(t.value) }
-			.submitAndWait()
-
-		WaitForAsyncUtils.waitForFxEvents()
+			.onSuccess { list.items.add(it) }
+			.onEnd { result, _ -> list.items.add(result!!) }
+			.get()
 
 		val items = list.items
 		Assert.assertEquals(endOnSuccessText, result)
@@ -96,17 +94,15 @@ class TasksTest : ApplicationTest() {
 		val textWithoutCancel = "Single onEnd Test, expecting to never see this"
 		val textWithCancel = "Single onEnd Test, expecting cancel"
 		var canceled = false
-		val maxTime = LocalDateTime.now().plus(5, ChronoUnit.SECONDS)
 		val task = Tasks.createTask {
 			/* waiting for the task to be canceled. If too long, we have failed. */
-			while (!canceled || LocalDateTime.now().isBefore(maxTime)) {
-				sleep(20)
+			while (!canceled) {
+				delay(5000)
 			}
 			textWithoutCancel
 		}
-			.onSuccess { _, t -> list.items.add(t.get()) }
-			.onEnd { list.items.add(textWithCancel) }
-			.submit()
+			.onSuccess { list.items.add(it) }
+			.onEnd { _, _ -> list.items.add(textWithCancel) }
 
 		task.cancel()
 		canceled = true
@@ -140,24 +136,18 @@ class TasksTest : ApplicationTest() {
 		val task: UtilityTask<*>
 		try {
 			task = Tasks.createTask { throw ExceptionTestException() }
-				.onSuccess { _, t -> list.items.add(t.get()) }
-				.onEnd { list.items.add(textWithFailure) }
-				.submit()
-			WaitForAsyncUtils.waitForFxEvents()
+				.onSuccess { list.items.add(it) }
+				.onEnd { _, _ -> list.items.add(textWithFailure) }
+				.onFailed { assertIs<ExceptionTestException>(it) }
+				.wait()
 		} finally {
 			System.setOut(stdout)
 			System.setErr(stderr)
 		}
 
-
-
-		Assert.assertFalse(task.isCancelled)
-		Assert.assertTrue(task.isDone)
+		Assert.assertTrue(task.isCancelled)
+		Assert.assertTrue(task.isCompleted)
 		Assert.assertArrayEquals(arrayOf(textWithFailure), items.toTypedArray())
-
-		InvokeOnJavaFXApplicationThread.invokeAndWait {
-			assert(task.exception.cause is ExceptionTestException)
-		}
 	}
 
 	@Test
@@ -167,51 +157,47 @@ class TasksTest : ApplicationTest() {
 		val textWithFailure = "Single onFailure Test, expecting failure"
 		/* Intentionally trigger failure, with custom onFailed */
 		val task = Tasks.createTask { throw ExceptionTestException() }
-			.onSuccess { _, t -> list.items.add(t.get()) }
-			.onEnd { list.items.add(textWithEnd) }
-			.onFailed { _, _ -> list.items.add(textWithFailure) }
-			.submit()
+			.onSuccess { list.items.add(it) }
+			.onEnd { _, _ -> list.items.add(textWithEnd) }
+			.onFailed { list.items.add(textWithFailure) }
+			.onFailed { assertIs<ExceptionTestException>(it) }
+			.wait()
 
-		WaitForAsyncUtils.waitForFxEvents()
-
-		Assert.assertFalse(task.isCancelled)
-		Assert.assertTrue(task.isDone)
+		Assert.assertTrue(task.isCancelled)
+		Assert.assertTrue(task.isCompleted)
 		Assert.assertArrayEquals(arrayOf(textWithEnd, textWithFailure), items.toTypedArray())
-
-		InvokeOnJavaFXApplicationThread.invokeAndWait {
-			assert(task.exception.cause is ExceptionTestException)
-		}
 	}
 
 	@Test
-	fun `appending callbacks run in order when successful`() {
+	fun `multiple callbacks run in order when successful`() {
 		var success = 0
 		var end = 0
 		Tasks.createTask { "asdf" }
-			.onSuccess { _, _ -> success += 1 }
-			.onSuccess(true) { _, _ -> success *= 3 }
-			.onEnd { end += 1 }
-			.onEnd(true) { end *= 3 }
-			.submitAndWait()
+			.onSuccess { success += 1 }
+			.onSuccess { success *= 3 }
+			.onEnd { _, _ -> end += 1 }
+			.onEnd { _, _ -> end *= 3 }
+			.wait()
 
-		WaitForAsyncUtils.waitForFxEvents()
 		assertEquals(3, success)
 		assertEquals(3, end)
 
 		var cancelled = 0
 		Tasks.createTask {
 			"asdf"
-			Thread.sleep(100)
+			delay(1000)
 		}
-			.onSuccess { _, _ -> success += 1 }
-			.onSuccess(true) { _, _ -> success *= 3 }
-			.onCancelled { _, _ -> cancelled += 1 }
-			.onCancelled(true) { _, _ -> cancelled *= 3 }
-			.onEnd { end += 1 }
-			.onEnd(true) { end *= 3 }
-			.submit().also { it.cancel() }
+			.onSuccess { success += 1 }
+			.onSuccess { success *= 3 }
+			.onCancelled { cancelled += 1 }
+			.onCancelled { cancelled *= 3 }
+			.onEnd { _, _ -> end += 1 }
+			.onEnd { _, _ -> end *= 3 }
+			.also {
+				it.cancel()
+				it.wait()
+			}
 
-		WaitForAsyncUtils.waitForFxEvents()
 		assertEquals(3, success)
 		assertEquals(3, cancelled)
 		assertEquals(12, end)
@@ -221,15 +207,15 @@ class TasksTest : ApplicationTest() {
 			"asdf"
 			throw ExceptionTestException()
 		}
-			.onSuccess { _, _ -> success += 1 }
-			.onSuccess(true) { _, _ -> success *= 3 }
-			.onCancelled { _, _ -> cancelled += 1 }
-			.onCancelled(true) { _, _ -> cancelled *= 3 }
-			.onEnd { end += 1 }
-			.onEnd(true) { end *= 3 }
-			.onFailed { _, _ -> failed += 1}
-			.onFailed(true) { _, _ -> failed *= 3}
-			.submit()
+			.onSuccess { success += 1 }
+			.onSuccess { success *= 3 }
+			.onCancelled { cancelled += 1 }
+			.onCancelled { cancelled *= 3 }
+			.onEnd { _, _ -> end += 1 }
+			.onEnd { _, _ -> end *= 3 }
+			.onFailed { failed += 1 }
+			.onFailed { failed *= 3 }
+			.wait()
 
 		WaitForAsyncUtils.waitForFxEvents()
 		assertEquals(3, success)
@@ -238,32 +224,8 @@ class TasksTest : ApplicationTest() {
 		assertEquals(39, end)
 	}
 
-	@Test
-	fun `append callbacks works as expected`() {
-		Assert.assertThrows(RuntimeException::class.java) {
-			Tasks.createTask { "asdf" }
-				.onSuccess { _, _ -> }
-				.onSuccess { _, _ -> }
-		}
-		Assert.assertThrows(RuntimeException::class.java) {
-			Tasks.createTask { "asdf" }
-				.onEnd { }
-				.onEnd { }
-		}
-		Assert.assertThrows(RuntimeException::class.java) {
-			Tasks.createTask { "asdf" }
-				.onFailed{ _, _ -> }
-				.onFailed{ _, _ -> }
-		}
-		Assert.assertThrows(RuntimeException::class.java) {
-			Tasks.createTask { "asdf" }
-				.onCancelled { _, _ -> }
-				.onCancelled { _, _ -> }
-		}
-	}
-
 	companion object {
-		private val LOG = KotlinLogging.logger {  }
+		private val LOG = KotlinLogging.logger { }
 
 		const val SCENE_WIDTH = 800.0
 
