@@ -140,10 +140,13 @@ class TasksTest : ApplicationTest() {
 				.onEnd { _, _ -> list.items.add(textWithFailure) }
 				.onFailed { assertIs<ExceptionTestException>(it) }
 				.wait()
+
 		} finally {
 			System.setOut(stdout)
 			System.setErr(stderr)
 		}
+
+		WaitForAsyncUtils.waitForFxEvents()
 
 		Assert.assertTrue(task.isCancelled)
 		Assert.assertTrue(task.isCompleted)
@@ -156,12 +159,16 @@ class TasksTest : ApplicationTest() {
 		val textWithEnd = "Single onFailure Test, expecting end"
 		val textWithFailure = "Single onFailure Test, expecting failure"
 		/* Intentionally trigger failure, with custom onFailed */
+
+
 		val task = Tasks.createTask { throw ExceptionTestException() }
 			.onSuccess { list.items.add(it) }
 			.onEnd { _, _ -> list.items.add(textWithEnd) }
 			.onFailed { list.items.add(textWithFailure) }
 			.onFailed { assertIs<ExceptionTestException>(it) }
 			.wait()
+
+		WaitForAsyncUtils.waitForFxEvents()
 
 		Assert.assertTrue(task.isCancelled)
 		Assert.assertTrue(task.isCompleted)
@@ -178,6 +185,8 @@ class TasksTest : ApplicationTest() {
 			.onEnd { _, _ -> end += 1 }
 			.onEnd { _, _ -> end *= 3 }
 			.wait()
+
+		WaitForAsyncUtils.waitForFxEvents()
 
 		assertEquals(3, success)
 		assertEquals(3, end)
@@ -197,6 +206,8 @@ class TasksTest : ApplicationTest() {
 				it.cancel()
 				it.wait()
 			}
+
+		WaitForAsyncUtils.waitForFxEvents()
 
 		assertEquals(3, success)
 		assertEquals(3, cancelled)
@@ -218,6 +229,7 @@ class TasksTest : ApplicationTest() {
 			.wait()
 
 		WaitForAsyncUtils.waitForFxEvents()
+
 		assertEquals(3, success)
 		assertEquals(3, cancelled)
 		assertEquals(3, failed)
