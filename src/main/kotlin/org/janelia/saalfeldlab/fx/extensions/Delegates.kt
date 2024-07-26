@@ -88,7 +88,7 @@ class LazyForeignValue<K, V>(val foreignKeyProvider: () -> K, val valueGenerator
 		else {
 			currentKey = foreignKey
 			val oldValue = currentValue
-			currentValue = valueGenerator(currentKey!!)
+			currentValue = valueGenerator(currentKey as K)
 			oldValueHandler?.invoke(oldValue)
 			currentValue as V
 		}

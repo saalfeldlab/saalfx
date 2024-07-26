@@ -145,7 +145,7 @@ class UndoFromEvents<T>(
 		}
 		this.currentEventIndex.set(events.size - 1)
 		nodes.reverse()
-		InvokeOnJavaFXApplicationThread.invoke { this.eventBox.children.setAll(nodes) }
+		InvokeOnJavaFXApplicationThread.invoke { this@UndoFromEvents.eventBox.children.setAll(nodes) }
 	}
 
 	companion object {

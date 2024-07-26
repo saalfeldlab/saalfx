@@ -39,7 +39,6 @@ import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
 import javafx.util.StringConverter
-import org.janelia.saalfeldlab.fx.extensions.addTriggeredListener
 import java.util.function.DoublePredicate
 import java.util.function.IntPredicate
 import java.util.function.LongPredicate
@@ -52,7 +51,7 @@ class NumberField<P : Property<Number>>(
 
 	init {
 		textField.alignment = Pos.BOTTOM_RIGHT
-		textField.editableProperty().addTriggeredListener { _, _, editable ->
+		textField.editableProperty().subscribe { editable ->
 			if (!editable)
 				textField.styleClass += "as-label"
 			else
