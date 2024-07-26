@@ -29,16 +29,14 @@
 package org.janelia.saalfeldlab.fx.util
 
 import javafx.application.Platform
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
+import java.lang.Runnable
 
 class InvokeOnJavaFXApplicationThread {
 
 	companion object {
 
-		private val sharedMainScope = MainScope()
+		private val sharedMainScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
 		@JvmStatic
 		operator fun invoke(task: suspend CoroutineScope.() -> Unit) = sharedMainScope.launch(block = task)
