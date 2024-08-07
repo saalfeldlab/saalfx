@@ -196,9 +196,8 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 			for ((description, check) in checks) {
 				valid = valid && check(event)
 				if (!valid) {
-					val msg = description?.let {
-						"$it (${check::class.java})"
-					} ?: "(${check::class.java})"
+					val startMsg = description?.let { "$it " } ?: ""
+					val msg ="$startMsg(${check::class.java})"
 					logger.trace { "Check: $msg did not pass" }
 					break
 				}

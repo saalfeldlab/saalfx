@@ -64,21 +64,19 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 		apply?.let { it(this) }
 	}
 
-	private fun testChecksForEventType(event: Event, eventType: EventType<out Event> = event.eventType): Boolean {
-		return checks[eventType]?.let { checks ->
-			var pass = true
-			for ((reason, check) in checks) {
-				if (!check(event)) {
-					ACTION_SET_LOGGER.debug { "Verify All Failed: $reason" }
-					pass = false
-					break
-				}
+	private fun Action<out Event>.testChecksForEventType(event: Event, eventType: EventType<out Event> = event.eventType): Boolean {
+		val checks = checks[eventType] ?: return true
+
+		for ((reason, check) in checks) {
+			if (!check(event)) {
+				logger.debug { "Verify All Failed: $reason" }
+				return false
 			}
-			pass
-		} ?: true
+		}
+		return true
 	}
 
-	private tailrec fun testChecksForInheritedEventTypes(event: Event, eventType: EventType<out Event>? = event.eventType): Boolean {
+	private tailrec fun Action<out Event>.testChecksForInheritedEventTypes(event: Event, eventType: EventType<out Event>? = event.eventType): Boolean {
 		if (eventType == null) return true
 		return if (!testChecksForEventType(event, eventType)) false else testChecksForInheritedEventTypes(event, eventType.superType)
 	}
@@ -391,9 +389,7 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 			try {
 				action(event)
 			} catch (e: Exception) {
-				val logger = if (action.filter) FILTER_LOGGER else ACTION_LOGGER
-				val nameText = action.name?.let { "$name: $it" } ?: name
-				logger.error(e) { "$nameText (${event.eventType} was valid, but failed" }
+				action.logger.error(e) {"${event.eventType} was valid, but failed" }
 				throw e
 			}
 		} else {
@@ -410,7 +406,9 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 	 * @param action the [Action] to handle [event]
 	 * @param event to handle
 	 */
-	protected open fun <E : Event> preInvokeCheck(action: Action<E>, event: E) = action.canHandleEvent(event.eventType) && testChecksForInheritedEventTypes(event)
+	protected open fun <E : Event> preInvokeCheck(action: Action<E>, event: E) = action.run {
+		canHandleEvent(event.eventType) && testChecksForInheritedEventTypes(event)
+	}
 
 	/**
 	 * Optional callback for before the extension functions [installActionSet] are called.
@@ -440,10 +438,6 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 	}
 
 	companion object {
-
-		private val ACTION_SET_LOGGER: KLogger = KotlinLogging.logger {}
-		private val ACTION_LOGGER: KLogger = KotlinLogging.logger("${MethodHandles.lookup().lookupClass().name}-Action")
-		private val FILTER_LOGGER: KLogger = KotlinLogging.logger("${MethodHandles.lookup().lookupClass().name}-Filter")
 
 		/**
 		 * Install [actionSet] in the receiver [Node]
