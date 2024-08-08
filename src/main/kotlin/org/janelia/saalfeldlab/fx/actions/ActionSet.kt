@@ -1,7 +1,5 @@
 package org.janelia.saalfeldlab.fx.actions
 
-import io.github.oshai.kotlinlogging.KLogger
-import io.github.oshai.kotlinlogging.KotlinLogging
 import javafx.event.Event
 import javafx.event.EventHandler
 import javafx.event.EventType
@@ -9,7 +7,6 @@ import javafx.scene.Node
 import javafx.scene.input.*
 import javafx.stage.Window
 import org.janelia.saalfeldlab.fx.event.KeyTracker
-import java.lang.invoke.MethodHandles
 import java.util.function.Consumer
 
 
@@ -192,7 +189,7 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 
 			/* configure via the callback*/
 			withAction()
-		}.also { addAction(it)}
+		}.also { addAction(it) }
 	}
 
 	/**
@@ -298,7 +295,7 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 
 			/* configure based on the callback */
 			withAction()
-		}.also { addAction(it)}
+		}.also { addAction(it) }
 	}
 
 	/**
@@ -389,7 +386,7 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 			try {
 				action(event)
 			} catch (e: Exception) {
-				action.logger.error(e) {"${event.eventType} was valid, but failed" }
+				action.logger.error(e) { "${event.eventType} was valid, but failed" }
 				throw e
 			}
 		} else {
