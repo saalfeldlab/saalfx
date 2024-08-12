@@ -28,7 +28,6 @@
  */
 package org.janelia.saalfeldlab.fx.util
 
-import javafx.application.Platform
 import kotlinx.coroutines.*
 import java.lang.Runnable
 
@@ -42,10 +41,7 @@ class InvokeOnJavaFXApplicationThread {
 		operator fun invoke(task: suspend CoroutineScope.() -> Unit) = sharedMainScope.launch(block = task)
 
 		@JvmStatic
-		operator fun invoke(task: Runnable) {
-			if (Platform.isFxApplicationThread()) task.run()
-			else invoke { task.run() }
-		}
+		operator fun invoke(task: Runnable) = invoke { task.run() }
 
 		@Throws(InterruptedException::class)
 		fun invokeAndWait(task: suspend CoroutineScope.() -> Unit) = runBlocking {

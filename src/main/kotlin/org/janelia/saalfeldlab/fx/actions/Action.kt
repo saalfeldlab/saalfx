@@ -192,18 +192,15 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 
 	private fun testChecks(event: E?): Boolean {
 		return checks.isEmpty() || let {
-			var valid = true
 			for ((description, check) in checks) {
-				valid = valid && check(event)
-				if (!valid) {
-					val msg = description?.let {
-						"$it (${check::class.java})"
-					} ?: "(${check::class.java})"
+				if (!check(event)) {
+					val startMsg = description?.let { "$it " } ?: ""
+					val msg ="$startMsg(${check::class.java})"
 					logger.trace { "Check: $msg did not pass" }
-					break
+					return false
 				}
 			}
-			valid
+			true
 		}
 	}
 
