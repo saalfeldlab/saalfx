@@ -308,7 +308,7 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 			if (consume) {
 				event?.consume()
 			}
-			logger.debug { "completed successfully" }
+			logger.trace { "completed successfully" }
 			true
 		} else {
 			if (!isConsumed) {
