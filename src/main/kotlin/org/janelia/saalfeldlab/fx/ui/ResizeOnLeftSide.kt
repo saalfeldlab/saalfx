@@ -30,14 +30,11 @@ package org.janelia.saalfeldlab.fx.ui
 
 import javafx.beans.property.DoubleProperty
 import javafx.beans.property.SimpleBooleanProperty
-import javafx.event.EventHandler
 import javafx.scene.Cursor
 import javafx.scene.Node
-import javafx.scene.input.MouseEvent
-import org.janelia.saalfeldlab.fx.actions.ActionSet.Companion.installActionSet
-import org.janelia.saalfeldlab.fx.actions.ActionSet.Companion.removeActionSet
+import javafx.scene.input.MouseEvent.MOUSE_MOVED
 import org.janelia.saalfeldlab.fx.actions.DragActionSet
-import org.janelia.saalfeldlab.fx.extensions.nonnullVal
+import org.janelia.saalfeldlab.fx.extensions.nonnull
 import java.util.function.DoublePredicate
 import kotlin.math.abs
 import kotlin.math.max
@@ -50,18 +47,13 @@ class ResizeOnLeftSide @JvmOverloads constructor(
 	private val minWidth: Double = 50.0,
 	private val maxWidth: Double = 500.0,
 	private val isWithinMarginOfBorder: DoublePredicate = DoublePredicate { abs(it) < 5 }
-) {
+) : DragActionSet("resize-on-left") {
 
 	private val isCurrentlyWithinMarginOfBorderProperty = SimpleBooleanProperty(false)
-	val isCurrentlyWithinMarginOfBorder: Boolean by isCurrentlyWithinMarginOfBorderProperty.nonnullVal()
+	internal var isCurrentlyWithinMarginOfBorder: Boolean by isCurrentlyWithinMarginOfBorderProperty.nonnull()
+		private set
 
-	private val mouseMoved = EventHandler<MouseEvent> {
-		val bounds = node.boundsInParent
-		val y = it.y
-		isCurrentlyWithinMarginOfBorderProperty.set(y >= bounds.minY && y <= bounds.maxY && isWithinMarginOfBorder.test(it.x - bounds.minX))
-	}
-
-	private val mouseDragged = DragActionSet("resize") {
+	init {
 		verify { isCurrentlyWithinMarginOfBorder }
 
 		relative = false
@@ -70,33 +62,45 @@ class ResizeOnLeftSide @JvmOverloads constructor(
 		dragAction.filter = true
 		dragReleaseAction.filter = true
 
+
 		onDragDetected { node.scene.cursor = Cursor.W_RESIZE }
 		onDrag {
 			val bounds = node.localToScene(node.boundsInLocal)
 			val dx = it.sceneX - bounds.minX
-			this@ResizeOnLeftSide.width.set(min(max(width.get() - dx, this@ResizeOnLeftSide.minWidth), this@ResizeOnLeftSide.maxWidth))
+			width.set(min(max(width.get() - dx, minWidth), maxWidth))
 		}
 		onDragReleased { node.scene.cursor = Cursor.DEFAULT }
-	}
 
-	init {
+		val withinMarginOfBorderAction = MOUSE_MOVED {
+			filter = true
+			consume = false
+			onAction { event ->
+				event ?: return@onAction
 
-		isCurrentlyWithinMarginOfBorderProperty.addListener { _, _, newv ->
-			if (!mouseDragged.isDragging) {
-				node.scene?.run { cursor = if (newv) Cursor.W_RESIZE else Cursor.DEFAULT }
+				val bounds = node.boundsInParent
+				val inHeightBounds = event.y >= bounds.minY && event.y <= bounds.maxY
+				val nearBorder = isWithinMarginOfBorder.test(event.x - bounds.minX)
+				isCurrentlyWithinMarginOfBorder = inHeightBounds && nearBorder
 			}
+		}
+
+		isCurrentlyWithinMarginOfBorderProperty.subscribe { withinMarginOfBorder ->
+			if (!withinMarginOfBorderAction.isValid(null)) {
+				node.scene?.run { cursor = Cursor.DEFAULT }
+				return@subscribe
+			}
+			if (isDragging) return@subscribe
+
+			node.scene?.run { cursor = if (withinMarginOfBorder) Cursor.W_RESIZE else Cursor.DEFAULT }
 		}
 	}
 
 	fun install() {
-		node.parent.addEventFilter(MouseEvent.MOUSE_MOVED, mouseMoved)
-		node.parent.installActionSet(mouseDragged)
+		node.parent.installActionSet(this)
 	}
 
 	fun remove() {
-		node.parent.removeEventFilter(MouseEvent.MOUSE_MOVED, mouseMoved)
-		node.parent.removeActionSet(mouseDragged)
-		this.isCurrentlyWithinMarginOfBorderProperty.set(false)
+		node.parent.removeActionSet(this)
+		isCurrentlyWithinMarginOfBorder = false
 	}
-
 }
