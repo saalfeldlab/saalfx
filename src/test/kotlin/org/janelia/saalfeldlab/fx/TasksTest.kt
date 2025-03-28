@@ -39,10 +39,10 @@ class TasksTest : ApplicationTest() {
 	}
 
 	@BeforeTest
-	fun clearList() {
-		InvokeOnJavaFXApplicationThread.invokeAndWait {
+	fun clearList() = runBlocking {
+		InvokeOnJavaFXApplicationThread {
 			list.items.clear()
-		}
+		}.join()
 	}
 
 	@Test

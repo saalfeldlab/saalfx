@@ -29,7 +29,8 @@
 package org.janelia.saalfeldlab.fx.util
 
 import kotlinx.coroutines.*
-import java.lang.Runnable
+import kotlinx.coroutines.future.asCompletableFuture
+import java.util.function.Supplier
 
 class InvokeOnJavaFXApplicationThread {
 
@@ -38,19 +39,18 @@ class InvokeOnJavaFXApplicationThread {
 		private val sharedMainScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
 		@JvmStatic
-		operator fun invoke(task: suspend CoroutineScope.() -> Unit) = sharedMainScope.launch(block = task)
+		operator fun <T> invoke(task: suspend CoroutineScope.() -> T) = sharedMainScope.async(block = task)
 
 		@JvmStatic
-		operator fun invoke(task: Runnable) = invoke { task.run() }
+		operator fun <T> invoke(task: Supplier<T>) = invoke<T> { task.get() }.asCompletableFuture()
 
+		@JvmStatic
+		operator fun invoke(task: Runnable) = invoke(Supplier<Unit> { task.run() })
+
+		@JvmStatic
 		@Throws(InterruptedException::class)
-		fun invokeAndWait(task: suspend CoroutineScope.() -> Unit) = runBlocking {
+		fun <T> invokeAndWait(task: suspend CoroutineScope.() -> T) = runBlocking {
 			sharedMainScope.launch { task() }.join()
 		}
-
-		@JvmStatic
-		@Throws(InterruptedException::class)
-		fun invokeAndWait(task: Runnable) = invokeAndWait { task.run() }
-
 	}
 }

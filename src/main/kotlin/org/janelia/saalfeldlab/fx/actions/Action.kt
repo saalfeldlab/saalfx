@@ -196,7 +196,7 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 				if (!check(event)) {
 					val startMsg = description?.let { "$it " } ?: ""
 					val msg ="$startMsg(${check::class.java})"
-					logger.trace { "Check: $msg did not pass" }
+					logger.trace { """Check: "$msg" did not pass""" }
 					return false
 				}
 			}
@@ -296,7 +296,7 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 
 	operator fun invoke(event: E?): Boolean {
 		val valid by lazy { isValid(event) }
-		val isConsumed = event?.isConsumed ?: false
+		val isConsumed = event?.isConsumed == true
 		return if (!isConsumed && valid) {
 			try {
 				/* isValid(event) will only be true if event is E */
