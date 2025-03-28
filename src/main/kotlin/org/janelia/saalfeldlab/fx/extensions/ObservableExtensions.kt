@@ -9,7 +9,6 @@ import javafx.collections.ObservableList
 import javafx.collections.ObservableMap
 import javafx.collections.ObservableSet
 import javafx.scene.Node
-import javafx.util.Subscription
 import kotlin.reflect.KProperty
 
 fun <Obj, Obs> Obs.createObservableBinding(vararg observables: Observable, obsToObj: (Obs) -> Obj): ObjectBinding<Obj> where Obs : Observable {
@@ -86,19 +85,19 @@ fun LongProperty.nullable(): WritableSubclassDelegate<Number?, Long?> = Writable
 fun LongProperty.nonnull(): WritableSubclassDelegate<Number, Long> = WritableSubclassDelegate(this) { value!! }
 
 
-class ObservableDelegate<T>(private val obs: ObservableValue<T>, private inline val getter: () -> T) {
+class ObservableDelegate<T>(private val obs: ObservableValue<T>, private val getter: () -> T) {
 
 	operator fun getValue(t: Any?, property: KProperty<*>): T {
 		return getter()
 	}
 }
 
-class ObservableSubclassDelegate<T, K : T>(private val obs: ObservableValue<T?>, private inline val getter: () -> K) {
+class ObservableSubclassDelegate<T, K : T>(private val obs: ObservableValue<T?>, private val getter: () -> K) {
 
 	operator fun getValue(t: Any?, property: KProperty<*>): K = getter()
 }
 
-class WritableDelegate<T>(private val obs: WritableValue<T>, private inline val getter: () -> T) {
+class WritableDelegate<T>(private val obs: WritableValue<T>, private val getter: () -> T) {
 
 	operator fun getValue(t: Any?, property: KProperty<*>): T = getter()
 
@@ -107,7 +106,7 @@ class WritableDelegate<T>(private val obs: WritableValue<T>, private inline val 
 	}
 }
 
-class WritableSubclassDelegate<T, K : T>(private val obs: WritableValue<T?>, private inline val getter: () -> K) {
+class WritableSubclassDelegate<T, K : T>(private val obs: WritableValue<T?>, private val getter: () -> K) {
 
 	operator fun getValue(t: Any?, property: KProperty<*>): K = getter()
 
@@ -115,58 +114,3 @@ class WritableSubclassDelegate<T, K : T>(private val obs: WritableValue<T?>, pri
 		obs.value = newVal
 	}
 }
-
-/**
- * A wrapper method for [ObservableValue.when] to make it more ergonomic to write in Kotlin
- * @see ObservableValue.when
- */
-fun <T> ObservableValue<T>.onlyWhen(condition : ObservableValue<Boolean>): ObservableValue<T> = this.`when`(condition)
-
-/**
- * Returns an [ObservableValue] that only changes when [condition] is satisfied, and only the first time.
- * After the first time, the this [ObservableValue] will never change.
- *
- * @param condition to determine when to trigger an update
- * @return An [ObservableValue] that emits the value of the source [ObservableValue] only the first time
- * the [condition] is true.
- */
-fun <T> ObservableValue<T>.onceWhen(condition : ObservableValue<Boolean>): ObservableValue<T> {
-	var first = true
-	return this.`when`(condition.map { it && first }).also {
-		it.subscribe { _, _ ->
-			/* I think this is a bug, but need to investigate more */
-			if (condition.value)
-				first = false
-		}
-	}
-}
-
-/**
- * Returns an [ObservableValue] that emits values from the receiver [ObservableValue] only until the [condition] is false.
- *
- * @param condition determines when to stop emitting values.
- * @return An [ObservableValue] that emits values from the source until the condition is false.
- */
-fun <T> ObservableValue<T>.untilWhen(condition : ObservableValue<Boolean>): ObservableValue<T> {
-	var untilFalse = true
-	return this.`when`(condition.map {
-		untilFalse = untilFalse && it
-		untilFalse
-	})
-}
-
-fun <T> ObservableValue<T>.subscribeWithSubscription(withSubscription: Subscription.(T, T) -> Unit) {
-	lateinit var subscription: Subscription
-	subscription = subscribe { old, new ->
-		subscription.withSubscription(old, new)
-	}
-}
-
-
-fun <T> ObservableValue<T>.subscribeUntil(subscribeUntil: (T, T) -> Boolean?) {
-	val until = SimpleBooleanProperty(true)
-	this.`when`(until).subscribe { old, new ->
-		subscribeUntil(old, new)?.let { until.set(it) }
-	}
-}
-
