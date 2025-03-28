@@ -42,6 +42,9 @@ import javafx.util.StringConverter
 import java.io.File
 import java.util.function.Predicate
 
+//TODO Caleb: Look in to if you can replace this whole paradigm
+//  instead with a subclass of TextField with a custom TextFormatted.
+//  Or maybe not even a subclass?
 open class ObjectField<T, P : Property<T>>(
 	value: P,
 	private val converter: StringConverter<T>,

@@ -62,7 +62,7 @@ class Exceptions {
 		fun exceptionAlert(
 			title: String,
 			headerText: String,
-			e: Exception,
+			e: Throwable,
 			contentText: String? = null,
 			owner: Window? = null
 		): Alert {
