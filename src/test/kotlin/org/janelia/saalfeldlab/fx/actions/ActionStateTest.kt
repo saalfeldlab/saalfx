@@ -4,82 +4,40 @@ import javafx.event.Event
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertTrue
 
 class ActionStateTest {
 
-	interface NameState<A : ActionState<A>> : ActionState<A> {
+	interface NameState {
 		var name: String
-
-		override fun <E : Event> verifyState(action: Action<E>) {
-			action.verifyProperty(::name, "Name should be initialized") { "Name!" }
-		}
 	}
 
-	interface DescriptionState<A : ActionState<A>> : ActionState<A> {
+	interface DescriptionState {
 		var description: String
-
-		override fun <E : Event> verifyState(action: Action<E>) {
-			action.verifyProperty(::description, "Description should be initialized") { "Description!" }
-		}
 	}
 
-
-	interface NameDescriptionState<A : ActionState<A>> : NameState<A>, DescriptionState<A> {
-
-		override fun <E : Event> verifyState(action: Action<E>) {
-			super<NameState>.verifyState(action)
-			super<DescriptionState>.verifyState(action)
-		}
+	open class TestNameState : VerifiablePropertyActionState(), NameState {
+		override var name by verifiable { "Name!" }
 	}
 
-	class TestState() : NameDescriptionState<TestState> {
-
-		override lateinit var name: String
-		override lateinit var description: String
-		lateinit var extra: String
-
-		private constructor(name: String, description: String, extra: String) : this() {
-			this.name = name
-			this.description = description
-			this.extra = extra
-		}
-
-		override fun <E : Event> verifyState(action: Action<E>) {
-			super.verifyState(action)
-			action.verifyProperty(::extra, "Extra should be initialized") { "Extra!" }
-		}
-
-		override fun verifiedCopy(): TestState {
-			return TestState(name, description, extra)
-		}
+	open class TestDescriptionState : VerifiablePropertyActionState(), DescriptionState {
+		override var description by verifiable("Expected Condition!") { "Description!" }
 	}
 
-	class InvalidTestState() : NameDescriptionState<InvalidTestState> {
+	open class DescriptionNameState(
+		private val nameState: NameState = TestNameState(),
+		private val descriptionState: DescriptionState = TestDescriptionState(),
+	) :
+		VerifiablePropertyActionState(nameState, descriptionState),
+		NameState by nameState,
+		DescriptionState by descriptionState
 
-		override lateinit var name: String
-		override lateinit var description: String
-		lateinit var extra: String
-		lateinit var invalid: String
+	open class TestState : DescriptionNameState() {
+		var extra by verifiable { "Extra!" }
+	}
 
-		private constructor(name: String, description: String, extra: String, invalid: String) : this() {
-			this.name = name
-			this.description = description
-			this.extra = extra
-			this.invalid = invalid
-		}
+	class InvalidTestState : TestState() {
 
-		override fun <E : Event> verifyState(action: Action<E>) {
-			super.verifyState(action)
-			action.verifyProperty(::extra, "Extra should be initialized") { "Extra!" }
-			action.verifyProperty(::invalid, "Invalid intentionally not set valid for test") {
-				if (::invalid.isInitialized) invalid else null
-			}
-		}
-
-		override fun verifiedCopy(): InvalidTestState {
-			return InvalidTestState(name, description, extra, invalid)
-		}
+		var invalid: String by verifiable { null }
 	}
 
 	@Test
@@ -99,7 +57,7 @@ class ActionStateTest {
 
 		Action<Event>(Event.ANY).apply {
 			onAction<InvalidTestState> {
-				/* Never run, since ActionState is never valid */
+				/* Never run, since InvalidTestState is never valid */
 				actionRunCount++
 			}
 		}.invoke(null)
@@ -108,7 +66,7 @@ class ActionStateTest {
 		Action<Event>(Event.ANY).apply {
 			val manuallyMakeValid = {
 				InvalidTestState().apply {
-					assertFailsWith<UninitializedPropertyAccessException> { invalid }
+					assertFailsWith<IllegalStateException> { invalid }
 					invalid = "Actually valid?"
 					assertEquals("Actually valid?", invalid)
 				}
