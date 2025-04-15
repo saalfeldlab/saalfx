@@ -15,6 +15,7 @@ import org.janelia.saalfeldlab.fx.actions.Action.Companion.onAction
 import org.janelia.saalfeldlab.fx.actions.Action.Companion.removeAction
 import org.janelia.saalfeldlab.fx.event.KeyTracker
 import java.util.function.Consumer
+import kotlin.jvm.java
 
 /**
  * An [Action] is an event handler, with associated state to properly trigger or not based on the state of the application, and the event.
@@ -109,13 +110,11 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 	 */
 	var keysDown: List<KeyCode>? = listOf()
 
-	private val checks = mutableListOf<Pair<String?, (E?) -> Boolean>>()
+	private val checks = Checks<E>()
 
 	private var exceptionHandler: ((Exception) -> Unit)? = null
 
 	private var action: (E?) -> Unit = {}
-
-	private var onException: (Exception) -> Unit = {}
 
 	/**
 	 * Optional graphic to provide, in case the action is triggerable via a graphical interaction (i.e. a button)
@@ -130,13 +129,13 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 	/**
 	 * Verify the check prior to triggering action
 	 *
-	 * @param description of the condition you are verifying to be true. Logged against in case of a check failure.
+	 * @param condition description of the expected condition you are verifying to be true. Logged against in case of a check failure.
 	 * @param check callback to verify the event of type  [E] is valid for this [Action], OR null, if we are not trigger via an event.
 	 * @receiver
 	 */
 	@JvmOverloads
-	fun verify(description: String? = null, check: (E?) -> Boolean) {
-		checks.add(description to check)
+	fun verify(condition: String? = null, check: (E?) -> Boolean) {
+		checks += CheckVerify(condition, check)
 	}
 
 	internal tailrec fun canHandleEvent(checkEventType: EventType<*>?): Boolean {
@@ -151,10 +150,11 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 	 * @return true if [Action] trigger should proceed.
 	 */
 	fun isValid(event: E?): Boolean {
-		val validForEventOrNull = event?.let {
-			canHandleEvent(it.eventType) && verifyKeys(event)
-		} ?: true
-		return validForEventOrNull && testChecks(event)
+		val validForEventOrNull = when (event) {
+			null -> true
+			else -> canHandleEvent(event.eventType) && verifyKeys(event)
+		}
+		return validForEventOrNull && checks.verify(event, logger)
 	}
 
 	/**
@@ -188,20 +188,6 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 			false
 		}
 
-	}
-
-	private fun testChecks(event: E?): Boolean {
-		return checks.isEmpty() || let {
-			for ((description, check) in checks) {
-				if (!check(event)) {
-					val startMsg = description?.let { "$it " } ?: ""
-					val msg ="$startMsg(${check::class.java})"
-					logger.trace { """Check: "$msg" did not pass""" }
-					return false
-				}
-			}
-			true
-		}
 	}
 
 	/**
@@ -408,4 +394,28 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 			}
 		}
 	}
+
+	private class Checks<E : Event> {
+		val checks =  mutableListOf<CheckVerify<E>>()
+
+		operator fun plusAssign(check: CheckVerify<E>) {
+			checks += check
+		}
+
+		fun verify(event: E?, logger: KLogger): Boolean {
+			return checks.isEmpty() || let {
+				for ((expected, check) in checks) {
+					if (!check(event)) {
+						val startMsg = expected?.let { "$it " } ?: ""
+						val msg = "$startMsg(${check::class.java})"
+						logger.trace { """Verify: "$msg" did not pass""" }
+						return false
+					}
+				}
+				true
+			}
+		}
+	}
 }
+
+private data class CheckVerify<E : Event>(val expected: String?, val check: (E?) -> Boolean)
