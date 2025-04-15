@@ -114,3 +114,22 @@ class WritableSubclassDelegate<T, K : T>(private val obs: WritableValue<T?>, pri
 		obs.value = newVal
 	}
 }
+
+/**
+ * Returns an [ObservableValue] that only changes when [condition] is satisfied, and only the first time.
+ * After the first time, the this [ObservableValue] will never change.
+ *
+ * @param condition to determine when to trigger an update
+ * @return An [ObservableValue] that emits the value of the source [ObservableValue] only the first time
+ * the [condition] is true.
+ */
+fun <T> ObservableValue<T>.onceWhen(condition : ObservableValue<Boolean>): ObservableValue<T> {
+	var first = true
+	return this.`when`(condition.map { it && first }).also {
+		it.subscribe { _, _ ->
+			/* I think this is a bug, but need to investigate more */
+			if (condition.value)
+				first = false
+		}
+	}
+}
