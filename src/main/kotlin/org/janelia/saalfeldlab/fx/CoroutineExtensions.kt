@@ -1,0 +1,48 @@
+package org.janelia.saalfeldlab.fx
+
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
+
+
+/**
+ * Channel wrapper than supports running jobs sequentially within a scope, with cancellation.
+ *
+ *
+ * @param coroutineScope to execute the job's on
+ * @param delay optional delay after a job finishes before attempting to execute the next job
+ */
+class ChannelLoop(coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default), capacity: Int = Channel.RENDEZVOUS,  val delay : suspend () -> Unit = {}) : CoroutineScope by coroutineScope {
+	private val channel = Channel<Job>(capacity = capacity)
+	private var currentJob : Job?  =null
+
+	/**
+	 * Submit a block to execute in the conflated loop. Will cancel the current job and submit this block
+	 *
+	 * @param block to execute
+	 * @return the job to be submitted
+	 */
+	fun submit(cancel : Boolean = false, block: suspend CoroutineScope.() -> Unit): Job {
+		val job = launch(start = CoroutineStart.LAZY) {
+			block()
+		}
+		runBlocking {
+			if (cancel)
+				currentJob?.cancel()
+			channel.send(job)
+			currentJob = job
+		}
+		return job
+	}
+
+	init {
+		launch {
+			for (msg in channel) {
+				runCatching {
+					msg.start()
+					msg.join()
+				}
+				delay()
+			}
+		}
+	}
+}

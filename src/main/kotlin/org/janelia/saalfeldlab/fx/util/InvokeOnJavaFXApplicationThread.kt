@@ -29,7 +29,10 @@
 package org.janelia.saalfeldlab.fx.util
 
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.future.asCompletableFuture
+import kotlinx.coroutines.javafx.awaitPulse
+import org.janelia.saalfeldlab.fx.ChannelLoop
 import java.util.function.Supplier
 
 class InvokeOnJavaFXApplicationThread {
@@ -52,5 +55,13 @@ class InvokeOnJavaFXApplicationThread {
 		fun <T> invokeAndWait(task: suspend CoroutineScope.() -> T) = runBlocking {
 			sharedMainScope.launch { task() }.join()
 		}
+
+		/**
+		 * [ChannelLoop] with a default delay of [awaitPulse].
+		 *
+		 * Allows for job submissions that may come very quick, where only that latest job is required to update on the UI thread.
+		 */
+		@JvmStatic
+		fun conflatedPulseLoop() = ChannelLoop(sharedMainScope, Channel.CONFLATED) { awaitPulse() }
 	}
 }
