@@ -47,7 +47,7 @@ class Exceptions {
 	companion object {
 
 		@JvmStatic
-		fun java.lang.Exception.alert(owner: Window? = null): Alert {
+		fun Exception.alert(owner: Window? = null): Alert {
 			return exceptionAlert(
 				javaClass.simpleName,
 				this.message ?: "",
