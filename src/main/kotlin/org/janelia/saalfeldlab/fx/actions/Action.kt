@@ -15,7 +15,6 @@ import org.janelia.saalfeldlab.fx.actions.Action.Companion.onAction
 import org.janelia.saalfeldlab.fx.actions.Action.Companion.removeAction
 import org.janelia.saalfeldlab.fx.event.KeyTracker
 import java.util.function.Consumer
-import kotlin.jvm.java
 
 /**
  * An [Action] is an event handler, with associated state to properly trigger or not based on the state of the application, and the event.
@@ -61,7 +60,7 @@ import kotlin.jvm.java
  *  ```
  *  When `node` received a [KeyEvent.KEY_PRESSED] event, it will attempt to trigger this action. The `helloWorldAction` will
  *  first verify that the key state of the event is correct, that is both [KeyCode.CONTROL] and [KeyCode.SPACE] are depreseed.
- *  Then the arbitrary [verify] calls will be tested. If all checks are `true` then the [onAction] call will proceed. If an exceptionb occurs
+ *  Then the arbitrary [verify] calls will be tested. If all checks are `true` then the [onActionWithState] call will proceed. If an exceptionb occurs
  *  [handleException] will be triggered.
  *
  *  If  you just want the event handler, with no filtering, you can quickly create one for a given event type with the [EventType.onAction] extension
@@ -209,6 +208,62 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 		action = handle
 	}
 
+	@JvmSynthetic
+	inline fun <reified A : ActionState> onActionWithState(noinline withActionState: A.(E?) -> Unit) = onActionWithState(ActionState.newByReflection<A>(), withActionState)
+
+	/**
+	 *
+	 * Register the [ActionState] provided by [createState] to the [verifyProperty] of this [Action],
+	 * and register the provided [withActionState] as the [Action.onActionWithState], while providing
+	 * a new copy of the guaranteed valid [ActionState] to the [Action.onActionWithState] call.
+	 *
+	 * @param E The type of [Event] triggering the action.
+	 * @param A The type of [ActionState] being verified and provided during [Action.onActionWithState].
+	 * @param createState supplier to create a new [ActionState] instance.
+	 * @param withActionState executed during [Action.onActionWithState] after being provided with a verified [ActionState].
+	 */
+	@JvmSynthetic
+	fun <A : ActionState> onActionWithState(
+		createState: () -> A,
+		withActionState: A.(E?) -> Unit,
+	) {
+
+		lateinit var curAction: (E?) -> Unit
+
+
+		fun verifyReInvokeAndReset(it: E?) {
+			var checksForActionState: List<CheckVerify<E>> = emptyList()
+			/* We don't want to eagerly create the state on Action registration, so instead do it on the first
+			* attempt to call `onAction`. It will create the state, store the reference, and register the `verifyState`
+			* methods. */
+			val checksBefore = checks.checks.toList()
+			val state = createState().apply {
+				logger.trace { "Create and register checks for new ActionState: $this" }
+				verifyState(this@Action)
+				checksForActionState = checks.checks.filter { it !in checksBefore }.toList()
+			}
+
+			/* Then it will reset onAction to call the action, with the state. This mean that the next time the action is
+			 * called, it will only proceed to `onAction` after the `verifyState` checks have been satisfied. */
+			curAction = {
+				logger.trace { "Trigger action for verified ActionState: $this" }
+				withActionState(state, it)
+			}
+
+			/* Manually trigger the next attempt to trigger the Action */
+			invoke(it)
+			curAction = { verifyReInvokeAndReset(it) }
+			/* And lastly, cleanup the checks from the previous ActionState instance */
+			checks.checks.removeAll(checksForActionState)
+		}
+
+		curAction = { verifyReInvokeAndReset(it) }
+
+		onAction {
+			curAction(it)
+		}
+	}
+
 	/**
 	 * Specify the callback when the [Action] is valid
 	 *
@@ -264,14 +319,14 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 	 * Requires the action to only be triggerd by a valid event.
 	 * By default, the actions act on a nullable event [E]?, which is meaningful when wanting
 	 * to call the action either by an event, or programatically. However, sometimes the action
-	 * actually requires information from the event during it's [onAction] and not just in [verify] blocks.
+	 * actually requires information from the event during it's [onActionWithState] and not just in [verify] blocks.
 	 *
 	 * In these cases, it is necessary to ensure event are not null, in which case it is safe to cast the event
-	 * durin the [onAction] block to the non-nullable type, [E]!!
+	 * durin the [onActionWithState] block to the non-nullable type, [E]!!
 	 *
 	 */
 	fun verifyEventNotNull() {
-		verify("Event Isn't Null") {
+		verify("Event is null") {
 			if (it != null) true else {
 				logger.trace { "$name not valid when event is null" }
 				false
@@ -280,10 +335,9 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 	}
 
 
-	operator fun invoke(event: E?): Boolean {
-		val valid by lazy { isValid(event) }
+	operator fun invoke(event: E? = null): Boolean {
 		val isConsumed = event?.isConsumed == true
-		return if (!isConsumed && valid) {
+		return if (!isConsumed && isValid(event)) {
 			try {
 				/* isValid(event) will only be true if event is E */
 				action(event)
@@ -396,7 +450,7 @@ open class Action<E : Event>(val eventType: EventType<E>) {
 	}
 
 	private class Checks<E : Event> {
-		val checks =  mutableListOf<CheckVerify<E>>()
+		val checks = mutableListOf<CheckVerify<E>>()
 
 		operator fun plusAssign(check: CheckVerify<E>) {
 			checks += check

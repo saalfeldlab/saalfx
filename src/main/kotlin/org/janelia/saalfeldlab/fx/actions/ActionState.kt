@@ -3,18 +3,18 @@ package org.janelia.saalfeldlab.fx.actions
 import javafx.event.Event
 import org.checkerframework.checker.units.qual.A
 import org.janelia.saalfeldlab.fx.actions.Action.Companion.onAction
-import org.janelia.saalfeldlab.fx.actions.ActionState.Companion.newInstance
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadWriteProperty
+import kotlin.reflect.KFunction
 import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.KProperty
 
 
 /**
- * Represents the state of an action, useful for ensuring some state is valid prior to [Action.onAction].
+ * Represents the state of an action, useful for ensuring some state is valid prior to [Action.onActionWithState].
  *
  * Any fields of [ActionState] implementations that use [verifyProperty] to set a field after verification
- * prior to [Action.onAction] should be `lateinit`. This allows for a constructor without valid field values
+ * prior to [Action.onActionWithState] should be `lateinit`. This allows for a constructor without valid field values
  * that are then verified and set in [Action.verify], and guaranteed by [onAction]
  *
  * Particularly useful to abstract and reuse logic for shared state needs. For Example, the following:
@@ -71,17 +71,9 @@ interface ActionState {
 	 * Register this [verifyState] for the given [this@verifyState]  .
 	 *
 	 * @param E The type of [Event] this action is valid for .
-	 * @param The action which this state will be verified prior to triggering.
+	 * @param action The action which this state will be verified for prior to triggering.
 	 */
 	fun <E : Event> verifyState(action: Action<E>)
-
-	/**
-	 * Creates a copy of this ActionState, AFTER it has been verified.
-	 * That is to say, the resulting copy should be assumed to be valid.
-	 *
-	 * @return A new instance of this state that has been verified and is safe for use.
-	 */
-	fun copyFromVerified(verified: ActionState)
 
 	companion object {
 		/**
@@ -90,13 +82,12 @@ interface ActionState {
 		 * @param A The specific type of [ActionState] being created.
 		 * @return A factory function that produces instances of type [A].
 		 */
-		inline fun <reified A : ActionState> newInstance(): () -> A {
-			return {
-				A::class.constructors
-					.firstOrNull { it.parameters.isEmpty() || it.parameters.all { it.isOptional } }
-					?.callBy(emptyMap())!!
-			}
+		inline fun <reified A : ActionState> newByReflection(): () -> A {
+			val constructor = A::class.constructors.firstOrNull<KFunction<A>> { it.parameters.isEmpty() || it.parameters.all { it.isOptional } }
+				?: throw NoSuchMethodException("No constructor found for ${A::class.simpleName} with either no parameters, or all optional parameters")
+			return { constructor.callBy(emptyMap()) }
 		}
+
 	}
 }
 
@@ -113,22 +104,11 @@ open class VerifiablePropertyActionState(vararg delegates: Any) : ActionState {
 	}
 
 	override fun <E : Event> verifyState(action: Action<E>) {
-		verifiableProperties.forEach { (_, verifiable) ->
+		this@VerifiablePropertyActionState.verifiableProperties.forEach { (_, verifiable) ->
 			verifiable.registerVerify(action)
 		}
 	}
 
-	private fun copyVerifiableProperties(verified: VerifiablePropertyActionState) {
-		verifiableProperties.forEach { (id, property) ->
-			verified.verifiableProperties[id]?.getValue()?.let {
-				property.setFromAny(it)
-			}
-		}
-	}
-
-	override fun copyFromVerified(verified: ActionState) {
-		copyVerifiableProperties(verified as VerifiablePropertyActionState)
-	}
 }
 
 fun <T> VerifiablePropertyActionState.verifiable(condition: String? = null, generator: () -> T?): VerifiedProvider<T> {
@@ -152,11 +132,6 @@ class Verifiable<T>(
 
 	private var value: T? = null
 
-	internal fun setFromAny(value: Any?) {
-		@Suppress("UNCHECKED_CAST")
-		this.value = value as T?
-	}
-
 	internal fun getValue(): T? {
 		return value
 	}
@@ -172,7 +147,7 @@ class Verifiable<T>(
 
 
 	override fun getValue(thisRef: Any?, property: KProperty<*>): T {
-		return value ?: throw IllegalStateException("${property.name} not initialized.")
+		return value ?: throw IllegalStateException("Verifiable Property ${property.name} referenced before verify")
 	}
 
 	override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
@@ -199,55 +174,4 @@ fun <E : Event, T> Action<E>.verifyProperty(
 	verify(description) {
 		stateProvider()?.let { property.set(it) } != null
 	}
-}
-
-/**
- *
- * Register the [ActionState] provided by [createState] to the [verifyProperty] of this [Action],
- * and register the provided [withActionState] as the [Action.onAction], while providing
- * a new copy of the guaranteed valid [ActionState] to the [Action.onAction] call.
- *
- * @param E The type of [Event] triggering the action.
- * @param A The type of [ActionState] being verified and provided during [Action.onAction].
- * @param createState supplier to create a new [ActionState] instance.
- * @param withActionState executed during [Action.onAction] after being provided with a verified [ActionState].
- */
-fun <E : Event, A : ActionState> Action<E>.onAction(
-	createState: () -> A,
-	withActionState: A.(E?) -> Unit,
-) {
-	val verifiedState = createState().apply { verifyState(this@onAction) }
-	onAction {
-		val verifiedCopy = createState().apply { copyFromVerified(verifiedState) }
-		withActionState(verifiedCopy, it)
-	}
-}
-
-/**
- * A convenience method to handle actions with a specific [ActionState], without requiring an explicit factory function.
- *
- * @param A The type of [ActionState].
- * @param withActionState executed during [Action.onAction] after being provided with a verified [ActionState].
- */
-@JvmSynthetic
-@JvmName("onActionState")
-inline fun <reified A : ActionState> Action<Event>.onAction(
-	noinline withActionState: A.(Event?) -> Unit,
-) {
-	onAction<Event, A>(withActionState)
-}
-
-/**
- * A convenience method for handling actions with a specific [Event] and [ActionState].
- *
- * @param E The type of [Event].
- * @param A The type of [ActionState].
- * @param withActionState executed during [Action.onAction] after being provided with a verified [ActionState].
- */
-@JvmSynthetic
-@JvmName("onActionStateWithEvent")
-inline fun <E : Event, reified A : ActionState> Action<E>.onAction(
-	noinline withActionState: A.(E?) -> Unit,
-) {
-	onAction<E, A>(newInstance<A>(), withActionState)
 }
