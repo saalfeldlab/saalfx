@@ -9,6 +9,7 @@ import javafx.collections.ObservableList
 import javafx.collections.ObservableMap
 import javafx.collections.ObservableSet
 import javafx.scene.Node
+import javafx.util.Subscription
 import kotlin.reflect.KProperty
 
 fun <Obj, Obs> Obs.createObservableBinding(vararg observables: Observable, obsToObj: (Obs) -> Obj): ObjectBinding<Obj> where Obs : Observable {
@@ -21,20 +22,6 @@ inline fun <reified T, Obj, Obs> Obs.createNullableValueBinding(vararg observabl
 
 inline fun <reified T, Obj, Obs> Obs.createNonNullValueBinding(vararg observables: Observable, crossinline obsValToObj: (T) -> Obj): ObjectBinding<Obj> where Obs : ObservableValue<T> {
 	return Bindings.createObjectBinding({ obsValToObj(value) }, this, *observables)
-}
-
-inline fun <reified T, Obj, Obs> Obs.createNonNullProperty(vararg observables: Observable, crossinline obsValToObj: (T) -> Obj): Property<Obj> where Obs : Property<T> {
-	val mappingBinding = createNonNullValueBinding(*observables) { obsValToObj(it) }
-	val property = SimpleObjectProperty<Obj>()
-	property.bind(mappingBinding)
-	return property
-}
-
-inline fun <reified T, Obj, Obs> Obs.createNullableProperty(vararg observables: Observable, crossinline obsValToObj: (T?) -> Obj): Property<Obj?> where Obs : Property<T> {
-	val mappingBinding = createNonNullValueBinding(*observables) { obsValToObj(it) }
-	val property = SimpleObjectProperty<Obj>()
-	property.bind(mappingBinding)
-	return property
 }
 
 inline operator fun <reified T : Node> T.invoke(apply: T.() -> Unit): T {
@@ -133,3 +120,5 @@ fun <T> ObservableValue<T>.onceWhen(condition : ObservableValue<Boolean>): Obser
 		}
 	}
 }
+
+operator fun Subscription.plus(other: Subscription?) : Subscription = other?.let { this.and(it) } ?: this

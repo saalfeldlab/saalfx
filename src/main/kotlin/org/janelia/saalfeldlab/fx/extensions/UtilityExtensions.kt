@@ -7,5 +7,5 @@ import java.util.Optional
 val <T> Optional<T>.nullable: T?
 	get() = orElse(null)
 
-operator fun <A, B> Pair<A, B>.component1(): A? = key
-operator fun <A, B> Pair<A, B>.component2(): B? = value
+operator fun <A, B> Pair<A, B>.component1(): A = key
+operator fun <A, B> Pair<A, B>.component2(): B = value
