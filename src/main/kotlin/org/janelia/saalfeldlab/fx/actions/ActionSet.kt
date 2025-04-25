@@ -2,10 +2,9 @@ package org.janelia.saalfeldlab.fx.actions
 
 import javafx.event.Event
 import javafx.event.EventHandler
+import javafx.event.EventTarget
 import javafx.event.EventType
-import javafx.scene.Node
 import javafx.scene.input.*
-import javafx.stage.Window
 import org.janelia.saalfeldlab.fx.event.KeyTracker
 import java.util.function.Consumer
 
@@ -53,8 +52,8 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 	constructor(name: String, keyTracker: () -> KeyTracker? = { null }, apply: Consumer<ActionSet>?) : this(name, keyTracker, { apply?.accept(this) })
 
 	val actions = mutableListOf<Action<out Event>>()
-	private val actionHandlerMap = mutableMapOf<EventType<Event>, MutableList<EventHandler<Event>>>()
-	private val actionFilterMap = mutableMapOf<EventType<Event>, MutableList<EventHandler<Event>>>()
+	private val actionHandlerMap = mutableMapOf<EventType<Event>, MutableList<ActionSetActionEventHandler>>()
+	private val actionFilterMap = mutableMapOf<EventType<Event>, MutableList<ActionSetActionEventHandler>>()
 	private val checks = mutableMapOf<EventType<out Event>, MutableList<Pair<String, (Event) -> Boolean>>>()
 
 	init {
@@ -421,15 +420,11 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 
 		@Suppress("UNCHECKED_CAST")
 		override fun handle(event: Event) {
-			this@ActionSet(event, action as Action<Event>)
+			invoke(event, action as Action<Event>)
 		}
 
 		override fun toString(): String {
-			return if (action.name.isNullOrEmpty()) {
-				this@ActionSet.name.ifEmpty { super.toString() }
-			} else {
-				action.name!!
-			}
+			return action.name?.takeIf { it.isNotBlank() } ?: this@ActionSet.name.ifEmpty { super.toString() }
 		}
 
 	}
@@ -437,12 +432,12 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 	companion object {
 
 		/**
-		 * Install [actionSet] in the receiver [Node]
+		 * Install [actionSet] in the receiver [EventTarget]
 		 *
 		 * @param actionSet to install
 		 */
 		@JvmStatic
-		fun Node.installActionSet(actionSet: ActionSet) {
+		fun EventTarget.installActionSet(actionSet: ActionSet) {
 			actionSet.preInstallSetup()
 			actionSet.actionFilterMap.forEach { (eventType, actions) ->
 				actions.forEach { action ->
@@ -457,53 +452,12 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 		}
 
 		/**
-		 * Remove [actionSet] from the receiver [Node]. No effect if not installed.
+		 * Remove [actionSet] from the receiver [EventTarget]. No effect if not installed.
 		 *
 		 * @param actionSet to remove
 		 */
 		@JvmStatic
-		fun Node.removeActionSet(actionSet: ActionSet) {
-			actionSet.actionFilterMap.forEach { (eventType, actions) ->
-				actions.forEach { action ->
-					removeEventFilter(eventType, action)
-				}
-			}
-			actionSet.actionHandlerMap.forEach { (eventType, actions) ->
-				actions.forEach { action ->
-					removeEventHandler(eventType, action)
-				}
-			}
-			actionSet.postRemoveCleanUp()
-		}
-
-		/**
-		 * Install [actionSet] in the receiver [Window]
-		 *
-		 * @param actionSet to install
-		 */
-		@JvmStatic
-		fun Window.installActionSet(actionSet: ActionSet) {
-			actionSet.preInstallSetup()
-			actionSet.actionFilterMap.forEach { (eventType, actions) ->
-				actions.forEach { action ->
-					addEventFilter(eventType, action)
-				}
-			}
-			actionSet.actionHandlerMap.forEach { (eventType, actions) ->
-				actions.forEach { action ->
-					addEventHandler(eventType, action)
-				}
-			}
-			actionSet.postRemoveCleanUp()
-		}
-
-		/**
-		 * Remove [actionSet] from the receiver [Window]. No effect if not installed.
-		 *
-		 * @param actionSet to remove
-		 */
-		@JvmStatic
-		fun Window.removeActionSet(actionSet: ActionSet) {
+		fun EventTarget.removeActionSet(actionSet: ActionSet) {
 			actionSet.actionFilterMap.forEach { (eventType, actions) ->
 				actions.forEach { action ->
 					removeEventFilter(eventType, action)
