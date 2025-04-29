@@ -62,6 +62,6 @@ class InvokeOnJavaFXApplicationThread {
 		 * Allows for job submissions that may come very quick, where only that latest job is required to update on the UI thread.
 		 */
 		@JvmStatic
-		fun conflatedPulseLoop() = ChannelLoop(sharedMainScope, Channel.CONFLATED) { awaitPulse() }
+		fun conflatedPulseLoop() = ChannelLoop(CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate), Channel.CONFLATED) { awaitPulse() }
 	}
 }
