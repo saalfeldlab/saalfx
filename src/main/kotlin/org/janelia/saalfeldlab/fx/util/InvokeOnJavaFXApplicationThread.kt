@@ -60,8 +60,12 @@ class InvokeOnJavaFXApplicationThread {
 		 * [ChannelLoop] with a default delay of [awaitPulse].
 		 *
 		 * Allows for job submissions that may come very quick, where only that latest job is required to update on the UI thread.
+		 *
+		 * @param pulses how many pulses to wait between jobs (default 1)
 		 */
 		@JvmStatic
-		fun conflatedPulseLoop() = ChannelLoop(CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate), Channel.CONFLATED) { awaitPulse() }
+		fun conflatedPulseLoop(pulses: Int = 1) = ChannelLoop(CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate), Channel.CONFLATED) {
+			repeat(pulses) { awaitPulse() }
+		}
 	}
 }

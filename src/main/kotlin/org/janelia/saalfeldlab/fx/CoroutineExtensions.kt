@@ -1,5 +1,6 @@
 package org.janelia.saalfeldlab.fx
 
+
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 
@@ -22,15 +23,15 @@ class ChannelLoop(coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob(
 	 * @return the job to be submitted
 	 */
 	fun submit(cancel : Boolean = false, block: suspend CoroutineScope.() -> Unit): Job {
+		ensureActive()
+
 		val job = launch(start = CoroutineStart.LAZY) {
 			block()
 		}
-		runBlocking {
-			if (cancel)
-				currentJob?.cancel()
-			channel.send(job)
-			currentJob = job
-		}
+		if (cancel)
+			currentJob?.cancel()
+		launch { channel.send(job) }
+		currentJob = job
 		return job
 	}
 
