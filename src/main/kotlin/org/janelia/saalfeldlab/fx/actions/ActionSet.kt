@@ -5,6 +5,7 @@ import javafx.event.EventHandler
 import javafx.event.EventTarget
 import javafx.event.EventType
 import javafx.scene.input.*
+import javafx.util.Subscription
 import org.janelia.saalfeldlab.fx.event.KeyTracker
 import java.util.function.Consumer
 
@@ -437,7 +438,7 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 		 * @param actionSet to install
 		 */
 		@JvmStatic
-		fun EventTarget.installActionSet(actionSet: ActionSet) {
+		fun EventTarget.installActionSet(actionSet: ActionSet) : Subscription {
 			actionSet.preInstallSetup()
 			actionSet.actionFilterMap.forEach { (eventType, actions) ->
 				actions.forEach { action ->
@@ -449,6 +450,7 @@ open class ActionSet(val name: String, var keyTracker: () -> KeyTracker? = { nul
 					addEventHandler(eventType, action)
 				}
 			}
+			return Subscription { removeActionSet(actionSet) }
 		}
 
 		/**
