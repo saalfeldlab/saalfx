@@ -15,23 +15,24 @@ private val LOG = KotlinLogging.logger {}
  * @param coroutineScope to execute the job's on
  * @param delay optional delay after a job finishes before attempting to execute the next job
  */
-class ChannelLoop(coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default), capacity: Int = Channel.RENDEZVOUS,  val delay : suspend () -> Unit = {}) : CoroutineScope by coroutineScope {
-	private val channel = Channel<Job>(capacity = capacity)
-	private var currentJob : Job?  =null
+open class ChannelLoop(coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default), capacity: Int = Channel.RENDEZVOUS, val delay: suspend () -> Unit = {}) : CoroutineScope by coroutineScope {
+	protected open val channel = Channel<Job>(capacity = capacity)
+	protected var currentJob : Job?  =null
 
 	/**
 	 * Submit a block to execute in the conflated loop. Will cancel the current job and submit this block
 	 *
+	 * @param cancelCurrentJob cancel the current job if one exists
 	 * @param block to execute
 	 * @return the job to be submitted
 	 */
-	fun submit(cancel : Boolean = false, block: suspend CoroutineScope.() -> Unit): Job {
+	open fun submit(cancelCurrentJob : Boolean = false, block: suspend CoroutineScope.() -> Unit): Job {
 		ensureActive()
 
 		val job = launch(start = CoroutineStart.LAZY) {
 			block()
 		}
-		if (cancel)
+		if (cancelCurrentJob)
 			currentJob?.cancel()
 		launch { channel.send(job) }
 		currentJob = job
