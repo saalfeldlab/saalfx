@@ -34,8 +34,8 @@ class KeyAction(eventType: EventType<KeyEvent>) : Action<KeyEvent>(eventType) {
 	 * Provide a [NamedKeyCombination.CombinationMap] and a [NamedKeyCombination] to use to verify the valid key combination.
 	 * NOTE: the [NamedKeyCombination.keyCodes] are not directly used. This is purely a convenience function to get the [NamedKeyCombination.keyBindingName]
 	 *
-	 * @param keyBindings the map to query the key combinations for the given [NamedKeyCombination.keyBindingName]
-	 * @param namedKeyCombination which provided the key name used to find the desired key combination in the [keyBindings].
+	 * @param namedKeyBinding the named key binding to verify events against for this action.
+	 * @param keysExclusive if true, this action is only valid if no other keys are down.
 	 */
 	@JvmOverloads
 	fun keyMatchesBinding(namedKeyBinding: NamedKeyBinding, keysExclusive: Boolean = true) {

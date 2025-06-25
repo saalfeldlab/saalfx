@@ -110,7 +110,7 @@ class WritableSubclassDelegate<T, K : T>(private val obs: WritableValue<T?>, pri
  * @return An [ObservableValue] that emits the value of the source [ObservableValue] only the first time
  * the [condition] is true.
  */
-fun <T> ObservableValue<T>.onceWhen(condition : ObservableValue<Boolean>): ObservableValue<T> {
+fun <T> ObservableValue<T>.onceWhen(condition: ObservableValue<Boolean>): ObservableValue<T> {
 	var first = true
 	return this.`when`(condition.map { it && first }).also {
 		it.subscribe { _, _ ->
