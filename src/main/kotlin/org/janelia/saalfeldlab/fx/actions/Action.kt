@@ -4,17 +4,20 @@ import io.github.oshai.kotlinlogging.KLogger
 import io.github.oshai.kotlinlogging.KotlinLogging
 import javafx.event.Event
 import javafx.event.EventHandler
+import javafx.event.EventTarget
 import javafx.event.EventType
 import javafx.scene.Node
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
 import javafx.scene.input.MouseEvent
+import javafx.util.Subscription
 import org.janelia.saalfeldlab.fx.actions.Action.Companion.action
 import org.janelia.saalfeldlab.fx.actions.Action.Companion.installAction
 import org.janelia.saalfeldlab.fx.actions.Action.Companion.onAction
 import org.janelia.saalfeldlab.fx.actions.Action.Companion.removeAction
 import org.janelia.saalfeldlab.fx.event.KeyTracker
 import java.util.function.Consumer
+import kotlin.jvm.java
 
 /**
  * An [Action] is an event handler, with associated state to properly trigger or not based on the state of the application, and the event.
@@ -425,12 +428,10 @@ open class Action<E : Event>(val eventType: EventType<out E>) {
 		 * @param action the [Action] to install to this [Node]
 		 */
 		@JvmStatic
-		fun <E : Event> Node.installAction(action: Action<E>) {
-			if (action.filter) {
-				addEventFilter(action.eventType, action.handler)
-			} else {
-				addEventHandler(action.eventType, action.handler)
-			}
+		fun <E : Event> EventTarget.installAction(action: Action<E>) : Subscription {
+			if (action.filter) addEventFilter(action.eventType, action.handler)
+			else addEventHandler(action.eventType, action.handler)
+			return Subscription { removeAction(action) }
 		}
 
 		/**
@@ -440,12 +441,9 @@ open class Action<E : Event>(val eventType: EventType<out E>) {
 		 * @param action the [Action] to remove to this [Node]
 		 */
 		@JvmStatic
-		fun <E : Event> Node.removeAction(action: Action<E>) {
-			if (action.filter) {
-				removeEventFilter(action.eventType, action.handler)
-			} else {
-				removeEventHandler(action.eventType, action.handler)
-			}
+		fun <E : Event> EventTarget.removeAction(action: Action<E>) {
+			if (action.filter) removeEventFilter(action.eventType, action.handler)
+			else removeEventHandler(action.eventType, action.handler)
 		}
 	}
 
