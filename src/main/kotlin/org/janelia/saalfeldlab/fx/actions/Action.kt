@@ -71,7 +71,7 @@ import java.util.function.Consumer
  * @property eventType the [EventType] we want to trigger the action on
  * @constructor Creates an [Action]; Should only directly be used internally. Otherwise, use the extension methods of [ActionSet] or [EventType] instead.
  */
-open class Action<E : Event>(val eventType: EventType<E>) {
+open class Action<E : Event>(val eventType: EventType<out E>) {
 
 	open val logger: KLogger by lazy {
 		val simpleName = this::class.simpleName?.let { ".$it" } ?: ""
