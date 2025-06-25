@@ -7,6 +7,7 @@ import javafx.event.EventHandler
 import javafx.event.EventTarget
 import javafx.event.EventType
 import javafx.scene.Node
+import javafx.scene.control.Labeled
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
 import javafx.scene.input.MouseEvent
@@ -119,9 +120,12 @@ open class Action<E : Event>(val eventType: EventType<out E>) {
 	private var action: (E?) -> Unit = {}
 
 	/**
-	 * Optional graphic to provide, in case the action is triggerable via a graphical interaction (i.e. a button)
+	 * Optional logic to call on a provided tool node or to provide a custom tool node.
+	 * The returned node will be used, whether it's the provided node or a new node.
+	 * If this field is `null`, it is assumed that this Action cannot be mapped to a
+	 * UI node.
 	 */
-	var graphic: (() -> Node)? = null
+	var createToolNode: (Labeled.() -> Labeled)? = null
 
 	/**
 	 * Lazy reference to the [ActionEventHandler] created by this [Action]
