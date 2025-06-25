@@ -28,6 +28,7 @@
  */
 package org.janelia.saalfeldlab.fx.util
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.future.asCompletableFuture
@@ -39,10 +40,18 @@ class InvokeOnJavaFXApplicationThread {
 
 	companion object {
 
+		private val LOG = KotlinLogging.logger {  }
+
 		private val sharedMainScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
 		@JvmStatic
-		operator fun <T> invoke(task: suspend CoroutineScope.() -> T) = sharedMainScope.async(block = task)
+		operator fun <T> invoke(task: suspend CoroutineScope.() -> T) = sharedMainScope.async(block = task).apply {
+			invokeOnCompletion { cause ->
+				/* By default, `async` will only throw when `await` is called. Here we throw as soon as it finishes
+				* unless it was cancelled. */
+				cause?.takeIf { it !is CancellationException }?.let { LOG.error(it) { "Exception in JavaFx Thread coroutine"} }
+			}
+		}
 
 		@JvmStatic
 		operator fun <T> invoke(task: Supplier<T>) = invoke<T> { task.get() }.asCompletableFuture()

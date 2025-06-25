@@ -1,9 +1,12 @@
 package org.janelia.saalfeldlab.fx
 
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 
+
+private val LOG = KotlinLogging.logger {}
 
 /**
  * Channel wrapper than supports running jobs sequentially within a scope, with cancellation.
@@ -41,6 +44,11 @@ class ChannelLoop(coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob(
 				runCatching {
 					msg.start()
 					msg.join()
+				}.onFailure { it ->
+					if (it is CancellationException)
+						LOG.trace(it) { "Channel Loop job cancelled" }
+					else
+						LOG.error(it) { "Error in Channel Loop" }
 				}
 				delay()
 			}
