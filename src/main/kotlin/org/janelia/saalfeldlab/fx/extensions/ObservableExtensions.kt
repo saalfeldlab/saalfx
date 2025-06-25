@@ -1,15 +1,22 @@
 package org.janelia.saalfeldlab.fx.extensions
 
+import javafx.animation.Interpolator
+import javafx.animation.KeyFrame
+import javafx.animation.KeyValue
+import javafx.animation.Timeline
 import javafx.beans.Observable
 import javafx.beans.binding.*
 import javafx.beans.property.*
 import javafx.beans.value.ObservableValue
+import javafx.beans.value.WritableObjectValue
 import javafx.beans.value.WritableValue
 import javafx.collections.ObservableList
 import javafx.collections.ObservableMap
 import javafx.collections.ObservableSet
 import javafx.scene.Node
+import javafx.util.Duration
 import javafx.util.Subscription
+import org.janelia.saalfeldlab.fx.util.InvokeOnJavaFXApplicationThread
 import kotlin.reflect.KProperty
 
 fun <Obj, Obs> Obs.createObservableBinding(vararg observables: Observable, obsToObj: (Obs) -> Obj): ObjectBinding<Obj> where Obs : Observable {
@@ -121,4 +128,14 @@ fun <T> ObservableValue<T>.onceWhen(condition: ObservableValue<Boolean>): Observ
 	}
 }
 
-operator fun Subscription.plus(other: Subscription?) : Subscription = other?.let { this.and(it) } ?: this
+operator fun Subscription.plus(other: Subscription?): Subscription = other?.let { this.and(it) } ?: this
+
+fun <T> WritableObjectValue<T>.interpolate(from: T? = value, to: T, time: Duration, interpolator: Interpolator = Interpolator.LINEAR, onFinished: suspend () -> Unit = {}): Timeline {
+	val timeline = Timeline()
+	val start = KeyFrame(Duration.ZERO, KeyValue(this, from))
+	val end = KeyFrame(time, KeyValue(this, to, interpolator))
+	timeline.keyFrames.addAll(start, end)
+	timeline.setOnFinished { InvokeOnJavaFXApplicationThread { onFinished() } }
+	timeline.play()
+	return timeline
+}
