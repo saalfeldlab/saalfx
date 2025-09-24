@@ -5,7 +5,6 @@ import org.checkerframework.checker.units.qual.A
 import org.janelia.saalfeldlab.fx.actions.Action.Companion.onAction
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadWriteProperty
-import kotlin.reflect.KFunction
 import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.KProperty
 
@@ -83,7 +82,7 @@ interface ActionState {
 		 * @return A factory function that produces instances of type [A].
 		 */
 		inline fun <reified A : ActionState> newByReflection(): () -> A {
-			val constructor = A::class.constructors.firstOrNull<KFunction<A>> { it.parameters.isEmpty() || it.parameters.all { it.isOptional } }
+			val constructor = A::class.constructors.firstOrNull { it.parameters.isEmpty() || it.parameters.all { param -> param.isOptional } }
 				?: throw NoSuchMethodException("No constructor found for ${A::class.simpleName} with either no parameters, or all optional parameters")
 			return { constructor.callBy(emptyMap()) }
 		}
@@ -91,6 +90,13 @@ interface ActionState {
 	}
 }
 
+/**
+ * ActionState with a store of verifiable property from [VerifiablePropertyActionState]s
+ * that can combine the verifiable properties and ensure they are registered to the
+ * this [ActionState]
+ *
+ * @param delegates
+ */
 open class VerifiablePropertyActionState(vararg delegates: Any) : ActionState {
 
 	internal val verifiableProperties = mutableMapOf<String, Verifiable<*>>()
@@ -147,7 +153,7 @@ class Verifiable<T>(
 
 
 	override fun getValue(thisRef: Any?, property: KProperty<*>): T {
-		return value ?: throw IllegalStateException("Verifiable Property ${property.name} referenced before verify")
+		return value ?: throw IllegalStateException("Verifiable Property \"${property.name}\" referenced before verify")
 	}
 
 	override fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
