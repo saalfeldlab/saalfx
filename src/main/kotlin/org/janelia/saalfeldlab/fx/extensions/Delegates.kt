@@ -100,3 +100,32 @@ class LazyForeignValue<K, V>(val foreignKeyProvider: () -> K, val valueGenerator
 		}
 	}
 }
+
+public fun <T> lazyVar(initializer: () -> T): ModifiableLazy<T> = ModifiableLazy(initializer)
+
+class ModifiableLazy<T>(val initializer: () -> T) {
+
+	private val backingLazy by lazy { initializer() }
+
+	private var manuallySet = false
+	private var backingValue: T? = null
+
+	operator fun getValue(t: Any?, property: KProperty<*>): T {
+		synchronized(this) {
+			if (manuallySet) {
+				return backingValue as T
+			}
+			return backingLazy
+		}
+	}
+
+	operator fun setValue(t: Any?, property: KProperty<*>, value: T) {
+		synchronized(this) {
+			if (!manuallySet) {
+				manuallySet = true
+			}
+			backingValue = value
+		}
+	}
+
+}
