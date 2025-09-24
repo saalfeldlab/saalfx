@@ -17,6 +17,8 @@ import javafx.scene.Node
 import javafx.util.Duration
 import javafx.util.Subscription
 import org.janelia.saalfeldlab.fx.util.InvokeOnJavaFXApplicationThread
+import java.util.UUID
+import kotlin.collections.toTypedArray
 import kotlin.reflect.KProperty
 
 fun <Obj, Obs> Obs.createObservableBinding(vararg observables: Observable, obsToObj: (Obs) -> Obj): ObjectBinding<Obj> where Obs : Observable {
@@ -125,6 +127,14 @@ fun <T> ObservableValue<T>.onceWhen(condition: ObservableValue<Boolean>): Observ
 			if (condition.value)
 				first = false
 		}
+	}
+}
+
+fun Collection<Observable>.subscribe(callback : () -> Unit) : Subscription {
+	val uuidBinding = Bindings.createObjectBinding(UUID::randomUUID, *this.toTypedArray())
+	return uuidBinding.subscribe { _, _ ->
+		callback()
+		uuidBinding.get()
 	}
 }
 
