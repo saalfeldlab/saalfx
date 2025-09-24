@@ -15,7 +15,12 @@ private val LOG = KotlinLogging.logger {}
  * @param coroutineScope to execute the job's on
  * @param delay optional delay after a job finishes before attempting to execute the next job
  */
-open class ChannelLoop(coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default), capacity: Int = Channel.RENDEZVOUS, val delay: suspend () -> Unit = {}) : CoroutineScope by coroutineScope {
+open class ChannelLoop(
+	coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+	capacity: Int = Channel.RENDEZVOUS,
+	val name: String = "Channel Loop",
+	val delay: suspend () -> Unit = {},
+) : CoroutineScope by coroutineScope {
 	protected open val channel = Channel<Job>(capacity = capacity)
 	protected var currentJob : Job?  =null
 
@@ -47,9 +52,9 @@ open class ChannelLoop(coroutineScope: CoroutineScope = CoroutineScope(Superviso
 					msg.join()
 				}.onFailure { it ->
 					if (it is CancellationException)
-						LOG.trace(it) { "Channel Loop job cancelled" }
+						LOG.trace(it) { "$name job cancelled" }
 					else
-						LOG.error(it) { "Error in Channel Loop" }
+						LOG.error(it) { "Error in $name" }
 				}
 				delay()
 			}

@@ -29,12 +29,16 @@
 package org.janelia.saalfeldlab.fx.util
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.future.asCompletableFuture
 import kotlinx.coroutines.javafx.awaitPulse
 import org.janelia.saalfeldlab.fx.ChannelLoop
 import java.util.function.Supplier
+import kotlin.coroutines.cancellation.CancellationException
 
 class InvokeOnJavaFXApplicationThread {
 
@@ -44,7 +48,7 @@ class InvokeOnJavaFXApplicationThread {
 
 		private val sharedMainScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-		@JvmStatic
+		@JvmSynthetic
 		operator fun <T> invoke(task: suspend CoroutineScope.() -> T) = sharedMainScope.async(block = task).apply {
 			invokeOnCompletion { cause ->
 				/* By default, `async` will only throw when `await` is called. Here we throw as soon as it finishes
@@ -54,16 +58,10 @@ class InvokeOnJavaFXApplicationThread {
 		}
 
 		@JvmStatic
-		operator fun <T> invoke(task: Supplier<T>) = invoke<T> { task.get() }.asCompletableFuture()
+		fun <T> submit(task: Supplier<T>) = invoke { task.get() }.asCompletableFuture()
 
 		@JvmStatic
-		operator fun invoke(task: Runnable) = invoke(Supplier<Unit> { task.run() })
-
-		@JvmStatic
-		@Throws(InterruptedException::class)
-		fun <T> invokeAndWait(task: suspend CoroutineScope.() -> T) = runBlocking {
-			sharedMainScope.launch { task() }.join()
-		}
+		fun invoke(task: Runnable) = invoke { task.run() }.asCompletableFuture()
 
 		/**
 		 * [ChannelLoop] with a default delay of [awaitPulse].

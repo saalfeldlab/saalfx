@@ -48,7 +48,7 @@ class TasksTest : ApplicationTest() {
 	@Test
 	fun `onSuccess runs when successful`() {
 		val testText = "Single onSuccess Test"
-		Tasks.createTask { testText }
+		Tasks.invoke { testText }
 			.onSuccess { list.items.add(it) }
 
 		WaitForAsyncUtils.waitForFxEvents()
@@ -61,7 +61,7 @@ class TasksTest : ApplicationTest() {
 	@Test
 	fun `onEnd and OnSuccess run when successful`() {
 		val endOnSuccessText = "Single onEnd Test, expecting success"
-		val task = Tasks.createTask { endOnSuccessText }
+		val task = Tasks.invoke { endOnSuccessText }
 			.onSuccess { list.items.add(it) }
 			.onEnd { result, _ -> list.items.add(result!!) }
 
@@ -78,7 +78,7 @@ class TasksTest : ApplicationTest() {
 	@Test
 	fun `onEnd and onSuccess run after blocking when successful`() {
 		val endOnSuccessText = "Single onEnd Test, expecting success"
-		val result = Tasks.createTask { endOnSuccessText }
+		val result = Tasks.invoke { endOnSuccessText }
 			.onSuccess { list.items.add(it) }
 			.onEnd { result, _ -> list.items.add(result!!) }
 			.get()
@@ -94,7 +94,7 @@ class TasksTest : ApplicationTest() {
 		val textWithoutCancel = "Single onEnd Test, expecting to never see this"
 		val textWithCancel = "Single onEnd Test, expecting cancel"
 		var canceled = false
-		val task = Tasks.createTask {
+		val task = Tasks.invoke {
 			/* waiting for the task to be canceled. If too long, we have failed. */
 			while (!canceled) {
 				delay(5000)
@@ -135,8 +135,11 @@ class TasksTest : ApplicationTest() {
 		/* Intentionally trigger failed, ensure `onEnd` is still triggered */
 		val task: UtilityTask<*>
 		try {
-			task = Tasks.createTask { throw ExceptionTestException() }
-				.onSuccess { list.items.add(it) }
+			task = Tasks.invoke { throw ExceptionTestException() }
+				.onSuccess {
+					@Suppress("KotlinUnreachableCode")
+					list.items.add(it)
+				}
 				.onEnd { _, _ -> list.items.add(textWithFailure) }
 				.onFailed { assertIs<ExceptionTestException>(it) }
 				.wait()
@@ -161,8 +164,11 @@ class TasksTest : ApplicationTest() {
 		/* Intentionally trigger failure, with custom onFailed */
 
 
-		val task = Tasks.createTask { throw ExceptionTestException() }
-			.onSuccess { list.items.add(it) }
+		val task = Tasks.invoke { throw ExceptionTestException() }
+			.onSuccess {
+				@Suppress("KotlinUnreachableCode")
+				list.items.add(it)
+			}
 			.onEnd { _, _ -> list.items.add(textWithEnd) }
 			.onFailed { list.items.add(textWithFailure) }
 			.onFailed { assertIs<ExceptionTestException>(it) }
@@ -179,7 +185,7 @@ class TasksTest : ApplicationTest() {
 	fun `multiple callbacks run in order when successful`() {
 		var success = 0
 		var end = 0
-		Tasks.createTask { "asdf" }
+		Tasks.invoke { "asdf" }
 			.onSuccess { success += 1 }
 			.onSuccess { success *= 3 }
 			.onEnd { _, _ -> end += 1 }
@@ -192,7 +198,7 @@ class TasksTest : ApplicationTest() {
 		assertEquals(3, end)
 
 		var cancelled = 0
-		Tasks.createTask {
+		Tasks.invoke {
 			"asdf"
 			delay(1000)
 		}
@@ -214,7 +220,7 @@ class TasksTest : ApplicationTest() {
 		assertEquals(12, end)
 
 		var failed = 0
-		Tasks.createTask {
+		Tasks.invoke {
 			"asdf"
 			throw ExceptionTestException()
 		}
