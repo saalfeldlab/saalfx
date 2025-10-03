@@ -40,7 +40,7 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-class ResizeOnLeftSide @JvmOverloads constructor(
+class ResizeOnLeftSide(
 	private val node: Node,
 	private val width: DoubleProperty,
 	// TODO minWidth/maxWidth should probably be suppliers!

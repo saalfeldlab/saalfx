@@ -41,7 +41,7 @@ class DirectoryField(initialFile: File?, browseButtonWidth: Double) {
 
 	private val chooser = DirectoryChooser()
 
-	private val directory: ObjectField<File?, Property<File?>> = ObjectField.fileField(initialFile, Predicate { it.exists() && it.isDirectory }, *ObjectField.SubmitOn.values())
+	private val directory: ObjectField<File?, Property<File?>> = ObjectField.directoryField(initialFile, { it.exists() }, *ObjectField.SubmitOn.entries.toTypedArray())
 
 	private val browseButton = Button("Browse")
 

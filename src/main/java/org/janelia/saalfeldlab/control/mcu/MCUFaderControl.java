@@ -40,6 +40,12 @@ public class MCUFaderControl extends MCUControl implements ClippingIntControl {
 	@Override
 	void update(final int data) {
 
-		setValue(data);
+		final boolean isLinux = System.getProperty("os.name").toLowerCase().contains("linux");
+		int value;
+		if (isLinux)
+			value = (0x40 & data) == 0 ? data + 0x40 : data - 0x40;
+		else
+			value = data;
+		setValue(value);
 	}
 }

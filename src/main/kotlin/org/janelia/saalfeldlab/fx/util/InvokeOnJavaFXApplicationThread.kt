@@ -28,29 +28,51 @@
  */
 package org.janelia.saalfeldlab.fx.util
 
-import kotlinx.coroutines.*
-import java.lang.Runnable
+import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.future.asCompletableFuture
+import kotlinx.coroutines.javafx.awaitPulse
+import org.janelia.saalfeldlab.fx.ChannelLoop
+import java.util.function.Supplier
+import kotlin.coroutines.cancellation.CancellationException
 
 class InvokeOnJavaFXApplicationThread {
 
 	companion object {
 
+		private val LOG = KotlinLogging.logger {  }
+
 		private val sharedMainScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-		@JvmStatic
-		operator fun invoke(task: suspend CoroutineScope.() -> Unit) = sharedMainScope.launch(block = task)
-
-		@JvmStatic
-		operator fun invoke(task: Runnable) = invoke { task.run() }
-
-		@Throws(InterruptedException::class)
-		fun invokeAndWait(task: suspend CoroutineScope.() -> Unit) = runBlocking {
-			sharedMainScope.launch { task() }.join()
+		@JvmSynthetic
+		operator fun <T> invoke(task: suspend CoroutineScope.() -> T) = sharedMainScope.async(block = task).apply {
+			invokeOnCompletion { cause ->
+				/* By default, `async` will only throw when `await` is called. Here we throw as soon as it finishes
+				* unless it was cancelled. */
+				cause?.takeIf { it !is CancellationException }?.let { LOG.error(it) { "Exception in JavaFx Thread coroutine"} }
+			}
 		}
 
 		@JvmStatic
-		@Throws(InterruptedException::class)
-		fun invokeAndWait(task: Runnable) = invokeAndWait { task.run() }
+		fun <T> submit(task: Supplier<T>) = invoke { task.get() }.asCompletableFuture()
 
+		@JvmStatic
+		fun invoke(task: Runnable) = invoke { task.run() }.asCompletableFuture()
+
+		/**
+		 * [ChannelLoop] with a default delay of [awaitPulse].
+		 *
+		 * Allows for job submissions that may come very quick, where only that latest job is required to update on the UI thread.
+		 *
+		 * @param pulses how many pulses to wait between jobs (default 1)
+		 */
+		@JvmStatic
+		fun conflatedPulseLoop(pulses: Int = 1) = ChannelLoop(CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate), Channel.CONFLATED) {
+			repeat(pulses) { awaitPulse() }
+		}
 	}
 }

@@ -1,15 +1,24 @@
 package org.janelia.saalfeldlab.fx.extensions
 
+import javafx.animation.Interpolator
+import javafx.animation.KeyFrame
+import javafx.animation.KeyValue
+import javafx.animation.Timeline
 import javafx.beans.Observable
 import javafx.beans.binding.*
 import javafx.beans.property.*
 import javafx.beans.value.ObservableValue
+import javafx.beans.value.WritableObjectValue
 import javafx.beans.value.WritableValue
 import javafx.collections.ObservableList
 import javafx.collections.ObservableMap
 import javafx.collections.ObservableSet
 import javafx.scene.Node
+import javafx.util.Duration
 import javafx.util.Subscription
+import org.janelia.saalfeldlab.fx.util.InvokeOnJavaFXApplicationThread
+import java.util.UUID
+import kotlin.collections.toTypedArray
 import kotlin.reflect.KProperty
 
 fun <Obj, Obs> Obs.createObservableBinding(vararg observables: Observable, obsToObj: (Obs) -> Obj): ObjectBinding<Obj> where Obs : Observable {
@@ -22,20 +31,6 @@ inline fun <reified T, Obj, Obs> Obs.createNullableValueBinding(vararg observabl
 
 inline fun <reified T, Obj, Obs> Obs.createNonNullValueBinding(vararg observables: Observable, crossinline obsValToObj: (T) -> Obj): ObjectBinding<Obj> where Obs : ObservableValue<T> {
 	return Bindings.createObjectBinding({ obsValToObj(value) }, this, *observables)
-}
-
-inline fun <reified T, Obj, Obs> Obs.createNonNullProperty(vararg observables: Observable, crossinline obsValToObj: (T) -> Obj): Property<Obj> where Obs : Property<T> {
-	val mappingBinding = createNonNullValueBinding(*observables) { obsValToObj(it) }
-	val property = SimpleObjectProperty<Obj>()
-	property.bind(mappingBinding)
-	return property
-}
-
-inline fun <reified T, Obj, Obs> Obs.createNullableProperty(vararg observables: Observable, crossinline obsValToObj: (T?) -> Obj): Property<Obj?> where Obs : Property<T> {
-	val mappingBinding = createNonNullValueBinding(*observables) { obsValToObj(it) }
-	val property = SimpleObjectProperty<Obj>()
-	property.bind(mappingBinding)
-	return property
 }
 
 inline operator fun <reified T : Node> T.invoke(apply: T.() -> Unit): T {
@@ -86,19 +81,19 @@ fun LongProperty.nullable(): WritableSubclassDelegate<Number?, Long?> = Writable
 fun LongProperty.nonnull(): WritableSubclassDelegate<Number, Long> = WritableSubclassDelegate(this) { value!! }
 
 
-class ObservableDelegate<T>(private val obs: ObservableValue<T>, private inline val getter: () -> T) {
+class ObservableDelegate<T>(private val obs: ObservableValue<T>, private val getter: () -> T) {
 
 	operator fun getValue(t: Any?, property: KProperty<*>): T {
 		return getter()
 	}
 }
 
-class ObservableSubclassDelegate<T, K : T>(private val obs: ObservableValue<T?>, private inline val getter: () -> K) {
+class ObservableSubclassDelegate<T, K : T>(private val obs: ObservableValue<T?>, private val getter: () -> K) {
 
 	operator fun getValue(t: Any?, property: KProperty<*>): K = getter()
 }
 
-class WritableDelegate<T>(private val obs: WritableValue<T>, private inline val getter: () -> T) {
+class WritableDelegate<T>(private val obs: WritableValue<T>, private val getter: () -> T) {
 
 	operator fun getValue(t: Any?, property: KProperty<*>): T = getter()
 
@@ -107,7 +102,7 @@ class WritableDelegate<T>(private val obs: WritableValue<T>, private inline val 
 	}
 }
 
-class WritableSubclassDelegate<T, K : T>(private val obs: WritableValue<T?>, private inline val getter: () -> K) {
+class WritableSubclassDelegate<T, K : T>(private val obs: WritableValue<T?>, private val getter: () -> K) {
 
 	operator fun getValue(t: Any?, property: KProperty<*>): K = getter()
 
@@ -117,12 +112,6 @@ class WritableSubclassDelegate<T, K : T>(private val obs: WritableValue<T?>, pri
 }
 
 /**
- * A wrapper method for [ObservableValue.when] to make it more ergonomic to write in Kotlin
- * @see ObservableValue.when
- */
-fun <T> ObservableValue<T>.onlyWhen(condition : ObservableValue<Boolean>): ObservableValue<T> = this.`when`(condition)
-
-/**
  * Returns an [ObservableValue] that only changes when [condition] is satisfied, and only the first time.
  * After the first time, the this [ObservableValue] will never change.
  *
@@ -130,7 +119,7 @@ fun <T> ObservableValue<T>.onlyWhen(condition : ObservableValue<Boolean>): Obser
  * @return An [ObservableValue] that emits the value of the source [ObservableValue] only the first time
  * the [condition] is true.
  */
-fun <T> ObservableValue<T>.onceWhen(condition : ObservableValue<Boolean>): ObservableValue<T> {
+fun <T> ObservableValue<T>.onceWhen(condition: ObservableValue<Boolean>): ObservableValue<T> {
 	var first = true
 	return this.`when`(condition.map { it && first }).also {
 		it.subscribe { _, _ ->
@@ -141,32 +130,22 @@ fun <T> ObservableValue<T>.onceWhen(condition : ObservableValue<Boolean>): Obser
 	}
 }
 
-/**
- * Returns an [ObservableValue] that emits values from the receiver [ObservableValue] only until the [condition] is false.
- *
- * @param condition determines when to stop emitting values.
- * @return An [ObservableValue] that emits values from the source until the condition is false.
- */
-fun <T> ObservableValue<T>.untilWhen(condition : ObservableValue<Boolean>): ObservableValue<T> {
-	var untilFalse = true
-	return this.`when`(condition.map {
-		untilFalse = untilFalse && it
-		untilFalse
-	})
-}
-
-fun <T> ObservableValue<T>.subscribeWithSubscription(withSubscription: Subscription.(T, T) -> Unit) {
-	lateinit var subscription: Subscription
-	subscription = subscribe { old, new ->
-		subscription.withSubscription(old, new)
+fun Collection<Observable>.subscribe(callback : () -> Unit) : Subscription {
+	val uuidBinding = Bindings.createObjectBinding(UUID::randomUUID, *this.toTypedArray())
+	return uuidBinding.subscribe { _, _ ->
+		callback()
+		uuidBinding.get()
 	}
 }
 
+operator fun Subscription.plus(other: Subscription?): Subscription = other?.let { this.and(it) } ?: this
 
-fun <T> ObservableValue<T>.subscribeUntil(subscribeUntil: (T, T) -> Boolean?) {
-	val until = SimpleBooleanProperty(true)
-	this.`when`(until).subscribe { old, new ->
-		subscribeUntil(old, new)?.let { until.set(it) }
-	}
+fun <T> WritableObjectValue<T>.interpolate(from: T? = value, to: T, time: Duration, interpolator: Interpolator = Interpolator.LINEAR, onFinished: suspend () -> Unit = {}): Timeline {
+	val timeline = Timeline()
+	val start = KeyFrame(Duration.ZERO, KeyValue(this, from))
+	val end = KeyFrame(time, KeyValue(this, to, interpolator))
+	timeline.keyFrames.addAll(start, end)
+	timeline.setOnFinished { InvokeOnJavaFXApplicationThread { onFinished() } }
+	timeline.play()
+	return timeline
 }
-

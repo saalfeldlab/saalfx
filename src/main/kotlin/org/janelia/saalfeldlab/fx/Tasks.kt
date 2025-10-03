@@ -1,29 +1,35 @@
 package org.janelia.saalfeldlab.fx
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import javafx.concurrent.Task
-import javafx.concurrent.Worker.State.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import java.util.function.BiConsumer
 import java.util.function.Consumer
 import java.util.function.Supplier
+
+private val TASK_SCOPE = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
 class Tasks private constructor() {
 
 	companion object {
 		@JvmSynthetic
-		fun <T> createTask(call: suspend () -> T): UtilityTask<T> {
-			return UtilityTask(CoroutineScope(Dispatchers.Default)) { call() }
+		operator fun <T> invoke(call: suspend () -> T): UtilityTask<T> {
+			return UtilityTask { call() }
 		}
 
 		@JvmStatic
-		fun <T> createTask(call: Supplier<T>): UtilityTask<T> {
-			return createTask { call.get() }
+		fun <T> submit(call: Supplier<T>): UtilityTask<T> {
+			return invoke { call.get() }
 		}
 
 		@JvmStatic
-		fun createTask(call: Runnable): UtilityTask<Unit> {
-			return createTask { call.run() }
+		fun submit(call: Runnable): UtilityTask<Unit> {
+			return invoke { call.run() }
 		}
 	}
 }
@@ -31,7 +37,7 @@ class Tasks private constructor() {
 
 @Suppress("OPT_IN_USAGE")
 class UtilityTask<V> internal constructor(
-	private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default),
+	private val scope: CoroutineScope = TASK_SCOPE,
 	private val block: suspend CoroutineScope.() -> V
 ) : Deferred<V> by scope.async(block = block) {
 

@@ -9,7 +9,7 @@ import org.janelia.saalfeldlab.fx.event.KeyTracker
 import org.janelia.saalfeldlab.fx.extensions.nonnull
 import kotlin.collections.set
 
-private val KeyCombination.modifierCodes: Set<KeyCode>
+val KeyCombination.modifierCodes: Set<KeyCode>
 	get() = setOfNotNull(
 		if (shift == KeyCombination.ModifierValue.DOWN) KeyCode.SHIFT else null,
 		if (control == KeyCombination.ModifierValue.DOWN) KeyCode.CONTROL else null,
@@ -18,7 +18,7 @@ private val KeyCombination.modifierCodes: Set<KeyCode>
 		if (shortcut == KeyCombination.ModifierValue.DOWN) Toolkit.getToolkit().platformShortcutKey else null
 	)
 
-private val KeyEvent.modifierCodes: Set<KeyCode>
+val KeyEvent.modifierCodes: Set<KeyCode>
 	get() = setOfNotNull(
 		if (isShiftDown) KeyCode.SHIFT else null,
 		if (isControlDown) KeyCode.CONTROL else null,

@@ -1,10 +1,13 @@
 package org.janelia.saalfeldlab.fx.ui
 
 import javafx.application.Application
+import javafx.collections.FXCollections
 import javafx.scene.Scene
 import javafx.scene.control.*
+import javafx.scene.layout.BorderPane
 import javafx.scene.layout.HBox
 import javafx.stage.Stage
+import kotlinx.coroutines.delay
 import org.janelia.saalfeldlab.fx.util.InvokeOnJavaFXApplicationThread
 import org.junit.Test
 import org.testfx.framework.junit.ApplicationTest
@@ -194,17 +197,18 @@ class TestApp : Application() {
 	}
 
 	override fun start(primaryStage: Stage) {
+		val list1 = listOf("0qw1erq2wer2", "1qw2erq3wer3", "2qw3erq4wer4", "3qw4erq5wer5", "4qw5erq6wer6", "5qw6erq7wer7")
 		fun newMenu(): Menu {
 			val matchSelectionMenu = MatchSelectionMenu(
-				listOf("0qw1erq2wer2", "1qw2erq3wer3", "2qw3erq4wer4", "3qw4erq5wer5", "4qw5erq6wer6", "5qw6erq7wer7"),
+				list1,
 				"test"
 			) { println(it) }
 			val matchSelectionMenu2 = MatchSelectionMenu(
-				listOf("0qw1erq2wer2", "1qw2erq3wer3", "2qw3erq4wer4", "3qw4erq5wer5", "4qw5erq6wer6", "5qw6erq7wer7"),
+				list1,
 				"test"
 			) { println(it) }
 			val matchSelectionMenu3 = MatchSelectionMenu(
-				listOf("0qw1erq2wer2", "1qw2erq3wer3", "2qw3erq4wer4", "3qw4erq5wer5", "4qw5erq6wer6", "5qw6erq7wer7"),
+				list1,
 				"test"
 			) { println(it) }
 			val menu = Menu("Menu")
@@ -221,10 +225,22 @@ class TestApp : Application() {
 			return menu
 		}
 
+
+		val candidates : MutableList<String> = FXCollections.observableList(mutableListOf())
+		val matchSelectionMenu_ = MatchSelectionMenuButton(
+			candidates,
+			"test"
+		) { println(it) }
+
 		val menuBar = MenuBar(newMenu(), newMenu())
-		val scene = Scene(menuBar)
+		val scene = Scene(BorderPane(matchSelectionMenu_, menuBar, null, null, null))
 		primaryStage.scene = scene
 		primaryStage.show()
+
+		InvokeOnJavaFXApplicationThread {
+			delay(500)
+			candidates.addAll(list1)
+		}
 	}
 }
 

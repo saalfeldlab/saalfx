@@ -42,10 +42,13 @@ import javafx.util.StringConverter
 import java.io.File
 import java.util.function.Predicate
 
+//TODO Caleb: Look in to if you can replace this whole paradigm
+//  instead with a subclass of TextField with a custom TextFormatted.
+//  Or maybe not even a subclass?
 open class ObjectField<T, P : Property<T>>(
 	value: P,
 	private val converter: StringConverter<T>,
-	vararg submitOn: SubmitOn
+	vararg submitOn: SubmitOn,
 ) {
 
 	enum class SubmitOn {
@@ -115,31 +118,20 @@ open class ObjectField<T, P : Property<T>>(
 		@JvmStatic
 		fun fileField(
 			initialFile: File?,
-			test: (File?) -> Boolean,
-			vararg submitOn: SubmitOn
-		) = fileField(initialFile, Predicate { test(it) }, *submitOn)
+			test: (File) -> Boolean,
+			vararg submitOn: SubmitOn,
+		): ObjectField<File?, Property<File?>> {
+			val converter = FileStringConverter { test(it) }
+			return ObjectField(SimpleObjectProperty(initialFile), converter, *submitOn)
+		}
 
 		@JvmStatic
-		fun fileField(
+		fun directoryField(
 			initialFile: File?,
-			test: Predicate<File>,
-			vararg submitOn: SubmitOn
+			test: (File) -> Boolean,
+			vararg submitOn: SubmitOn,
 		): ObjectField<File?, Property<File?>> {
-			val converter = object : StringConverter<File?>() {
-				override fun toString(file: File?): String? {
-					return file?.absolutePath
-				}
-
-				override fun fromString(s: String?): File? {
-					return s?.let {
-						val f = File(it)
-						if (!test.test(f)) {
-							throw InvalidUserInput("User input could not converted to file: $s", null)
-						}
-						f
-					}
-				}
-			}
+			val converter = FileStringConverter { it.isDirectory == true && test(it) }
 			return ObjectField(SimpleObjectProperty(initialFile), converter, *submitOn)
 		}
 
@@ -147,16 +139,21 @@ open class ObjectField<T, P : Property<T>>(
 		fun stringField(initialValue: String?, vararg submitOn: SubmitOn): ObjectField<String?, StringProperty> {
 
 			val converter = object : StringConverter<String?>() {
-				override fun toString(s: String?): String? {
-					return s
-				}
-
-				override fun fromString(s: String?): String? {
-					return s
-				}
+				override fun toString(s: String?) = s
+				override fun fromString(s: String?) = s
 			}
 
 			return ObjectField(SimpleStringProperty(initialValue), converter, *submitOn)
+		}
+
+	}
+
+	class FileStringConverter(val filter: (File) -> Boolean = { true }) : StringConverter<File?>() {
+		override fun toString(file: File?) = file?.absolutePath
+		override fun fromString(s: String?) = s?.let { string ->
+			File(string)
+				.takeIf { file -> filter(file) }
+				?: throw InvalidUserInput("User input could not converted to file: $string", null)
 		}
 	}
 }
