@@ -51,7 +51,6 @@
 		<!-- ### Dependency Versions ### -->
 		<!-- JavaFx Versions -->
 		<javafx.version>22.0.1</javafx.version>
-		<testfx.version>4.0.16-alpha</testfx.version>
 		<!-- Misc Versions -->
 		<dokka.version>1.4.30</dokka.version>
 		<slf4j.version>2.0.0</slf4j.version>
@@ -250,7 +249,7 @@
 		<dependency>
 			<groupId>org.testfx</groupId>
 			<artifactId>testfx-junit</artifactId>
-			<version>${testfx.version}</version>
+			<version>4.0.18</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
