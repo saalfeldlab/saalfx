@@ -83,10 +83,10 @@ class NumericSliderWithField @JvmOverloads constructor(
 
 	}
 
-	@Deprecated("Use getter syntax insead", ReplaceWith("getSlider()"))
+	@Deprecated("Use getter syntax instead", ReplaceWith("getSlider()"))
 	fun slider() = slider
 
-	@Deprecated("Use getter syntax insead", ReplaceWith("getTextField()"))
+	@Deprecated("Use getter syntax instead", ReplaceWith("getTextField()"))
 	fun textField() = textField
 
 }
