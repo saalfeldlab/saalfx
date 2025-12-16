@@ -8,7 +8,6 @@ import javafx.beans.Observable
 import javafx.beans.binding.*
 import javafx.beans.property.*
 import javafx.beans.value.ObservableValue
-import javafx.beans.value.WritableObjectValue
 import javafx.beans.value.WritableValue
 import javafx.collections.ObservableList
 import javafx.collections.ObservableMap
@@ -130,17 +129,43 @@ fun <T> ObservableValue<T>.onceWhen(condition: ObservableValue<Boolean>): Observ
 	}
 }
 
+/**
+ * Subscribe to a collection of [Observable]s, trigger an initial callback, and trigger when any of the Observables change.
+ *
+ * @param callback
+ * @return Subscription to unsubscribe with
+ */
 fun Collection<Observable>.subscribe(callback : () -> Unit) : Subscription {
 	val uuidBinding = Bindings.createObjectBinding(UUID::randomUUID, *this.toTypedArray())
-	return uuidBinding.subscribe { _, _ ->
+	return uuidBinding.subscribe { _ ->
 		callback()
-		uuidBinding.get()
+		uuidBinding.get() // need this to validate the UUID binding, so it will notify listeners still on the next change
 	}
 }
 
-operator fun Subscription.plus(other: Subscription?): Subscription = other?.let { this.and(it) } ?: this
+/**
+ * Add listener to a collection of [Observable]s and trigger a callback when any of them change.
+ *
+ * @param callback
+ * @return subscription to remove the listener
+ */
+fun Collection<Observable>.addListener(callback : () -> Unit) : Subscription {
+	val uuidBinding = Bindings.createObjectBinding(UUID::randomUUID, *this.toTypedArray())
+	return uuidBinding.subscribe { _, _ ->
+		callback()
+		uuidBinding.get() // need this to validate the UUID binding, so it will notify listeners still on the next change
+	}
+}
 
-fun <T> WritableObjectValue<T>.interpolate(from: T? = value, to: T, time: Duration, interpolator: Interpolator = Interpolator.LINEAR, onFinished: suspend () -> Unit = {}): Timeline {
+operator fun Subscription?.plus(other: Subscription?): Subscription? {
+	return when {
+		this == null -> other
+		other == null -> this
+		else -> this.and(other)
+	}
+}
+
+fun <T> WritableValue<T>.animate(from: T? = value, to: T, time: Duration, interpolator: Interpolator = Interpolator.LINEAR, onFinished: suspend () -> Unit = {}): Timeline {
 	val timeline = Timeline()
 	val start = KeyFrame(Duration.ZERO, KeyValue(this, from))
 	val end = KeyFrame(time, KeyValue(this, to, interpolator))

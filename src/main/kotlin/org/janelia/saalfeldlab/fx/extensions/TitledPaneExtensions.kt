@@ -30,7 +30,6 @@ package org.janelia.saalfeldlab.fx.extensions
 
 import javafx.beans.binding.DoubleBinding
 import javafx.beans.property.SimpleDoubleProperty
-import javafx.beans.value.ObservableBooleanValue
 import javafx.beans.value.ObservableNumberValue
 import javafx.scene.control.ContentDisplay
 import javafx.scene.control.TitledPane
@@ -50,24 +49,6 @@ class TitledPaneExtensions {
 			this.contentDisplay = ContentDisplay.GRAPHIC_ONLY
 			return regionWidth
 		}
-
-		fun TitledPane.expandIfEnabled(isEnabled: ObservableBooleanValue) {
-			isEnabled.addListener { _, _, new -> expandIfEnabled(new) }
-			expandIfEnabled(isEnabled.value)
-		}
-
-		fun TitledPane.expandIfEnabled(isEnabled: Boolean) = if (isEnabled) enableAndExpand() else disableAndCollapse()
-
-		fun TitledPane.enableAndExpand() {
-			isCollapsible = true
-			isExpanded = true
-		}
-
-		fun TitledPane.disableAndCollapse() {
-			isExpanded = false
-			isCollapsible = false
-		}
-
-	}
+    }
 
 }

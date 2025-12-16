@@ -28,8 +28,11 @@
  */
 package org.janelia.saalfeldlab.fx.ui
 
+import javafx.beans.property.DoubleProperty
+import javafx.beans.property.SimpleDoubleProperty
 import javafx.scene.control.Slider
 import javafx.scene.control.TextField
+import org.janelia.saalfeldlab.fx.extensions.nonnull
 import org.janelia.saalfeldlab.fx.util.DoubleStringFormatter
 import kotlin.math.roundToInt
 
@@ -53,21 +56,37 @@ class NumericSliderWithField @JvmOverloads constructor(
 		initialValue: Long
 	) : this(min.toDouble(), max.toDouble(), initialValue.toDouble(), 0, true)
 
-	val slider: Slider
-
-	private val field: TextField
-	val textField: TextField
-		get() = this.field
-
 	init {
-
 		assert(initialValue >= min)
 		assert(initialValue <= max)
+	}
 
-		this.slider = Slider(min, max, initialValue)
-		this.field = TextField(initialValue.toString())
+	val valueProperty : DoubleProperty  = object : SimpleDoubleProperty(initialValue) {
+		override fun setValue(v: Number?) {
+			val doubleValue = v?.toDouble()?.takeUnless { it.isNaN() } ?: 0.0
+			val setValue = if (isInteger) doubleValue.roundToInt().toDouble() else doubleValue
+			super.setValue(setValue)
+		}
+	}
+	var value by valueProperty.nonnull()
 
-		this.slider.isShowTickLabels = true
+	val slider =  Slider(min, max, initialValue).also {
+		it.isShowTickLabels = true
+		if (!isInteger)
+			it.valueProperty().bindBidirectional(valueProperty)
+		else {
+			valueProperty.subscribe { newv ->
+				it.value = newv.toDouble()
+			}
+			it.valueProperty().subscribe { newv ->
+				valueProperty.value = newv.toDouble()
+			}
+		}
+	}
+
+	val textField = TextField(initialValue.toString())
+
+	init {
 
 		val formatter = DoubleStringFormatter.createFormatter(
 			slider.minProperty(),
@@ -75,18 +94,8 @@ class NumericSliderWithField @JvmOverloads constructor(
 			initialValue,
 			numDecimals
 		)
-		this.field.textFormatter = formatter
-		formatter.valueProperty().addListener { _, _, newv -> this.slider.value = newv!! }
-		this.slider.valueProperty().addListener { _, _, newv -> formatter.setValue(newv.toDouble()) }
-		if (isInteger)
-			this.slider.valueProperty().addListener { _, _, newv -> this.slider.value = newv.toDouble().roundToInt().toDouble() }
-
+		textField.textFormatter = formatter
+		formatter.valueProperty().addListener { _, _, newv -> this.value = newv }
+		valueProperty.addListener { _, _, newv -> formatter.setValue(newv.toDouble()) }
 	}
-
-	@Deprecated("Use getter syntax instead", ReplaceWith("getSlider()"))
-	fun slider() = slider
-
-	@Deprecated("Use getter syntax instead", ReplaceWith("getTextField()"))
-	fun textField() = textField
-
 }

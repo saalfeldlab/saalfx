@@ -22,10 +22,10 @@ open class ChannelLoop(
 	val delay: suspend () -> Unit = {},
 ) : CoroutineScope by coroutineScope {
 	protected open val channel = Channel<Job>(capacity = capacity)
-	protected var currentJob : Job?  =null
+	protected var currentJob : Job? = null
 
 	/**
-	 * Submit a block to execute in the conflated loop. Will cancel the current job and submit this block
+	 * Submit a block to execute in the conflated loop.
 	 *
 	 * @param cancelCurrentJob cancel the current job if one exists
 	 * @param block to execute
