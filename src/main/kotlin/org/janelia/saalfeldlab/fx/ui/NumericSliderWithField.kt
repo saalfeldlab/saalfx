@@ -63,7 +63,7 @@ class NumericSliderWithField @JvmOverloads constructor(
 
 	val valueProperty : DoubleProperty  = object : SimpleDoubleProperty(initialValue) {
 		override fun setValue(v: Number?) {
-			val doubleValue = v?.toDouble() ?: 0.0
+			val doubleValue = v?.toDouble()?.takeUnless { it.isNaN() } ?: 0.0
 			val setValue = if (isInteger) doubleValue.roundToInt().toDouble() else doubleValue
 			super.setValue(setValue)
 		}
