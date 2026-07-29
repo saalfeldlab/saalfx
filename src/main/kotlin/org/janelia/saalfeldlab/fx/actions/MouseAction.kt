@@ -41,7 +41,7 @@ class MouseAction(eventType: EventType<MouseEvent>) : Action<MouseEvent>(eventTy
 				} else {
 					(it.button == trigger).also { match -> if (!match) expected = "expected $trigger but button was ${it.button}" }
 				}.also { valid ->
-					if (!valid) logger.trace("button trigger was not valid: $expected")
+					if (!valid) logger.trace { "button trigger was not valid: $expected" }
 				}
 			} ?: true
 		}
@@ -49,11 +49,11 @@ class MouseAction(eventType: EventType<MouseEvent>) : Action<MouseEvent>(eventTy
 		if (exclusive) {
 			verify(" Only $trigger Was Active") { mouseEvent ->
 				mouseEvent?.let { event ->
-					MouseButton.values()
+					MouseButton.entries
 						.filter { it != trigger && it != MouseButton.NONE }
 						.map { !event.isButtonDown(it) }
 						.reduce { l, r -> l && r }.also {
-							if (!it) logger.trace("expected only $trigger but other mouse buttons were down")
+							if (!it) logger.trace { "expected only $trigger but other mouse buttons were down" }
 						}
 				} ?: true
 			}
@@ -74,7 +74,7 @@ class MouseAction(eventType: EventType<MouseEvent>) : Action<MouseEvent>(eventTy
 				mouseEvent?.let { event ->
 					buttons.map { event.isButtonDown(it) }
 						.reduce { l, r -> l && r }.also {
-							if (!it) logger.trace("expected buttons ${buttons.contentToString()} to be down, but some were not. ")
+							if (!it) logger.trace { "expected buttons ${buttons.contentToString()} to be down, but some were not. " }
 						}
 				} ?: true
 			}
@@ -83,11 +83,11 @@ class MouseAction(eventType: EventType<MouseEvent>) : Action<MouseEvent>(eventTy
 		if (exclusive) {
 			verify { mouseEvent ->
 				mouseEvent?.let { event ->
-					MouseButton.values()
+					MouseButton.entries
 						.filter { it !in buttons }
 						.map { !event.isButtonDown(it) }
 						.reduce { l, r -> l && r }.also {
-							if (!it) logger.trace("expected only buttons ${buttons.contentToString()} to be down, but other buttons were down also. ")
+							if (!it) logger.trace { "expected only buttons ${buttons.contentToString()} to be down, but other buttons were down also. " }
 						}
 				} ?: true
 			}

@@ -154,10 +154,10 @@ class DynamicCellPane @JvmOverloads constructor(vararg nodes: List<Node> = array
 	 */
 	fun removeColumn(idx: Int): List<Node>? {
 		var removed: MutableList<Node>? = null
-		items.mapNotNull { it as? SplitPane }.forEach {
+		items.filterIsInstance<SplitPane>().forEach {
 			if (idx < it.items.size) {
 				removed = removed ?: mutableListOf()
-				removed?.add(it.items.removeAt(idx))
+				removed.add(it.items.removeAt(idx))
 			}
 		}
 		return removed?.toList()

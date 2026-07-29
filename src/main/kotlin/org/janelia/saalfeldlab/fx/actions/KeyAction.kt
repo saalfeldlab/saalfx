@@ -82,14 +82,14 @@ class KeyAction(eventType: EventType<KeyEvent>) : Action<KeyEvent>(eventType) {
 	override fun verifyKeys(event: KeyEvent): Boolean {
 		val keysValid = super.verifyKeys(event) && keysReleased?.let {
 			// If we are checking a key on a release, we can't use the keyTracker
-			val keyReleased = (event as? KeyEvent)?.code!!
+			val keyReleased = event.code!!
 			val otherKeys = it - keyReleased
 			eventType == KeyEvent.KEY_RELEASED && /*ensure we are a KEY_RELEASED event */
 					(it.isEmpty() || keyReleased in it) && /* ensure the key that was released was a trigger key*/
 					keyTracker()?.areKeysDown(*otherKeys.toTypedArray()) ?: false /* ensure all OTHER trigger keys are down. */
 		} ?: true
 		return keysValid.also {
-			if (!it) logger.trace("keys invalid")
+			if (!it) logger.trace { "keys invalid" }
 		}
 	}
 
