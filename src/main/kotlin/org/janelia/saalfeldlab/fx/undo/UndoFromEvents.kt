@@ -30,104 +30,79 @@ package org.janelia.saalfeldlab.fx.undo
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import javafx.beans.InvalidationListener
+import javafx.beans.binding.Bindings
 import javafx.beans.property.BooleanProperty
-import javafx.beans.property.SimpleIntegerProperty
 import javafx.collections.ObservableList
 import javafx.scene.Node
 import javafx.scene.control.Button
 import javafx.scene.control.CheckBox
 import javafx.scene.control.Label
 import javafx.scene.control.TitledPane
+import javafx.scene.control.Tooltip
 import javafx.scene.layout.HBox
+import javafx.scene.layout.Priority
 import javafx.scene.layout.Region
 import javafx.scene.layout.VBox
 import javafx.util.Pair
 import org.janelia.saalfeldlab.fx.util.InvokeOnJavaFXApplicationThread
+import java.util.function.Consumer
 import java.util.function.Function
 
 class UndoFromEvents<T>(
 	private val events: ObservableList<Pair<T, BooleanProperty>>,
-	private val title: Function<T, String>,
-	private val contents: Function<T, Node>
+	private val title: (T) -> String,
+	private val contents: (T) -> Node,
+	private val onDelete: ((Pair<T, BooleanProperty>) -> Unit)? = null
 ) {
 
+	@JvmOverloads
 	constructor(
 		events: ObservableList<Pair<T, BooleanProperty>>,
-		title: (T) -> String,
-		contents: (T) -> Node
-	) : this(events, Function { title(it) }, Function { contents(it) })
+		title: Function<T, String>,
+		contents: Function<T, Node>,
+		onDelete: Consumer<Pair<T, BooleanProperty>>? = null
+	) : this(
+		events,
+		{ title.apply(it) },
+		{ contents.apply(it) },
+		onDelete?.let { consumer -> { event: Pair<T, BooleanProperty> -> consumer.accept(event) } }
+	)
+
+	private val history = EventHistory(events)
 
 	private val eventBox = VBox()
 
 	private val currentEventLabel = ArrayList<Label>()
 
-	private val currentEventIndex = SimpleIntegerProperty(-1)
+	private val canUndo = history.canUndo
 
-	private val currentEventListSize = SimpleIntegerProperty()
-
-	private val currentIndexIsWithinList = currentEventIndex
-		.greaterThanOrEqualTo(0)
-		.and(currentEventIndex.lessThan(currentEventListSize))
-
-	private val canUndo = currentIndexIsWithinList
-
-	private val redoIndex = currentEventIndex.add(1)
-
-	private val redoIndexIsWithinList = redoIndex
-		.greaterThanOrEqualTo(0)
-		.and(redoIndex.lessThan(currentEventListSize))
-
-	private val canRedo = redoIndexIsWithinList
+	private val canRedo = history.canRedo
 
 	val node: Node
 		get() = eventBox
 
 	init {
-		currentEventIndex.addListener { _, oldv, newv ->
-			val oldIndex = oldv.toInt()
-			val newIndex = newv.toInt()
-			LOG.debug { "Updating current event index $oldIndex $newIndex" }
-			if (oldIndex >= 0 && oldIndex < currentEventLabel.size)
-				InvokeOnJavaFXApplicationThread.invoke { currentEventLabel[oldIndex].text = "" }
-			if (newIndex >= 0 && newIndex < currentEventLabel.size)
-				InvokeOnJavaFXApplicationThread.invoke {
-					currentEventLabel[newIndex].text = CURRENT_EVENT_INDICATOR
-				}
+		history.currentIndexProperty.addListener { _, _, newv ->
+			LOG.debug { "Updating current event index $newv" }
+			InvokeOnJavaFXApplicationThread.invoke { showCurrentEventIndicator(newv.toInt()) }
 		}
 
-		this.events.addListener(InvalidationListener { updateEventBox(ArrayList<Pair<T, out BooleanProperty>>(this.events)) })
-		updateEventBox(ArrayList<Pair<T, out BooleanProperty>>(this.events))
-
-		this.events.addListener(InvalidationListener { currentEventListSize.value = this.events.size })
-		currentEventListSize.set(this.events.size)
-
+		this.events.addListener(InvalidationListener { updateEventBox(ArrayList(this.events)) })
+		updateEventBox(ArrayList(this.events))
 	}
 
-	fun undo() {
-		if (canUndo.get()) {
-			val currentIndex = currentEventIndex.get()
-			this.events[currentIndex].value.set(false)
-			this.currentEventIndex.set(currentIndex - 1)
-		}
-	}
+	fun undo() = history.undo()
 
-	fun redo() {
-		if (canRedo.get()) {
-			val index = redoIndex.get()
-			this.events[index].value.set(true)
-			this.currentEventIndex.set(index)
-		}
-	}
+	fun redo() = history.redo()
 
-	private fun updateEventBox(events: List<Pair<T, out BooleanProperty>>) {
+	private fun updateEventBox(events: List<Pair<T, BooleanProperty>>) {
 		LOG.debug { "Updating event box for events $events" }
 		val nodes = ArrayList<Node>()
 		this.currentEventLabel.clear()
-		this.currentEventIndex.set(-1)
 		for (i in events.indices) {
 			val event = events[i]
-			val title = this.title.apply(event.key)
-			val contents = this.contents.apply(event.key)
+			val title = this.title(event.key)
+			val contents = this.contents(event.key)
 			val cbox = CheckBox(null)
 			val currentEventLabel = Label("")
 
@@ -136,17 +111,32 @@ class UndoFromEvents<T>(
 			currentEventLabel.maxWidth = 30.0
 			currentEventLabel.prefWidth = 30.0
 
+			val graphic = HBox(cbox, currentEventLabel)
+			onDelete?.let { delete ->
+				val deleteButton = Button(DELETE_INDICATOR)
+				deleteButton.tooltip = Tooltip("Delete this event")
+				deleteButton.setOnAction { delete(event) }
+				graphic.children += deleteButton
+			}
+
 			val tp = TitledPane(title, contents)
-			tp.graphic = HBox(cbox, currentEventLabel)
+			tp.graphic = graphic
 			tp.isExpanded = false
 
 			this.currentEventLabel.add(currentEventLabel)
 			nodes.add(tp)
 		}
-		this.currentEventIndex.set(events.size - 1)
 		nodes.reverse()
-		InvokeOnJavaFXApplicationThread.invoke { this@UndoFromEvents.eventBox.children.setAll(nodes) }
+		InvokeOnJavaFXApplicationThread {
+			this@UndoFromEvents.eventBox.children.setAll(nodes)
+			/* the labels are only the current ones now, so the indicator has to be placed again */
+			showCurrentEventIndicator(history.currentIndexProperty.get())
+		}
 	}
+
+    private fun showCurrentEventIndicator(index: Int) {
+        currentEventLabel.forEachIndexed { idx, label -> label.text = if (idx == index) CURRENT_EVENT_INDICATOR else "" }
+    }
 
 	companion object {
 
@@ -154,39 +144,67 @@ class UndoFromEvents<T>(
 		// https://www.fileformat.info/info/unicode/char/25c0/index.htm
 		private val CURRENT_EVENT_INDICATOR = "◀"
 
+		// multiplication x
+		// https://www.fileformat.info/info/unicode/char/2715/index.htm
+		private val DELETE_INDICATOR = "✕"
+
 		private val LOG = KotlinLogging.logger {  }
 
+		/**
+         * deleting from [events] is up to the caller, as is any confirmation/warning.
+         *
+		 * @param onDelete if provided, each event gets a button that passes it here
+		 * @param onDeleteAll if provided, a button for it is added next to undo and redo
+		 */
 		fun <T> withUndoRedoButtons(
 			events: ObservableList<Pair<T, BooleanProperty>>,
 			title: (T) -> String,
-			contents: (T) -> Node
-		) = withUndoRedoButtons(events, Function { title(it) }, Function { contents(it) })
+			contents: (T) -> Node,
+			onDelete: ((Pair<T, BooleanProperty>) -> Unit)? = null,
+			onDeleteAll: (() -> Unit)? = null
+		): Node {
+
+			val undo = UndoFromEvents(events, title, contents, onDelete)
+
+            return VBox().apply {
+                children += HBox().apply {
+                    children += Region().also { filler ->
+                        HBox.setHgrow(filler, Priority.ALWAYS)
+                    }
+                    children += Button("Undo").apply {
+                        setOnAction { undo.undo() }
+                        disableProperty().bind(undo.canUndo.not())
+                    }
+                    children += Button("Redo").apply {
+                        setOnAction { undo.redo() }
+                        disableProperty().bind(undo.canRedo.not())
+                    }
+                    onDeleteAll?.let { deleteAll ->
+                        children += Button("Delete All").apply {
+                            setOnAction { deleteAll() }
+                            disableProperty().bind(Bindings.isEmpty(events))
+                        }
+                    }
+                }
+                children += undo.node
+            }
+		}
 
 		@JvmStatic
+		@JvmOverloads
 		fun <T> withUndoRedoButtons(
 			events: ObservableList<Pair<T, BooleanProperty>>,
 			title: Function<T, String>,
-			contents: Function<T, Node>
-		): Node {
-			val undo = UndoFromEvents(events, title, contents)
-			val undoButton = Button("Undo")
-			val redoButton = Button("Redo")
-			val filler = Region()
-			val buttonBox = HBox(filler, undoButton, redoButton)
-			val tp = TitledPane("Events", undo.node)
-
-			undoButton.setOnAction { undo.undo() }
-			redoButton.setOnAction { undo.redo() }
-
-			undo.canUndo.addListener { _, _, newv -> undoButton.isDisable = !newv }
-			undo.canRedo.addListener { _, _, newv -> redoButton.isDisable = !newv }
-			undoButton.isDisable = !undo.canUndo.get()
-			redoButton.isDisable = !undo.canRedo.get()
-
-			tp.isExpanded = false
-
-			return VBox(buttonBox, undo.node)
-		}
+			contents: Function<T, Node>,
+			onDelete: Consumer<Pair<T, BooleanProperty>>? = null,
+			onDeleteAll: Runnable? = null
+		): Node = withUndoRedoButtons(
+			events,
+			{ title.apply(it) },
+			{ contents.apply(it) },
+			onDelete?.let { consumer -> { event: Pair<T, BooleanProperty> -> consumer.accept(event) } },
+			onDeleteAll?.let { runnable -> { runnable.run() } }
+		)
 	}
 
 }
