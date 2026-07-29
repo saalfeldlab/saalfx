@@ -40,7 +40,6 @@ import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
 import javafx.util.StringConverter
 import java.io.File
-import java.util.function.Predicate
 
 //TODO Caleb: Look in to if you can replace this whole paradigm
 //  instead with a subclass of TextField with a custom TextFormatted.
@@ -48,8 +47,11 @@ import java.util.function.Predicate
 open class ObjectField<T, P : Property<T>>(
 	value: P,
 	private val converter: StringConverter<T>,
+	val textField: TextField,
 	vararg submitOn: SubmitOn,
 ) {
+
+	constructor(value: P, converter: StringConverter<T>, vararg submitOn: SubmitOn) : this(value, converter, TextField(), *submitOn)
 
 	enum class SubmitOn {
 		ENTER_PRESSED,
@@ -57,7 +59,6 @@ open class ObjectField<T, P : Property<T>>(
 	}
 
 	private val _value = value
-	val textField = TextField()
 	private val enterPressedHandler = EnterPressedHandler()
 	private val focusLostHandler = FocusLostHandler()
 
@@ -65,11 +66,24 @@ open class ObjectField<T, P : Property<T>>(
 		get() = _value.value
 		set(value) = _value.setValue(value)
 
+	/**
+	 * Renders the value into the text field. Useful to provide when a custom renderer is needed.
+     * e.g. very long strings, where a truncated representation is preferred, but the underlying value should be complete.
+	 */
+	var displayConverter: ((T) -> String)? = null
+		set(renderer) {
+			field = renderer
+			textField.text = renderText(value)
+		}
+
+	/* the converter may render null, e.g. for a null file or string, which the text field takes as empty */
+	private fun renderText(value: T): String? = displayConverter?.invoke(value) ?: converter.toString(value)
+
 	class InvalidUserInput @JvmOverloads constructor(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
 	init {
-		value.addListener { _, _, newv -> textField.text = this.converter.toString(newv) }
-		textField.text = this.converter.toString(this._value.value)
+		value.addListener { _, _, newv -> textField.text = renderText(newv) }
+		textField.text = renderText(this._value.value)
 		submitOn.forEach { this.enableSubmitOn(it) }
 	}
 
@@ -90,10 +104,14 @@ open class ObjectField<T, P : Property<T>>(
 	}
 
 	fun submit() {
+		/* the rendered text can be a shortened representation.
+		 * Only parse it back when the user actually edited it. */
+		if (textField.text.orEmpty() == renderText(value).orEmpty())
+			return
 		try {
 			value = converter.fromString(textField.text)
 		} catch (e: InvalidUserInput) {
-			textField.text = converter.toString(value)
+			textField.text = renderText(value)
 		}
 
 	}
@@ -131,7 +149,7 @@ open class ObjectField<T, P : Property<T>>(
 			test: (File) -> Boolean,
 			vararg submitOn: SubmitOn,
 		): ObjectField<File?, Property<File?>> {
-			val converter = FileStringConverter { it.isDirectory == true && test(it) }
+			val converter = FileStringConverter { it.isDirectory && test(it) }
 			return ObjectField(SimpleObjectProperty(initialFile), converter, *submitOn)
 		}
 
