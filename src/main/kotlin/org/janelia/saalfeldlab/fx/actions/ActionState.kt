@@ -1,7 +1,6 @@
 package org.janelia.saalfeldlab.fx.actions
 
 import javafx.event.Event
-import org.checkerframework.checker.units.qual.A
 import org.janelia.saalfeldlab.fx.actions.Action.Companion.onAction
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadWriteProperty

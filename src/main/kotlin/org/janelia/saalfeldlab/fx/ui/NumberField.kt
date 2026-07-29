@@ -62,13 +62,13 @@ class NumberField<P : Property<Number>>(
 	companion object {
 
 		fun registerStyleSheet(styleable : Scene) {
-			NumberField.javaClass.getResource("number_field.css")?.toExternalForm()?.let { css ->
+			NumberField::class.java.getResource("number_field.css")?.toExternalForm()?.let { css ->
 				styleable.stylesheets.add(css)
 			}
 		}
 
 		fun registerStyleSheet(styleable : Parent) {
-			NumberField.javaClass.getResource("number_field.css")?.toExternalForm()?.let { css ->
+			NumberField::class.java.getResource("number_field.css")?.toExternalForm()?.let { css ->
 				styleable.stylesheets.add(css)
 			}
 		}
@@ -137,15 +137,15 @@ class NumberField<P : Property<Number>>(
 		): NumberField<IntegerProperty> {
 			val converter = object : StringConverter<Number>() {
 				override fun toString(number: Number): String {
-					return java.lang.Long.toString(number.toInt().toLong())
+					return number.toInt().toLong().toString()
 				}
 
 				override fun fromString(s: String): Int {
 					try {
-						val `val` = Integer.parseInt(s)
-						if (!test.test(`val`))
+						val int = Integer.parseInt(s)
+						if (!test.test(int))
 							throw InvalidUserInput("Illegal value: $s")
-						return `val`
+						return int
 					} catch (e: NumberFormatException) {
 						throw InvalidUserInput("Unable to convert: $s", e)
 					}
