@@ -1,71 +1,105 @@
 package org.janelia.saalfeldlab.fx.undo
 
-import javafx.beans.InvalidationListener
+import javafx.beans.binding.Bindings
 import javafx.beans.binding.BooleanBinding
 import javafx.beans.property.BooleanProperty
+import javafx.beans.property.ReadOnlyBooleanWrapper
 import javafx.beans.property.ReadOnlyIntegerWrapper
-import javafx.beans.property.SimpleIntegerProperty
+import javafx.beans.value.ObservableBooleanValue
 import javafx.beans.value.ObservableIntegerValue
 import javafx.collections.ObservableList
 import javafx.util.Pair
+import javafx.util.Subscription
 import org.janelia.saalfeldlab.fx.extensions.nonnull
 
 /**
- * A linear history of toggleable events: applied up to a cursor, undone after it.
- * The cursor is derived from the events to keep apply/undo/redo/delete/add events in sync.
+ * [UndoableEvents] backed by an observable list.
  *
- * @param events in order, and an associated booleanProperty mapping whether that are currently applied
+ * undo/redo only update the boolean property on the given event.
+ * The event list itself is only modified directly by [delete] or [deleteAll].
+ *
+ * Changes to the [events] list and boolean property should be observed to trigger desired behavior.
+ *
+ * @param events backing observable list.
  */
-class EventHistory<T>(val events: ObservableList<Pair<T, BooleanProperty>>) {
+open class EventHistory<T>(override val events: ObservableList<Pair<T, BooleanProperty>>) : UndoableEvents<T> {
 
 	private val _currentIndexProperty = ReadOnlyIntegerWrapper(-1)
-    private var currentIndex by _currentIndexProperty.nonnull()
+	private var currentIndex by _currentIndexProperty.nonnull()
 
-	private val sizeProperty = SimpleIntegerProperty(0)
+	private var appliedEventSubscription = Subscription.EMPTY
 
-	private val appliedEventListener = InvalidationListener { updateCurrentIndex() }
+	override val currentIndexProperty: ObservableIntegerValue = _currentIndexProperty.readOnlyProperty
 
-	private var appliedEventProperties = listOf<BooleanProperty>()
+	override val canUndo: BooleanBinding = _currentIndexProperty.greaterThanOrEqualTo(0)
 
-	/**
-	 * Index of the most recently applied event, or -1 if none are applied.
-	 */
-	val currentIndexProperty: ObservableIntegerValue = _currentIndexProperty.readOnlyProperty
+	override val canRedo: BooleanBinding = _currentIndexProperty.add(1).lessThan(Bindings.size(events))
 
-	val canUndo: BooleanBinding = _currentIndexProperty.greaterThanOrEqualTo(0)
+	private val _hasDisabledEventsProperty = ReadOnlyBooleanWrapper(false)
 
-	val canRedo: BooleanBinding = _currentIndexProperty.add(1).lessThan(sizeProperty)
+	val hasDisabledEvents: ObservableBooleanValue = _hasDisabledEventsProperty.readOnlyProperty
 
 	init {
-		events.addListener(InvalidationListener { observeEvents() })
-		observeEvents()
+		events.subscribe { update() }
+		update()
 	}
 
 	/**
-	 * Undo the most recent event.
+	 * Undo the event at [index] and remove it.
 	 */
-	fun undo() {
-		if (canUndo.get())
-			events[currentIndex].value.set(false)
+	open fun delete(index: Int) {
+		events[index].value.set(false)
+		events.removeAt(index)
 	}
 
 	/**
-	 * Reapply the event after the cursor.
+	 * Undo [entry] and remove it.
 	 */
-	fun redo() {
-		if (canRedo.get())
-			events[currentIndex + 1].value.set(true)
+	open fun delete(entry: Pair<T, BooleanProperty>) {
+		val index = events.indexOfFirst { it === entry }
+		if (index >= 0)
+			delete(index)
 	}
 
-	private fun observeEvents() {
-		appliedEventProperties.forEach { it.removeListener(appliedEventListener) }
-		appliedEventProperties = events.map { it.value }
-		appliedEventProperties.forEach { it.addListener(appliedEventListener) }
-		sizeProperty.set(events.size)
-		updateCurrentIndex()
+	/**
+	 * Undo the first occurrence of [event] and remove it.
+	 */
+	open fun delete(event: T) {
+		val index = events.indexOfFirst { it.key == event }
+		if (index >= 0)
+			delete(index)
 	}
 
-	private fun updateCurrentIndex() {
-        currentIndex = events.indexOfLast { it.value.get() }
-    }
+	/**
+	 * Bulk undo and remove operation.
+	 */
+	open fun deleteAll(entries: Collection<Pair<T, BooleanProperty>>) {
+		val allEntries = entries.toSet()
+		for (index in events.indices.reversed())
+			if (events[index] in allEntries)
+				delete(index)
+	}
+
+	/**
+	 * Undo and remove all events.
+	 */
+	open fun deleteAll() = deleteAll(events.toList())
+
+	/**
+	 * Undo and remove every event that is currently disabled.
+	 */
+	open fun deleteDisabled() = deleteAll(events.filterNot { it.value.get() })
+
+	private fun update() {
+		appliedEventSubscription.unsubscribe()
+		appliedEventSubscription = events
+			.map { it.value.subscribe { _, _ -> updateFromEvents() } }
+			.fold(Subscription.EMPTY) { combined, subscription -> combined.and(subscription) }
+		updateFromEvents()
+	}
+
+	private fun updateFromEvents() {
+		currentIndex = events.indexOfLast { it.value.get() }
+		_hasDisabledEventsProperty.set(events.any { !it.value.get() })
+	}
 }

@@ -11,9 +11,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
-/**
- * The undo/redo/delete logic, without any of the UI that triggers it.
- */
 class EventHistoryTest {
 
 	private fun event(title: String, isApplied: Boolean = true): Pair<String, BooleanProperty> =
@@ -107,6 +104,25 @@ class EventHistoryTest {
 	}
 
 	@Test
+	fun `unapplying an event in the middle leaves the cursor on the newest applied one`() {
+		val events = events(true, true, true)
+		val history = EventHistory(events)
+
+		/* a checkbox unticks the middle event, leaving a hole */
+		events[1].value.set(false)
+		assertEquals(2, history.currentIndexProperty.get())
+		assertFalse(history.canRedo.get(), "the newest event is still applied, so there is nothing after the cursor")
+
+		history.undo()
+		assertEquals(listOf(true, false, false), events.appliedStates)
+		assertEquals(0, history.currentIndexProperty.get(), "the cursor skips past the hole")
+
+		history.redo()
+		assertEquals(listOf(true, true, false), events.appliedStates, "redo refills the hole")
+		assertEquals(1, history.currentIndexProperty.get())
+	}
+
+	@Test
 	fun `reapplying an event out of order moves the cursor to it`() {
 		val events = events(false, false, false)
 		val history = EventHistory(events)
@@ -130,6 +146,34 @@ class EventHistoryTest {
 		assertEquals(0, history.currentIndexProperty.get())
 		history.undo()
 		assertEquals(listOf(false, false), events.appliedStates)
+	}
+
+	@Test
+	fun `delete by event removes the first occurrence, and ignores an event that is not there`() {
+		val events = events(true, true, true)
+		val history = EventHistory(events)
+		val second = events[1].key
+
+		history.delete(second)
+		assertEquals(listOf("event 0", "event 2"), events.map { it.key })
+
+		history.delete("never added")
+		assertEquals(listOf("event 0", "event 2"), events.map { it.key }, "an unknown event should be a no-op")
+	}
+
+	@Test
+	fun `delete by entry resolves the index at call time`() {
+		val events = events(true, true, true)
+		val history = EventHistory(events)
+		val newest = events[2]
+
+		/* the list shifts after the caller took hold of the entry */
+		events.removeAt(0)
+		history.delete(newest)
+		assertEquals(listOf("event 1"), events.map { it.key })
+
+		history.delete(newest)
+		assertEquals(listOf("event 1"), events.map { it.key }, "an entry already gone should be a no-op")
 	}
 
 	@Test
