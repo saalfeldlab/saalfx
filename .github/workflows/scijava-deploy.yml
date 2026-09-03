@@ -1,17 +1,15 @@
-name: GitHub Packages Release
+name: SciJava Deploy
 
 on:
   push:
+    branches:
+      - master
     tags:
       - "*-[0-9]+.*"
-  workflow_dispatch:
 
 jobs:
-  publish:
+  deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
 
     steps:
       - uses: actions/checkout@v6
@@ -33,13 +31,18 @@ jobs:
         with:
           java-version: '25'
           distribution: 'temurin'
-          server-id: github
-          server-username: GITHUB_ACTOR
-          server-password: GITHUB_TOKEN
-
-      - name: Deploy to GitHub Packages
+      - name: Set up CI environment
+        run: .github/setup.sh
+      - name: Deploy to SciJava
         uses: GabrielBB/xvfb-action@v1
         with:
-          run: mvn -B -Pdeploy-to-github deploy
+          run: .github/build.sh
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GPG_KEY_NAME: ${{ secrets.GPG_KEY_NAME }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          MAVEN_USER: ${{ secrets.MAVEN_USER }}
+          MAVEN_PASS: ${{ secrets.MAVEN_PASS }}
+          CENTRAL_USER: ${{ secrets.CENTRAL_USER }}
+          CENTRAL_PASS: ${{ secrets.CENTRAL_PASS }}
+          OSSRH_PASS: ${{ secrets.OSSRH_PASS }}
+          SIGNING_ASC: ${{ secrets.SIGNING_ASC }}
