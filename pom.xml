@@ -326,6 +326,25 @@
 		</pluginManagement>
 	</build>
 
+	<profiles>
+		<!-- NB: not in releaseProfiles; the scijava release owns the version bump, this only deploys the resulting tag -->
+		<profile>
+			<id>deploy-to-github</id>
+			<distributionManagement>
+				<repository>
+					<id>github</id>
+					<name>GitHub saalfeldlab/saalfx Packages</name>
+					<url>https://maven.pkg.github.com/saalfeldlab/saalfx</url>
+				</repository>
+				<snapshotRepository>
+					<id>github</id>
+					<name>GitHub saalfeldlab/saalfx Packages</name>
+					<url>https://maven.pkg.github.com/saalfeldlab/saalfx</url>
+				</snapshotRepository>
+			</distributionManagement>
+		</profile>
+	</profiles>
+
 	<!--NB: No need to add kotlin maven plugin because pom-scijava activates kotlin profile automatically when src/main/kotlin exists -->
 	<!--https://github.com/scijava/pom-scijava-base/blob/1efafea6d2aa51a9e7561f13df592e3d495097f8/pom.xml#L1210-L1212 -->
 
