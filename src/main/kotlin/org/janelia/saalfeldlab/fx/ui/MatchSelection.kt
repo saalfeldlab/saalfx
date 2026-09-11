@@ -29,9 +29,9 @@
 package org.janelia.saalfeldlab.fx.ui
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
+import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
 import javafx.scene.Scene
@@ -40,6 +40,8 @@ import javafx.scene.control.skin.ListViewSkin
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
 import javafx.scene.input.MouseEvent
+import javafx.scene.layout.HBox
+import javafx.scene.layout.Priority
 import javafx.scene.layout.Region
 import javafx.scene.layout.VBox
 import me.xdrop.fuzzywuzzy.FuzzySearch
@@ -64,7 +66,8 @@ import java.util.function.Consumer
 class MatchSelection(
 	private val candidates: List<String>,
 	private val matcher: BiFunction<String, List<String>, List<String>>,
-	private val onConfirm: (String?) -> Unit
+	private val onConfirm: (String?) -> Unit,
+	private val onRemove: ((String) -> Unit)? = null
 ) : Region() {
 
 	enum class EmptyBehavior {
@@ -108,13 +111,18 @@ class MatchSelection(
 		labelList.prefWidthProperty().bind(maxWidthProperty())
 		labelList.bindHeightToItemSize()
 
-		fuzzySearchField.textProperty().addListener { _, _, fuzzyFilter ->
+		fun applyFilter() {
+			val fuzzyFilter = fuzzySearchField.text
 			val matches = when (emptyBehavior) {
-				EmptyBehavior.MATCH_ALL -> if (fuzzyFilter == null || fuzzyFilter.isEmpty()) candidates else matcher.apply(fuzzyFilter, candidates)
+				EmptyBehavior.MATCH_ALL -> if (fuzzyFilter.isNullOrEmpty()) candidates else matcher.apply(fuzzyFilter, candidates)
 				EmptyBehavior.MATCH_NONE -> matcher.apply(fuzzyFilter ?: "", candidates)
 			}
 			labelList.items.setAll(matches)
 		}
+
+		fuzzySearchField.textProperty().addListener { _, _, _ -> applyFilter() }
+
+		(candidates as? ObservableList<String>)?.addListener(ListChangeListener { applyFilter() })
 
 
 		/* NOTE: I would have prefered that `labelList.scrollTo(idx)` would have worked here,
@@ -137,17 +145,65 @@ class MatchSelection(
 
 		labelList.cellFactoryProperty().set {
 			object : ListCell<String>() {
+
+				/* only built when removal is supported, so rows are unchanged otherwise */
+				private val removeButton by lazy {
+					Button("✕").apply {
+						styleClass += "match-selection-remove"
+						isFocusTraversable = false
+						minWidth = USE_PREF_SIZE
+						tooltip = Tooltip("Remove from list")
+						/* setOnMousePressed and consume.
+						 * setOnAction would trigger only after the cell selection  */
+						setOnMousePressed { event ->
+							event.consume()
+							val removedIndex = index
+							item?.let { onRemove!!(it) }
+                            /* rebuilding the list after remove resets the focus to the top.
+                            * manually move th focus back to the item that was previously below the
+                            * removed item */
+							listView?.let { list ->
+								list.focusModel.focus(removedIndex.coerceAtMost(list.items.size - 1))
+							}
+						}
+					}
+				}
+
+				private val row by lazy {
+					HBox(removeButton).apply {
+                        spacing = 6.0
+						alignment = Pos.CENTER_LEFT
+                        children += Label().apply {
+                            textProperty().bind(itemProperty())
+                            maxWidth = Double.MAX_VALUE
+                            HBox.setHgrow(this, Priority.ALWAYS)
+                        }
+					}
+				}
+
 				init {
 					hoverProperty().addListener { _, _, hovered ->
 						if (hovered) listView.focusModel.focus(index)
+					}
+					if (onRemove != null) {
+						removeButton.visibleProperty().bind(hoverProperty())
+						/* marker to let the stylesheet remove the hover highlight*/
+						styleClass += "has-remove"
 					}
 				}
 
 				override fun updateItem(item: String?, empty: Boolean) {
 					super.updateItem(item, empty)
-					item ?: return
+					if (item == null) {
+						graphic = null
+						text = null
+						return
+					}
 
-					text = item
+					if (onRemove == null)
+						text = item
+					else
+						graphic = row
 					(tooltip ?: Tooltip().also { tooltip = it }).text = item
 				}
 			}
@@ -220,18 +276,18 @@ class MatchSelection(
 		private val LOG = KotlinLogging.logger {  }
 
 
-		fun fuzzySorted(candidates: List<String>, onConfirm: (String?) -> Unit, cutoff: Int? = null): MatchSelection {
+		fun fuzzySorted(candidates: List<String>, onConfirm: (String?) -> Unit, cutoff: Int? = null, onRemove: ((String) -> Unit)? = null): MatchSelection {
 			cutoff?.let {
-				return MatchSelection(candidates, FuzzyMatcher { query, from -> FuzzySearch.extractSorted(query, from, cutoff) }, onConfirm)
+				return MatchSelection(candidates, FuzzyMatcher { query, from -> FuzzySearch.extractSorted(query, from, cutoff) }, onConfirm, onRemove)
 			}
-			return MatchSelection(candidates, FuzzyMatcher { query, choices -> FuzzySearch.extractSorted(query, choices) }, onConfirm)
+			return MatchSelection(candidates, FuzzyMatcher { query, choices -> FuzzySearch.extractSorted(query, choices) }, onConfirm, onRemove)
 		}
 
-		fun fuzzyTop(candidates: List<String>, onConfirm: ((String?) -> Unit), limit: Int, cutoff: Int? = null): MatchSelection {
+		fun fuzzyTop(candidates: List<String>, onConfirm: ((String?) -> Unit), limit: Int, cutoff: Int? = null, onRemove: ((String) -> Unit)? = null): MatchSelection {
 			cutoff?.let {
-				return MatchSelection(candidates, FuzzyMatcher { query, from -> FuzzySearch.extractTop(query, from, limit, cutoff) }, onConfirm)
+				return MatchSelection(candidates, FuzzyMatcher { query, from -> FuzzySearch.extractTop(query, from, limit, cutoff) }, onConfirm, onRemove)
 			}
-			return MatchSelection(candidates, FuzzyMatcher { query, from -> FuzzySearch.extractTop(query, from, limit) }, onConfirm)
+			return MatchSelection(candidates, FuzzyMatcher { query, from -> FuzzySearch.extractTop(query, from, limit) }, onConfirm, onRemove)
 		}
 
 
@@ -258,6 +314,11 @@ interface MatchSelectionNode {
 
 	val processSelection: (String?) -> Unit
 
+	/** when set, rows get a left justified remove button.
+     * default is null */
+	val onRemove: ((String) -> Unit)?
+		get() = null
+
 	var cutoff: Int?
 	var maxWidth: Double?
 	var limit: Int?
@@ -273,8 +334,8 @@ interface MatchSelectionNode {
 
 	fun getMatcher(candidates: List<String>): MatchSelection {
 		val matcher = limit?.let { topN ->
-			fuzzyTop(candidates, { hideAndProcess(it) }, topN, cutoff)
-		} ?: fuzzySorted(candidates, { hideAndProcess(it) }, cutoff)
+			fuzzyTop(candidates, { hideAndProcess(it) }, topN, cutoff, onRemove)
+		} ?: fuzzySorted(candidates, { hideAndProcess(it) }, cutoff, onRemove)
 		return matcher.also {
 			maxWidth?.let { matcher.maxWidth = it }
 			val cmi = CustomMenuItem(matcher, false)
@@ -285,10 +346,14 @@ interface MatchSelectionNode {
 }
 
 
-open class MatchSelectionMenuButton(private val candidates: List<String>, menuText: String? = null, matcherMaxWidth: Double? = null, override val processSelection: (String?) -> Unit) : MenuButton(menuText), MatchSelectionNode {
+open class MatchSelectionMenuButton(private val candidates: List<String>, menuText: String? = null, matcherMaxWidth: Double? = null, override val onRemove: ((String) -> Unit)? = null, override val processSelection: (String?) -> Unit) : MenuButton(menuText), MatchSelectionNode {
 
 	@JvmOverloads
-	constructor(candidates: List<String>, menuText: String, matcherMaxWidth: Double? = null, processSelection: Consumer<String?>) : this(candidates, menuText, matcherMaxWidth, processSelection::accept)
+	constructor(candidates: List<String>, menuText: String, matcherMaxWidth: Double? = null, processSelection: Consumer<String?>) : this(candidates, menuText, matcherMaxWidth, null, processSelection::accept)
+
+	@JvmOverloads
+	constructor(candidates: List<String>, menuText: String, matcherMaxWidth: Double?, onRemove: Consumer<String>?, processSelection: Consumer<String?>) :
+		this(candidates, menuText, matcherMaxWidth, onRemove?.let { remove -> { value: String -> remove.accept(value) } }, processSelection::accept)
 
 	final override var limit: Int? = null
 	final override var cutoff: Int? = null
@@ -303,7 +368,7 @@ open class MatchSelectionMenuButton(private val candidates: List<String>, menuTe
 	}) { getMatcher(candidates) }
 
 	init {
-		matcher.maxWidth = maxWidth ?: Region.USE_COMPUTED_SIZE
+		matcher.maxWidth = maxWidth ?: USE_COMPUTED_SIZE
 		if (candidates is ObservableList<String>) {
 			disableProperty().bind(candidates.createObservableBinding { it.isEmpty() })
 			candidates.addListener(ListChangeListener {
@@ -321,10 +386,20 @@ open class MatchSelectionMenuButton(private val candidates: List<String>, menuTe
 	}
 }
 
-open class MatchSelectionMenu(private val candidates: List<String>, menuText: String = "", matcherMaxWidth: Double? = null, override val processSelection: (String?) -> Unit) : Menu(menuText), MatchSelectionNode {
+open class MatchSelectionMenu(
+    private val candidates: List<String>,
+    menuText: String = "",
+    matcherMaxWidth: Double? = null,
+    override val onRemove: ((String) -> Unit)? = null,
+    override val processSelection: (String?) -> Unit
+) : Menu(menuText), MatchSelectionNode {
 
 	@JvmOverloads
-	constructor(candidates: List<String>, menuText: String = "", maxWidth: Double? = null, processSelection: Consumer<String?>) : this(candidates, menuText, maxWidth, processSelection::accept)
+	constructor(candidates: List<String>, menuText: String = "", maxWidth: Double? = null, processSelection: Consumer<String?>) : this(candidates, menuText, maxWidth, null, processSelection::accept)
+
+	@JvmOverloads
+	constructor(candidates: List<String>, menuText: String, maxWidth: Double?, onRemove: Consumer<String>?, processSelection: Consumer<String?>) :
+		this(candidates, menuText, maxWidth, onRemove?.let { remove -> { value: String -> remove.accept(value) } }, processSelection::accept)
 
 	final override var limit: Int? = null
 	final override var cutoff: Int? = null
