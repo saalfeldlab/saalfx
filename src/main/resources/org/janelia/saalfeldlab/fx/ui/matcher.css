@@ -3,6 +3,36 @@
     -fx-text-fill: white;
 }
 
+/* rows that carry a remove button highlight the label only, leaving the button's gutter clear */
+.list-cell.has-remove:focused {
+    -fx-background-color: transparent;
+}
+
+.list-cell.has-remove:focused .label {
+    -fx-background-color: #0093ff;
+    -fx-background-radius: 2;
+    -fx-text-fill: white;
+    -fx-padding: 0 4 0 4;
+}
+
 .list-cell:empty {
     -fx-opacity: 0;
+}
+.match-selection-remove {
+    -fx-background-color: #ff5c5c;
+    -fx-background-radius: 2;
+    -fx-border-width: 0;
+    -fx-text-fill: white;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-padding: 1 4 1 4;
+    -fx-cursor: hand;
+}
+
+.match-selection-remove:hover {
+    -fx-background-color: #ff2b2b;
+}
+
+.match-selection-remove:pressed {
+    -fx-background-color: #b00000;
 }
